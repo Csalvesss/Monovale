@@ -64,7 +64,7 @@ export default function PropertyCard({ position, state, onBuy, onDecline, showAc
             <div style={S.tableTitle}>ALUGUEL POR ESTAÇÕES</div>
             {[[1,25],[2,50],[3,100],[4,200]].map(([n, r]) => (
               <div key={n} style={S.rentRow}>
-                <span>{n} Estação{n > 1 ? 'ões' : ''}</span>
+                <span>{n} {n > 1 ? 'Estações' : 'Estação'}</span>
                 <span style={{ fontWeight: 800 }}>R${r}</span>
               </div>
             ))}

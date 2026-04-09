@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Map, RefreshCw, LayoutGrid, Users, FileText, Key } from 'lucide-react';
+import { RefreshCw, LayoutGrid, Users, FileText, Key, HelpCircle } from 'lucide-react';
 import Lobby from './components/Lobby';
 import Board from './components/Board';
 import PlayerPanel from './components/PlayerPanel';
 import EventLog from './components/EventLog';
 import ActionPanel from './components/ActionPanel';
 import AuctionModal from './components/AuctionModal';
+import HelpModal from './components/HelpModal';
 import TradeModal from './components/TradeModal';
 import EndScreen from './components/EndScreen';
 import LoginScreen from './components/LoginScreen';
@@ -110,6 +111,7 @@ export default function App() {
   });
 
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [finishedGameId, setFinishedGameId] = useState<string | null>(null);
 
   // Real-time room game flags
@@ -332,6 +334,7 @@ export default function App() {
       {gameState.phase === 'ended' && (
         <EndScreen state={gameState} onNewGame={clearGame} />
       )}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       {showConfirm && (
         <div style={S.overlay}>
           <div style={S.confirmBox}>
@@ -367,6 +370,9 @@ export default function App() {
       </div>
       <div style={S.topRight}>
         {!isMobile && <span style={S.bankerTag}>Banco Sr. Marinho</span>}
+        <button onClick={() => setShowHelp(true)} style={S.helpBtn} title="Como jogar">
+          <HelpCircle size={16} />
+        </button>
         <button onClick={() => gameState?.phase === 'playing' ? setShowConfirm(true) : clearGame()} style={S.newGameBtn}>
           <RefreshCw size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: isMobile ? 0 : 5 }} />
           {!isMobile && 'Sair'}
@@ -464,6 +470,7 @@ const S: Record<string, React.CSSProperties> = {
   roomCodeBadge: { fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '3px 10px', color: '#fff', letterSpacing: '1px' },
   topRight: { display: 'flex', alignItems: 'center', gap: 10 },
   bankerTag: { fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.65)' },
+  helpBtn: { width: 32, height: 32, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0 },
   newGameBtn: { padding: '7px 14px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 99, fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
 
   layout: { flex: 1, display: 'flex', gap: 10, padding: '10px', overflow: 'hidden', minHeight: 0 },
