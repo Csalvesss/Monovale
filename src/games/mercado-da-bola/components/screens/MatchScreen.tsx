@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMB } from '../../store/gameStore';
 import { calcDefenseTokens, getTeamRating } from '../../utils/matchEngine';
 import { getTeam } from '../../data/teams';
+import TeamBadge from '../ui/TeamBadge';
+import MoneyDisplay from '../ui/MoneyDisplay';
+import MatchEvent from '../ui/MatchEvent';
+import type { EventType } from '../ui/MatchEvent';
+import { Badge } from '../../../../components/ui/badge';
+import { Card } from '../../../../components/ui/card';
+import { Tooltip } from '../../../../components/ui/tooltip';
+import { cn } from '../../../../lib/utils';
+import {
+  Play, Trophy, TrendingUp, Target, Shield,
+  Smile, DollarSign, Minus, Home, Plane,
+  AlertTriangle, Medal, ChevronRight, Swords,
+} from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -10,23 +23,27 @@ function getAvgMorale(squad: import('../../types').Player[]): number {
   return Math.round(squad.reduce((s, p) => s + p.moodPoints, 0) / squad.length);
 }
 
-function resultColor(winner: 'home' | 'away' | 'draw', isHome: boolean): string {
-  if (winner === 'draw') return '#94a3b8';
+function resultColor(winner: 'home' | 'away' | 'draw', isHome: boolean) {
+  if (winner === 'draw') return { text: 'text-slate-400', bg: 'bg-slate-700/30', border: 'border-slate-600' };
   const iWon = (winner === 'home' && isHome) || (winner === 'away' && !isHome);
-  return iWon ? '#4ade80' : '#f87171';
+  return iWon
+    ? { text: 'text-emerald-400', bg: 'bg-emerald-600/10', border: 'border-emerald-600/30' }
+    : { text: 'text-red-400',     bg: 'bg-red-600/10',     border: 'border-red-600/30' };
 }
 
-function resultLabel(winner: 'home' | 'away' | 'draw', isHome: boolean): string {
+function resultLabel(winner: 'home' | 'away' | 'draw', isHome: boolean) {
   if (winner === 'draw') return 'EMPATE';
   const iWon = (winner === 'home' && isHome) || (winner === 'away' && !isHome);
   return iWon ? 'VITÓRIA' : 'DERROTA';
 }
 
-function narrativeIcon(line: string): string {
-  if (line.startsWith('⚽') || line.startsWith('🧤') || line.startsWith('😰') ||
-      line.startsWith('🛡️') || line.startsWith('🏆') || line.startsWith('🤝') ||
-      line.startsWith('😢') || line.startsWith('🎫')) return '';
-  return '▸';
+function classifyLine(line: string): EventType {
+  if (line.includes('GOL') || line.includes('gol') || line.includes('Golaço') || line.includes('placar')) return 'goal';
+  if (line.includes('defende') || line.includes('Defesa') || line.includes('goleiro')) return 'defense';
+  if (line.includes('bloqueado') || line.includes('Bloqueio') || line.includes('trave')) return 'blocked';
+  if (line.includes('adversário') || line.includes('sofre') || line.includes('sofreu')) return 'opponent_goal';
+  if (line.includes('ataque') || line.includes('Ataque') || line.includes('chute')) return 'attack';
+  return 'info';
 }
 
 // ─── Pre-match panel ──────────────────────────────────────────────────────────
@@ -34,134 +51,164 @@ function narrativeIcon(line: string): string {
 function PreMatchView() {
   const { state, playMatch } = useMB();
   const save = state.save!;
+  const [animating, setAnimating] = useState(false);
 
   const nextFixtureIndex = save.fixtures.findIndex(f => !f.played);
   const fixture = nextFixtureIndex >= 0 ? save.fixtures[nextFixtureIndex] : null;
 
   if (!fixture) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40, textAlign: 'center' }}>
-        <span style={{ fontSize: 48 }}>🏆</span>
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#fde68a' }}>Temporada Concluída!</div>
-        <div style={{ fontSize: 14, color: '#94a3b8' }}>Todos os jogos da temporada foram disputados.</div>
-        <div style={{ fontSize: 13, color: '#64748b' }}>Acesse a Tabela para conferir a classificação final.</div>
+      <div className="flex flex-col items-center justify-center gap-4 p-10 text-center">
+        <Trophy size={52} className="text-amber-400" />
+        <h3 className="text-xl font-black text-amber-400">Temporada Concluída!</h3>
+        <p className="text-sm text-slate-400">Todos os jogos foram disputados.</p>
+        <p className="text-xs text-slate-500">Acesse a Tabela para ver a classificação final.</p>
       </div>
     );
   }
 
-  const myTeamId = save.myTeamId;
-  const isHome = fixture.homeTeamId === myTeamId;
-  const opponentId = isHome ? fixture.awayTeamId : fixture.homeTeamId;
-  const myTeam = getTeam(myTeamId);
-  const opponent = getTeam(opponentId);
+  const myTeamId    = save.myTeamId;
+  const isHome      = fixture.homeTeamId === myTeamId;
+  const opponentId  = isHome ? fixture.awayTeamId : fixture.homeTeamId;
+  const myTeam      = getTeam(myTeamId);
+  const opponent    = getTeam(opponentId);
   const opponentRating = opponent ? Math.round(opponent.reputation * 0.85) : 60;
 
-  const defTokens = calcDefenseTokens(save.mySquad);
+  const defTokens  = calcDefenseTokens(save.mySquad);
   const teamRating = getTeamRating(save.mySquad);
-  const avgMorale = getAvgMorale(save.mySquad);
+  const avgMorale  = getAvgMorale(save.mySquad);
 
-  const moraleColor = avgMorale >= 75 ? '#4ade80' : avgMorale >= 50 ? '#facc15' : '#f87171';
-  const ratingDiff = teamRating - opponentRating;
-  const favoriteLabel = ratingDiff > 8 ? '✅ Favorito' : ratingDiff < -8 ? '⚠️ Azarão' : '⚖️ Equilíbrado';
+  const ratingDiff  = teamRating - opponentRating;
+  const favoriteLabel = ratingDiff > 8 ? 'Favorito' : ratingDiff < -8 ? 'Azarão' : 'Equilíbrado';
+  const favoriteVariant = ratingDiff > 8 ? 'success' : ratingDiff < -8 ? 'destructive' : 'default';
+
+  // Win probability estimate
+  const winProb = Math.min(90, Math.max(10, 50 + ratingDiff * 1.2));
+
+  function handlePlay() {
+    setAnimating(true);
+    setTimeout(() => {
+      playMatch(nextFixtureIndex);
+      setAnimating(false);
+    }, 300);
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px 24px' }}>
-
+    <div className="flex flex-col gap-4 p-4 pb-8">
       {/* Round badge */}
-      <div style={{ textAlign: 'center' }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>
-          Rodada {fixture.round} · {isHome ? 'Casa' : 'Fora'}
-        </span>
+      <div className="text-center">
+        <Badge variant="secondary" className="px-4 py-1.5 text-xs">
+          Rodada {fixture.round} · {isHome ? 'Mandante' : 'Visitante'}
+        </Badge>
       </div>
 
       {/* Match card */}
-      <div style={{ background: '#1e293b', borderRadius: 16, padding: 20, border: '1px solid #334155' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-
+      <Card className="p-5">
+        <div className="flex items-center gap-3">
           {/* My team */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 32 }}>{myTeam?.badge ?? '⚽'}</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', textAlign: 'center' }}>{myTeam?.name ?? 'Meu Time'}</div>
-            <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center' }}>
-              {isHome ? '🏠 Mandante' : '✈️ Visitante'}
-            </div>
+          <div className="flex-1 flex flex-col items-center gap-2">
+            {myTeam ? <TeamBadge team={myTeam} size={52} /> : <div className="h-13 w-13 rounded-full bg-slate-700" />}
+            <span className="text-sm font-black text-slate-100 text-center">{myTeam?.name ?? 'Meu Time'}</span>
+            <Badge variant={isHome ? 'success' : 'secondary'}>
+              {isHome ? <><Home size={9} /> Casa</> : <><Plane size={9} /> Fora</>}
+            </Badge>
           </div>
 
-          {/* VS */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#475569' }}>VS</div>
-            <div style={{
-              fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-              background: ratingDiff > 8 ? '#14532d' : ratingDiff < -8 ? '#7f1d1d' : '#1e3a5f',
-              color: ratingDiff > 8 ? '#4ade80' : ratingDiff < -8 ? '#f87171' : '#93c5fd',
-            }}>
+          {/* VS + favorite */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <span className="text-2xl font-black text-slate-600">VS</span>
+            <Badge variant={favoriteVariant}>
+              <TrendingUp size={9} />
               {favoriteLabel}
+            </Badge>
+            <div className="text-center">
+              <div className="text-lg font-black" style={{ color: winProb >= 60 ? '#22c55e' : winProb <= 40 ? '#ef4444' : '#eab308' }}>
+                {Math.round(winProb)}%
+              </div>
+              <div className="text-[9px] text-slate-500 whitespace-nowrap">chance de vitória</div>
             </div>
           </div>
 
           {/* Opponent */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 32 }}>{opponent?.badge ?? '⚽'}</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', textAlign: 'center' }}>{opponent?.name ?? 'Adversário'}</div>
-            <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center' }}>
-              Rating: {opponentRating}
-            </div>
+          <div className="flex-1 flex flex-col items-center gap-2">
+            {opponent && <TeamBadge team={opponent} size={52} />}
+            <span className="text-sm font-black text-slate-100 text-center">{opponent?.name ?? 'Adversário'}</span>
+            <Badge variant="secondary">Rating: {opponentRating}</Badge>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Team stats */}
-      <div style={{ background: '#1e293b', borderRadius: 14, padding: 16, border: '1px solid #334155' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-          Seu elenco
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <StatBlock label="Rating" value={teamRating} color="#60a5fa" />
-          <StatBlock label="Fichas Def." value={defTokens} color="#f59e0b" />
-          <StatBlock label="Moral Médio" value={avgMorale} color={moraleColor} unit="%" />
+      {/* Squad stats */}
+      <Card className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Seu Elenco</p>
+        <div className="grid grid-cols-3 gap-3">
+          <StatBlock
+            icon={TrendingUp} label="Rating" value={teamRating} color="#60a5fa"
+          />
+          <Tooltip content="Fichas que bloqueiam posições do gol adversário por partida">
+            <StatBlock
+              icon={Shield} label="Fichas Def." value={defTokens} color="#f59e0b"
+            />
+          </Tooltip>
+          <StatBlock
+            icon={Smile} label="Moral" value={avgMorale}
+            color={avgMorale >= 75 ? '#22c55e' : avgMorale >= 50 ? '#eab308' : '#ef4444'}
+            unit="%"
+          />
         </div>
         {save.mySquad.some(p => p.injured) && (
-          <div style={{ marginTop: 10, fontSize: 11, color: '#f87171', fontWeight: 600 }}>
-            🚑 {save.mySquad.filter(p => p.injured).length} jogador(es) lesionado(s)
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-600/10 border border-red-600/20 px-3 py-2">
+            <AlertTriangle size={12} className="text-red-400 shrink-0" />
+            <p className="text-xs text-red-400">
+              {save.mySquad.filter(p => p.injured).length} jogador(es) lesionado(s)
+            </p>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Play button */}
       <button
-        onClick={() => playMatch(nextFixtureIndex)}
-        style={{
-          background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-          border: 'none', borderRadius: 14, padding: '18px 24px',
-          color: '#fff', fontSize: 18, fontWeight: 900, cursor: 'pointer',
-          fontFamily: 'var(--font-body)', letterSpacing: 0.5,
-          boxShadow: '0 4px 20px rgba(37,99,235,0.5)',
-          transition: 'all 0.15s',
-          width: '100%',
-        }}
+        onClick={handlePlay}
+        disabled={animating}
+        className={cn(
+          'flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-xl font-black text-white transition-all',
+          'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600',
+          'shadow-xl shadow-blue-600/40 active:scale-[0.98]',
+          animating && 'opacity-75 cursor-not-allowed'
+        )}
       >
-        ⚽ JOGAR PARTIDA
+        {animating ? (
+          <div className="h-6 w-6 rounded-full border-3 border-white/30 border-t-white animate-spin" />
+        ) : (
+          <Play size={22} />
+        )}
+        JOGAR PARTIDA
       </button>
 
-      {/* Mechanics explanation */}
-      <div style={{ background: '#1e293b', borderRadius: 14, padding: 16, border: '1px solid #334155' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-          Como funciona
+      {/* How it works */}
+      <Card className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Como Funciona</p>
+        <div className="flex flex-col gap-3">
+          {[
+            { icon: Swords,  text: '3 fases de ataque por time a cada partida.' },
+            { icon: Target,  text: 'Cada ataque mira uma das 16 posições do gol.' },
+            { icon: Shield,  text: `Suas ${defTokens} fichas de defesa bloqueiam posições aleatórias do adversário.` },
+            { icon: TrendingUp, text: 'Rating do elenco aumenta a chance de gol em cada ataque.' },
+            { icon: Smile,   text: 'Jogadores motivados rendem até 10% a mais.' },
+            { icon: DollarSign, text: 'Vitórias geram receitas de patrocínio e bilheteria.' },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-start gap-3">
+              <Icon size={14} className="text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-400 leading-relaxed">{text}</p>
+            </div>
+          ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <MechanicRow icon="⚔️" text="3 fases de ataque por time a cada partida." />
-          <MechanicRow icon="🎯" text="Cada ataque mira uma das 16 posições do gol." />
-          <MechanicRow icon="🛡️" text={`Suas fichas de defesa (${defTokens}) bloqueiam posições aleatórias do adversário.`} />
-          <MechanicRow icon="⭐" text="Rating do elenco aumenta a chance de gol em cada ataque." />
-          <MechanicRow icon="😊" text="Jogadores motivados rendem até 10% a mais." />
-          <MechanicRow icon="💰" text="Vitórias geram receitas de patrocínio e bilheteria." />
-        </div>
-      </div>
+      </Card>
     </div>
   );
 }
 
-// ─── Post-match panel ─────────────────────────────────────────────────────────
+// ─── Post-match animated panel ────────────────────────────────────────────────
 
 function PostMatchView() {
   const { state, setScreen } = useMB();
@@ -171,176 +218,201 @@ function PostMatchView() {
 
   const lastPlayedFixture = [...save.fixtures].reverse().find(f => f.played);
   const myTeamId = save.myTeamId;
-  const isHome = lastPlayedFixture?.homeTeamId === myTeamId;
-  const myGoals = isHome ? result.homeGoals : result.awayGoals;
-  const opGoals = isHome ? result.awayGoals : result.homeGoals;
-
-  const color = resultColor(result.winner, isHome ?? true);
-  const label = resultLabel(result.winner, isHome ?? true);
+  const isHome   = lastPlayedFixture?.homeTeamId === myTeamId;
+  const myGoals  = isHome ? result.homeGoals : result.awayGoals;
+  const opGoals  = isHome ? result.awayGoals : result.homeGoals;
 
   const opponentId = lastPlayedFixture
     ? (isHome ? lastPlayedFixture.awayTeamId : lastPlayedFixture.homeTeamId)
     : '';
-  const opponent = getTeam(opponentId);
+  const opponent  = getTeam(opponentId);
+  const colors    = resultColor(result.winner, isHome ?? true);
+  const label     = resultLabel(result.winner, isHome ?? true);
 
-  // Top XP earners
   const xpList = Object.entries(result.xpEarned)
     .map(([id, xp]) => ({ player: save.mySquad.find(p => p.id === id), xp }))
     .filter(e => e.player !== undefined)
     .sort((a, b) => b.xp - a.xp)
     .slice(0, 3) as { player: import('../../types').Player; xp: number }[];
 
+  // Animated narrative reveal
+  const [revealed, setRevealed] = useState<number>(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    setRevealed(0);
+    const reveal = (idx: number) => {
+      if (idx >= narrative.length) return;
+      timerRef.current = setTimeout(() => {
+        setRevealed(idx + 1);
+        reveal(idx + 1);
+      }, 700);
+    };
+    reveal(0);
+    return () => clearTimeout(timerRef.current);
+  }, [narrative]);
+
+  const isVictory = label === 'VITÓRIA';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px 24px' }}>
+    <div className="flex flex-col gap-4 p-4 pb-8">
 
-      {/* Result banner */}
-      <div style={{
-        background: '#1e293b', borderRadius: 16, padding: 20,
-        border: `2px solid ${color}33`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>
+      {/* ── Result banner ── */}
+      <div className={cn('rounded-2xl border p-6 flex flex-col items-center gap-3', colors.bg, colors.border)}>
+        <span className="text-xs font-black uppercase tracking-widest text-slate-500">
           {opponent?.name ?? 'Adversário'}
+        </span>
+        <div className={cn('text-6xl font-black tracking-widest animate-score-reveal', colors.text)}>
+          {myGoals} <span className="text-slate-600 text-5xl">x</span> {opGoals}
         </div>
-        <div style={{ fontSize: 52, fontWeight: 900, color, letterSpacing: 4, lineHeight: 1 }}>
-          {myGoals} x {opGoals}
-        </div>
-        <div style={{
-          fontSize: 13, fontWeight: 800, color,
-          background: color + '20', padding: '4px 14px', borderRadius: 99,
-        }}>
-          {label}
-        </div>
-      </div>
-
-      {/* Earnings */}
-      <div style={{ background: '#1e293b', borderRadius: 14, padding: 16, border: '1px solid #334155' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-          Receitas
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <EarningRow icon="💼" label="Patrocínio" value={result.sponsorEarned} />
-          {result.ticketRevenue > 0 && (
-            <EarningRow icon="🎫" label="Bilheteria" value={result.ticketRevenue} />
+        <Badge
+          className={cn(
+            'text-sm px-5 py-1.5 rounded-full font-black',
+            isVictory ? 'bg-emerald-600/20 text-emerald-400 border-emerald-600/30' :
+            label === 'EMPATE' ? 'bg-slate-600/20 text-slate-400 border-slate-600/30' :
+            'bg-red-600/20 text-red-400 border-red-600/30'
           )}
-          <div style={{ borderTop: '1px solid #334155', paddingTop: 8, marginTop: 4 }}>
-            <EarningRow icon="💰" label="Total" value={result.sponsorEarned + result.ticketRevenue} highlight />
-          </div>
-        </div>
+        >
+          {label}
+        </Badge>
       </div>
 
-      {/* Narrative */}
-      <div style={{ background: '#1e293b', borderRadius: 14, padding: 16, border: '1px solid #334155' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-          Lances da Partida
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {narrative.map((line, i) => (
-            <div key={i} style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5, display: 'flex', gap: 6 }}>
-              <span style={{ color: '#475569', flexShrink: 0 }}>{narrativeIcon(line)}</span>
-              <span>{line}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Top XP earners */}
-      {xpList.length > 0 && (
-        <div style={{ background: '#1e293b', borderRadius: 14, padding: 16, border: '1px solid #334155' }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-            Destaques da Partida
+      {/* ── Earnings ── */}
+      <Card className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Receitas</p>
+        <div className="flex flex-col gap-2">
+          <EarningRow icon={DollarSign} label="Patrocínio" value={result.sponsorEarned} />
+          {result.ticketRevenue > 0 && (
+            <EarningRow icon={Trophy} label="Bilheteria" value={result.ticketRevenue} />
+          )}
+          <div className="border-t border-slate-700 pt-2 mt-1">
+            <EarningRow icon={DollarSign} label="Total" value={result.sponsorEarned + result.ticketRevenue} highlight />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {xpList.map(({ player, xp }, idx) => (
-              <div key={player.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 24, height: 24, borderRadius: 99,
-                  background: idx === 0 ? '#d97706' : idx === 1 ? '#475569' : '#64381a',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 900, color: '#fff', flexShrink: 0,
-                }}>
-                  {idx + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{player.name}</div>
-                  <div style={{ fontSize: 10, color: '#94a3b8' }}>{player.position} · Nv.{player.level}</div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#a78bfa' }}>+{xp} XP</div>
+        </div>
+      </Card>
+
+      {/* ── Match narrative timeline ── */}
+      <Card className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Lances da Partida</p>
+        <div className="relative pl-5">
+          {/* Vertical timeline line */}
+          <div className="absolute left-1.5 top-0 bottom-0 w-px bg-slate-700" />
+          <div className="flex flex-col gap-2">
+            {narrative.slice(0, revealed).map((line, i) => (
+              <div key={i} className="relative">
+                {/* Timeline dot */}
+                <div className={cn(
+                  'absolute -left-[18px] top-3 h-2 w-2 rounded-full border',
+                  classifyLine(line) === 'goal' ? 'bg-emerald-400 border-emerald-600' :
+                  classifyLine(line) === 'defense' ? 'bg-blue-400 border-blue-600' :
+                  classifyLine(line) === 'opponent_goal' ? 'bg-red-400 border-red-600' :
+                  'bg-slate-600 border-slate-700'
+                )} />
+                <MatchEvent
+                  type={classifyLine(line)}
+                  text={line}
+                  delay={i * 50}
+                />
               </div>
             ))}
+            {revealed < narrative.length && (
+              <div className="flex items-center gap-2 text-xs text-slate-500 animate-pulse">
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce" />
+                Simulando...
+              </div>
+            )}
           </div>
         </div>
+      </Card>
+
+      {/* ── XP highlights ── */}
+      {xpList.length > 0 && revealed >= narrative.length && (
+        <Card className="p-4 animate-fade-up">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Destaques da Partida</p>
+          <div className="flex flex-col gap-3">
+            {xpList.map(({ player, xp }, idx) => {
+              const medalColor = idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : '#cd7f32';
+              return (
+                <div key={player.id} className="flex items-center gap-3">
+                  <div
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                    style={{ background: medalColor }}
+                  >
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-100 truncate">{player.name}</p>
+                    <p className="text-[10px] text-slate-500">{player.position} · Nv.{player.level}</p>
+                  </div>
+                  <span className="text-sm font-black text-purple-400">+{xp} XP</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       )}
 
-      {/* Action buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <button
-          onClick={() => setScreen('match')}
-          style={{
-            background: '#1e3a5f', border: '1px solid #1d4ed8', borderRadius: 12,
-            color: '#93c5fd', fontSize: 13, fontWeight: 700, padding: '14px 8px',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-          }}
-        >
-          ⚽ Próxima Partida
-        </button>
-        <button
-          onClick={() => setScreen('standings')}
-          style={{
-            background: '#1e293b', border: '1px solid #334155', borderRadius: 12,
-            color: '#f1f5f9', fontSize: 13, fontWeight: 700, padding: '14px 8px',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-          }}
-        >
-          📊 Ver Tabela
-        </button>
-      </div>
+      {/* ── Action buttons ── */}
+      {revealed >= narrative.length && (
+        <div className="grid grid-cols-2 gap-3 animate-fade-up">
+          <button
+            onClick={() => setScreen('match')}
+            className="flex items-center justify-center gap-2 rounded-xl border border-blue-700/40 bg-blue-600/10 py-3.5 text-sm font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
+          >
+            <Swords size={15} /> Próxima
+          </button>
+          <button
+            onClick={() => setScreen('standings')}
+            className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 py-3.5 text-sm font-bold text-slate-300 hover:bg-slate-700 transition-colors"
+          >
+            <Trophy size={15} /> Ver Tabela
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatBlock({ label, value, color, unit = '' }: { label: string; value: number; color: string; unit?: string }) {
+function StatBlock({ icon: Icon, label, value, color, unit = '' }: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string; value: number; color: string; unit?: string;
+}) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: '#0f172a', borderRadius: 10, padding: '10px 8px' }}>
-      <div style={{ fontSize: 20, fontWeight: 900, color }}>{value}{unit}</div>
-      <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>{label}</div>
+    <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[#0f172a] p-3">
+      <Icon size={14} style={{ color }} />
+      <span className="text-xl font-black" style={{ color }}>{value}{unit}</span>
+      <span className="text-[9px] font-bold uppercase tracking-wide text-slate-500 text-center">{label}</span>
     </div>
   );
 }
 
-function MechanicRow({ icon, text }: { icon: string; text: string }) {
+function EarningRow({ icon: Icon, label, value, highlight = false }: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string; value: number; highlight?: boolean;
+}) {
   return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-      <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1.4 }}>{icon}</span>
-      <span style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>{text}</span>
-    </div>
-  );
-}
-
-function EarningRow({ icon, label, value, highlight = false }: { icon: string; label: string; value: number; highlight?: boolean }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 14 }}>{icon}</span>
-        <span style={{ fontSize: 12, color: highlight ? '#f1f5f9' : '#94a3b8', fontWeight: highlight ? 700 : 400 }}>{label}</span>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Icon size={14} className={highlight ? 'text-emerald-400' : 'text-slate-500'} />
+        <span className={cn('text-sm', highlight ? 'font-black text-slate-100' : 'text-slate-400')}>
+          {label}
+        </span>
       </div>
-      <span style={{ fontSize: 13, fontWeight: 800, color: value > 0 ? '#4ade80' : '#94a3b8' }}>
-        +${value.toLocaleString('pt-BR')}k
-      </span>
+      <MoneyDisplay amount={value} showSign size={highlight ? 'md' : 'sm'} />
     </div>
   );
 }
 
-// ─── Root component ───────────────────────────────────────────────────────────
+// ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function MatchScreen() {
   const { state } = useMB();
 
   if (!state.save) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
+      <div className="flex h-full items-center justify-center text-slate-500">
         Carregando…
       </div>
     );
@@ -349,22 +421,20 @@ export default function MatchScreen() {
   const showResult = state.lastMatchResult !== null && state.matchPhase === 'result';
 
   return (
-    <div style={{ background: '#0f172a', minHeight: '100%' }}>
+    <div className="bg-[#0f172a] min-h-full">
       {/* Screen header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-        padding: '16px 16px 0',
-        borderBottom: '1px solid #1e293b',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 14 }}>
-          <span style={{ fontSize: 22 }}>⚽</span>
+      <div className="sticky top-0 z-10 bg-[#0f172a]/90 backdrop-blur-sm border-b border-slate-800">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/20 border border-blue-600/30">
+            <Swords size={14} className="text-blue-400" />
+          </div>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 900, color: '#f1f5f9' }}>
-              {showResult ? 'Resultado da Partida' : 'Próxima Partida'}
-            </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <h2 className="text-[15px] font-black text-slate-100">
+              {showResult ? 'Resultado' : 'Próxima Partida'}
+            </h2>
+            <p className="text-[10px] text-slate-500">
               Temporada {state.save.currentSeason} · Rodada {state.save.currentRound}
-            </div>
+            </p>
           </div>
         </div>
       </div>

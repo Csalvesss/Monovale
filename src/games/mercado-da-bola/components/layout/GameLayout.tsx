@@ -1,109 +1,134 @@
 import React, { useEffect } from 'react';
 import { useMB } from '../../store/gameStore';
 import type { MBScreen } from '../../types';
+import {
+  Home, Users, ArrowLeftRight, Swords, BarChart2, Rss,
+  DollarSign, Building2, Star, X, Trophy, TrendingUp,
+  ChevronLeft,
+} from 'lucide-react';
+import { cn } from '../../../../lib/utils';
 
 interface NavItem {
   screen: MBScreen;
-  icon: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
 }
 
 const NAV: NavItem[] = [
-  { screen: 'home',      icon: '🏠', label: 'Início'    },
-  { screen: 'squad',     icon: '👕', label: 'Elenco'    },
-  { screen: 'market',    icon: '🔄', label: 'Mercado'   },
-  { screen: 'match',     icon: '⚽', label: 'Partida'   },
-  { screen: 'standings', icon: '📊', label: 'Tabela'    },
-  { screen: 'social',    icon: '📱', label: 'Social'    },
-  { screen: 'sponsor',   icon: '💰', label: 'Patrocínio'},
-  { screen: 'stadium',   icon: '🏟️', label: 'Estádio'  },
+  { screen: 'home',      icon: Home,          label: 'Início'     },
+  { screen: 'squad',     icon: Users,         label: 'Elenco'     },
+  { screen: 'market',    icon: ArrowLeftRight, label: 'Mercado'   },
+  { screen: 'match',     icon: Swords,        label: 'Partida'    },
+  { screen: 'standings', icon: BarChart2,     label: 'Tabela'     },
+  { screen: 'social',    icon: Rss,           label: 'Social'     },
+  { screen: 'sponsor',   icon: DollarSign,    label: 'Patrocínio' },
+  { screen: 'stadium',   icon: Building2,     label: 'Estádio'    },
 ];
+
+const NOTIF_STYLES: Record<string, { bar: string; text: string; icon: typeof Star | null }> = {
+  success:   { bar: 'bg-emerald-600/20 border-emerald-600/40', text: 'text-emerald-300', icon: null },
+  error:     { bar: 'bg-red-600/20 border-red-600/40',         text: 'text-red-300',     icon: null },
+  info:      { bar: 'bg-blue-600/20 border-blue-600/40',       text: 'text-blue-300',    icon: null },
+  legendary: { bar: 'bg-amber-600/20 border-amber-600/40',     text: 'text-amber-300',   icon: Star },
+};
 
 export default function GameLayout({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
   const { state, setScreen, dismissNotification } = useMB();
-  const { notification } = state;
+  const { notification, screen: currentScreen } = state;
 
-  // Auto-dismiss notification
   useEffect(() => {
     if (!notification) return;
     const t = setTimeout(dismissNotification, notification.type === 'legendary' ? 8000 : 3000);
     return () => clearTimeout(t);
   }, [notification, dismissNotification]);
 
-  const notifColors: Record<string, { bg: string; color: string; border: string }> = {
-    success:  { bg: '#064e3b', color: '#6ee7b7', border: '#065f46' },
-    error:    { bg: '#7f1d1d', color: '#fca5a5', border: '#991b1b' },
-    info:     { bg: '#1e3a5f', color: '#93c5fd', border: '#1d4ed8' },
-    legendary:{ bg: '#78350f', color: '#fde68a', border: '#d97706' },
-  };
-  const nc = notifColors[notification?.type ?? 'info'];
+  const isPlayerDetail = currentScreen === 'player-detail';
+  const ns = NOTIF_STYLES[notification?.type ?? 'info'];
+
+  const budget = state.save?.budget ?? 0;
+  const budgetFormatted = new Intl.NumberFormat('pt-BR').format(budget);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0f172a', fontFamily: 'var(--font-body)', color: '#f1f5f9', overflow: 'hidden' }}>
-      {/* Top bar */}
-      <div style={{ height: 50, background: 'linear-gradient(90deg, #1e3a5f, #1e40af)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', flexShrink: 0, zIndex: 20 }}>
-        <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-          ← Sair
+    <div className="flex flex-col h-dvh bg-[#0f172a] font-sans text-slate-100 overflow-hidden">
+
+      {/* ── Top bar ── */}
+      <header className="flex h-[52px] shrink-0 items-center justify-between bg-gradient-to-r from-slate-900 to-[#1e3a5f] border-b border-slate-700/50 px-4 z-20">
+        <button
+          onClick={isPlayerDetail ? () => state.save && setScreen('squad') : onBack}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-bold text-white/80 hover:bg-white/10 transition-colors"
+        >
+          <ChevronLeft size={14} />
+          {isPlayerDetail ? 'Elenco' : 'Sair'}
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }}>⚽</span>
-          <span style={{ fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: 16, color: '#fff' }}>Lenda da Bola</span>
-        </div>
-        {state.save && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#fde68a' }}>
-            💰 ${state.save.budget.toLocaleString('pt-BR')}k
+
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600/20 border border-blue-600/30">
+            <Trophy size={14} className="text-blue-400" />
           </div>
+          <span className="font-black text-[15px] text-white tracking-tight"
+            style={{ fontFamily: 'var(--font-title)' }}>
+            Lenda da Bola
+          </span>
+        </div>
+
+        {state.save ? (
+          <div className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5">
+            <DollarSign size={12} className="text-amber-400" />
+            <span className="text-xs font-black text-amber-400">${budgetFormatted}k</span>
+          </div>
+        ) : (
+          <div className="w-[72px]" />
         )}
-      </div>
+      </header>
 
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      {/* ── Content ── */}
+      <main className="flex-1 overflow-y-auto relative">
         {children}
-      </div>
+      </main>
 
-      {/* Bottom nav */}
-      <nav style={{ background: '#1e293b', borderTop: '1px solid #334155', display: 'flex', flexShrink: 0, overflowX: 'auto', zIndex: 20 }}>
-        {NAV.map(item => {
-          const active = state.screen === item.screen;
-          return (
-            <button
-              key={item.screen}
-              onClick={() => setScreen(item.screen)}
-              style={{
-                flex: '0 0 auto', minWidth: 60,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: 2, padding: '8px 10px',
-                background: active ? 'rgba(59,130,246,0.2)' : 'none',
-                border: 'none', borderTop: active ? '2px solid #3b82f6' : '2px solid transparent',
-                cursor: 'pointer', color: active ? '#60a5fa' : '#94a3b8',
-                fontFamily: 'var(--font-body)',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>{item.label}</span>
-            </button>
-          );
-        })}
+      {/* ── Bottom nav ── */}
+      <nav className="shrink-0 border-t border-slate-700/50 bg-slate-900 z-20 overflow-x-auto">
+        <div className="flex min-w-max">
+          {NAV.map(item => {
+            const Icon = item.icon;
+            const isActive = currentScreen === item.screen ||
+              (item.screen === 'squad' && currentScreen === 'player-detail');
+            return (
+              <button
+                key={item.screen}
+                onClick={() => setScreen(item.screen)}
+                className={cn(
+                  'flex min-w-[60px] flex-col items-center justify-center gap-1 px-3 py-2.5 transition-all duration-150 border-t-2',
+                  isActive
+                    ? 'border-blue-500 bg-blue-600/10 text-blue-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                )}
+              >
+                <Icon size={18} />
+                <span className="text-[9px] font-bold tracking-wide whitespace-nowrap">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* Notification toast */}
+      {/* ── Notification toast ── */}
       {notification && (
         <div
           onClick={dismissNotification}
-          style={{
-            position: 'fixed', bottom: 72, left: '50%', transform: 'translateX(-50%)',
-            background: nc.bg, color: nc.color, border: `1px solid ${nc.border}`,
-            borderRadius: 12, padding: '12px 20px',
-            maxWidth: 360, width: 'calc(100% - 32px)',
-            fontSize: 13, fontWeight: 700, textAlign: 'center',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            zIndex: 1000, cursor: 'pointer',
-            animation: 'pop-in 0.25s ease',
-          }}
+          className={cn(
+            'fixed bottom-[72px] left-1/2 z-50 -translate-x-1/2 cursor-pointer',
+            'w-[calc(100%-32px)] max-w-sm rounded-2xl border px-4 py-3',
+            'flex items-center gap-3 shadow-2xl shadow-black/50',
+            'animate-pop-in',
+            ns.bar
+          )}
         >
-          {notification.type === 'legendary' && <div style={{ fontSize: 24, marginBottom: 4 }}>🌟</div>}
-          {notification.message}
+          {notification.type === 'legendary' && (
+            <Star size={18} className="text-amber-400 fill-amber-400 shrink-0 animate-pulse" />
+          )}
+          <p className={cn('flex-1 text-sm font-bold', ns.text)}>{notification.message}</p>
+          <X size={14} className="shrink-0 text-slate-400 hover:text-slate-200" />
         </div>
       )}
     </div>

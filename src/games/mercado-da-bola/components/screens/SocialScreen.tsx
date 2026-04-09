@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useMB } from '../../store/gameStore';
 import type { NewsPost } from '../../types';
+import { cn } from '../../../../lib/utils';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/tabs';
+import { Badge } from '../../../../components/ui/badge';
+import { Progress } from '../../../../components/ui/progress';
+import {
+  Globe, Camera, Bird, Newspaper, Shield,
+  Heart, MessageCircle, Users, Star, Share2,
+} from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,89 +31,64 @@ function timeAgo(timestamp: number): string {
   return `${Math.floor(days / 7)}sem`;
 }
 
-const PLATFORM_ICON: Record<string, string> = {
-  instagram: '📸',
-  twitter:   '🐦',
-  report:    '📰',
-};
-
 // ─── Card variants ────────────────────────────────────────────────────────────
+
+function EngagementRow({ likes, comments }: { likes: number; comments: number }) {
+  return (
+    <div className="flex items-center gap-4 mt-2">
+      <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-400 transition-colors">
+        <Heart size={12} /> {formatCount(likes)}
+      </button>
+      <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-400 transition-colors">
+        <MessageCircle size={12} /> {formatCount(comments)}
+      </button>
+      <button className="ml-auto flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+        <Share2 size={11} />
+      </button>
+    </div>
+  );
+}
+
+function AuthorRow({ post, platform }: { post: NewsPost; platform: string }) {
+  const isInstagram = platform === 'instagram';
+  const isTwitter   = platform === 'twitter';
+
+  return (
+    <div className="flex items-center gap-2.5 mb-2">
+      {/* Avatar */}
+      <div className={cn(
+        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold',
+        isInstagram ? 'bg-gradient-to-br from-purple-600 to-pink-600' :
+        isTwitter   ? 'bg-sky-600/40' :
+        'bg-blue-700/40'
+      )}>
+        {post.author.substring(0, 1).toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-bold text-slate-100 truncate">{post.author}</span>
+          {post.authorHandle && <span className="text-xs text-slate-500">{post.authorHandle}</span>}
+          {post.isMyTeam && <Badge variant="default" className="text-[9px] px-1.5">Meu Time</Badge>}
+        </div>
+      </div>
+      <span className="text-[10px] text-slate-600 shrink-0">{timeAgo(post.timestamp)}</span>
+    </div>
+  );
+}
 
 function InstagramCard({ post }: { post: NewsPost }) {
   return (
-    <div style={{
-      borderRadius: 16,
-      overflow: 'hidden',
-      background: '#1e293b',
-      border: '1px solid #334155',
-    }}>
-      {/* Gradient header bar */}
-      <div style={{
-        height: 6,
-        background: 'linear-gradient(90deg, #833ab4, #fd1d1d, #fcb045)',
-      }} />
-
-      {/* Author row */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '12px 14px 8px',
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-          background: 'linear-gradient(135deg, #833ab4, #fd1d1d)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16,
-        }}>
-          📸
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9' }}>{post.author}</div>
-          {post.authorHandle && (
-            <div style={{ fontSize: 10, color: '#64748b' }}>{post.authorHandle}</div>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {post.isMyTeam && (
-            <span style={{
-              fontSize: 9, fontWeight: 800, background: '#2563eb',
-              color: '#fff', padding: '2px 7px', borderRadius: 99,
-            }}>
-              Meu Time
-            </span>
-          )}
-          <span style={{ fontSize: 10, color: '#475569' }}>{timeAgo(post.timestamp)}</span>
-        </div>
-      </div>
-
-      {/* Image emoji */}
-      {post.imageEmoji && (
-        <div style={{
-          fontSize: 64,
-          textAlign: 'center',
-          padding: '12px 0',
-          background: '#0f172a',
-          lineHeight: 1.2,
-        }}>
-          {post.imageEmoji}
-        </div>
-      )}
-
-      {/* Content */}
-      <div style={{ padding: '10px 14px', fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
-        {post.content}
-      </div>
-
-      {/* Engagement */}
-      <div style={{
-        padding: '8px 14px 14px',
-        display: 'flex',
-        gap: 16,
-        alignItems: 'center',
-      }}>
-        <span style={{ fontSize: 12, color: '#94a3b8' }}>❤️ {formatCount(post.likes)}</span>
-        <span style={{ fontSize: 12, color: '#94a3b8' }}>💬 {formatCount(post.comments)}</span>
+    <div className="rounded-2xl border border-slate-700 bg-slate-800 overflow-hidden">
+      <div className="h-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />
+      <div className="p-4">
+        <AuthorRow post={post} platform="instagram" />
+        {post.imageEmoji && (
+          <div className="my-3 rounded-xl bg-slate-900 py-6 text-center text-5xl leading-none">
+            {post.imageEmoji}
+          </div>
+        )}
+        <p className="text-sm text-slate-300 leading-relaxed">{post.content}</p>
+        <EngagementRow likes={post.likes} comments={post.comments} />
       </div>
     </div>
   );
@@ -113,107 +96,31 @@ function InstagramCard({ post }: { post: NewsPost }) {
 
 function TwitterCard({ post }: { post: NewsPost }) {
   return (
-    <div style={{
-      borderRadius: 14,
-      background: '#1e293b',
-      border: '1px solid #334155',
-      padding: '14px 16px',
-    }}>
-      {/* Author row */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10,
-        marginBottom: 8,
-      }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-          background: '#1DA1F233',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14,
-        }}>
-          🐦
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9' }}>{post.author}</span>
-            {post.authorHandle && (
-              <span style={{ fontSize: 11, color: '#475569' }}>{post.authorHandle}</span>
-            )}
-            {post.isMyTeam && (
-              <span style={{
-                fontSize: 9, fontWeight: 800, background: '#2563eb',
-                color: '#fff', padding: '2px 7px', borderRadius: 99,
-              }}>
-                Meu Time
-              </span>
-            )}
-            <span style={{ fontSize: 10, color: '#475569', marginLeft: 'auto' }}>
-              {timeAgo(post.timestamp)}
-            </span>
-          </div>
-          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6, marginTop: 4 }}>
-            {post.imageEmoji && <span style={{ marginRight: 6 }}>{post.imageEmoji}</span>}
-            {post.content}
-          </div>
-        </div>
-      </div>
-
-      {/* Engagement */}
-      <div style={{ display: 'flex', gap: 16, paddingLeft: 42 }}>
-        <span style={{ fontSize: 11, color: '#64748b' }}>❤️ {formatCount(post.likes)}</span>
-        <span style={{ fontSize: 11, color: '#64748b' }}>💬 {formatCount(post.comments)}</span>
-      </div>
+    <div className="rounded-xl border border-slate-700 border-l-4 border-l-sky-500 bg-slate-800 p-4">
+      <AuthorRow post={post} platform="twitter" />
+      <p className="text-sm text-slate-300 leading-relaxed">
+        {post.imageEmoji && <span className="mr-1.5">{post.imageEmoji}</span>}
+        {post.content}
+      </p>
+      <EngagementRow likes={post.likes} comments={post.comments} />
     </div>
   );
 }
 
 function ReportCard({ post }: { post: NewsPost }) {
   return (
-    <div style={{
-      borderRadius: 14,
-      background: '#1e293b',
-      border: '1px solid #334155',
-      borderLeft: '4px solid #3b82f6',
-      padding: '14px 16px',
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 8,
-      }}>
-        <span style={{ fontSize: 16 }}>📰</span>
-        <span style={{ fontSize: 11, fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {post.author}
-        </span>
-        {post.isMyTeam && (
-          <span style={{
-            fontSize: 9, fontWeight: 800, background: '#2563eb',
-            color: '#fff', padding: '2px 7px', borderRadius: 99,
-          }}>
-            Meu Time
-          </span>
-        )}
-        <span style={{ fontSize: 10, color: '#475569', marginLeft: 'auto' }}>
-          {timeAgo(post.timestamp)}
-        </span>
+    <div className="rounded-xl border border-slate-700 border-l-4 border-l-blue-500 bg-slate-800 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Newspaper size={13} className="text-blue-400 shrink-0" />
+        <span className="text-xs font-black uppercase tracking-wide text-blue-400">{post.author}</span>
+        {post.isMyTeam && <Badge variant="default" className="text-[9px] px-1.5">Meu Time</Badge>}
+        <span className="ml-auto text-[10px] text-slate-600">{timeAgo(post.timestamp)}</span>
       </div>
-
-      {/* Content */}
-      <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.65, marginBottom: 10 }}>
-        {post.imageEmoji && (
-          <span style={{ fontSize: 20, marginRight: 8, verticalAlign: 'middle' }}>{post.imageEmoji}</span>
-        )}
+      <p className="text-sm text-slate-300 leading-relaxed">
+        {post.imageEmoji && <span className="mr-1.5 text-base">{post.imageEmoji}</span>}
         {post.content}
-      </div>
-
-      {/* Engagement */}
-      <div style={{ display: 'flex', gap: 14 }}>
-        <span style={{ fontSize: 11, color: '#64748b' }}>❤️ {formatCount(post.likes)}</span>
-        <span style={{ fontSize: 11, color: '#64748b' }}>💬 {formatCount(post.comments)}</span>
-      </div>
+      </p>
+      <EngagementRow likes={post.likes} comments={post.comments} />
     </div>
   );
 }
@@ -224,126 +131,83 @@ function NewsCard({ post }: { post: NewsPost }) {
   return <ReportCard post={post} />;
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function SocialScreen() {
   const { state } = useMB();
-  const { save } = state;
+  const { save }  = state;
 
   const [activeFilter, setActiveFilter] = useState<Filter>('all');
 
   if (!save) return null;
 
-  const followerCount = save.stadium.mediaLevel * 1000 + 5000;
-
-  const filters: { key: Filter; label: string; icon: string }[] = [
-    { key: 'all',       label: 'Tudo',       icon: '🌐' },
-    { key: 'instagram', label: 'Instagram',  icon: '📸' },
-    { key: 'twitter',   label: 'Twitter',    icon: '🐦' },
-    { key: 'report',    label: 'Reportagem', icon: '📰' },
-    { key: 'myteam',    label: 'Meu Time',   icon: '🏆' },
-  ];
+  const followerCount  = save.stadium.mediaLevel * 1000 + 5000;
+  const mediaProgress  = (save.stadium.mediaLevel / 5) * 100;
 
   const filtered = save.newsFeed.filter(post => {
-    if (activeFilter === 'all')       return true;
-    if (activeFilter === 'myteam')    return post.isMyTeam;
+    if (activeFilter === 'all')    return true;
+    if (activeFilter === 'myteam') return post.isMyTeam;
     return post.platform === activeFilter;
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0f172a' }}>
+    <div className="flex flex-col h-full bg-[#0f172a]">
 
       {/* ── Header ── */}
-      <div style={{
-        padding: '16px 16px 0',
-        background: 'linear-gradient(180deg, #1e293b, #0f172a)',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 12,
-        }}>
+      <div className="shrink-0 bg-gradient-to-b from-slate-900 to-[#0f172a] border-b border-slate-800 px-4 pt-4 pb-0">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
-              📱 Feed Social
+            <h2 className="text-lg font-black text-slate-100">Feed Social</h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Users size={11} className="text-slate-500" />
+              <span className="text-xs text-slate-500">
+                {formatCount(followerCount)} seguidores
+              </span>
+              <span className="text-slate-700">·</span>
+              <span className="text-xs text-slate-500">
+                Nível de mídia {save.stadium.mediaLevel}
+              </span>
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-              {formatCount(followerCount)} seguidores · Nível de mídia {save.stadium.mediaLevel}
-            </div>
-          </div>
-          <div style={{
-            background: '#1e3a5f',
-            border: '1px solid #1d4ed8',
-            borderRadius: 10,
-            padding: '6px 12px',
-            fontSize: 12,
-            fontWeight: 800,
-            color: '#60a5fa',
-          }}>
-            {PLATFORM_ICON['instagram']} {PLATFORM_ICON['twitter']} {PLATFORM_ICON['report']}
           </div>
         </div>
 
-        {/* Filter buttons */}
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          overflowX: 'auto',
-          paddingBottom: 12,
-        }}>
-          {filters.map(f => {
-            const active = activeFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setActiveFilter(f.key)}
-                style={{
-                  flexShrink: 0,
-                  padding: '7px 14px',
-                  borderRadius: 99,
-                  border: active ? '1.5px solid #3b82f6' : '1.5px solid #334155',
-                  background: active ? 'rgba(59,130,246,0.2)' : '#1e293b',
-                  color: active ? '#60a5fa' : '#94a3b8',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {f.icon} {f.label}
-              </button>
-            );
-          })}
+        {/* Media level progress */}
+        <div className="mb-3 space-y-1">
+          <Progress value={mediaProgress} color="linear-gradient(90deg, #0ea5e9, #6366f1)" />
         </div>
+
+        {/* Filter tabs */}
+        <Tabs value={activeFilter} onValueChange={v => setActiveFilter(v as Filter)}>
+          <TabsList className="w-full overflow-x-auto flex-nowrap mb-4 bg-transparent p-0 gap-2 justify-start">
+            {[
+              { key: 'all',       label: 'Tudo',       icon: Globe },
+              { key: 'instagram', label: 'Instagram',  icon: Camera },
+              { key: 'twitter',   label: 'Twitter',    icon: Bird },
+              { key: 'report',    label: 'Reportagem', icon: Newspaper },
+              { key: 'myteam',    label: 'Meu Time',   icon: Shield },
+            ].map(({ key, label, icon: Icon }) => (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="shrink-0 rounded-full bg-slate-800 border border-slate-700 data-active:border-blue-500"
+              >
+                <Icon size={12} />
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* ── Feed ── */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '12px 16px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-      }}>
+      <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-3 pt-4">
         {filtered.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '48px 24px',
-            color: '#475569',
-            fontSize: 14,
-          }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-            Nenhuma postagem nesta categoria ainda.
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <Globe size={40} className="text-slate-700" />
+            <p className="text-sm text-slate-500">Nenhuma postagem nesta categoria ainda.</p>
           </div>
         ) : (
-          filtered.map(post => (
-            <NewsCard key={post.id} post={post} />
-          ))
+          filtered.map(post => <NewsCard key={post.id} post={post} />)
         )}
       </div>
     </div>

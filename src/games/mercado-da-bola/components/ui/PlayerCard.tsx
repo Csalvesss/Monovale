@@ -1,5 +1,56 @@
 import React from 'react';
 import type { Player } from '../../types';
+import { cn } from '../../../../lib/utils';
+import { Badge } from '../../../../components/ui/badge';
+import RatingBadge from './RatingBadge';
+import { Flame, Smile, Frown, Meh, AlertTriangle } from 'lucide-react';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+export const POSITION_COLORS: Record<string, string> = {
+  GK:  '#f59e0b',
+  CB: '#3b82f6', LB: '#3b82f6', RB: '#3b82f6',
+  CDM: '#10b981', CM: '#10b981', CAM: '#8b5cf6',
+  LW:  '#ef4444', RW: '#ef4444', ST: '#ef4444', CF: '#ef4444',
+};
+
+export const POSITION_VARIANT: Record<string, 'gk' | 'def' | 'mid' | 'atk'> = {
+  GK: 'gk',
+  CB: 'def', LB: 'def', RB: 'def',
+  CDM: 'mid', CM: 'mid', CAM: 'mid',
+  LW: 'atk', RW: 'atk', ST: 'atk', CF: 'atk',
+};
+
+function MoodIcon({ mood }: { mood: string }) {
+  const props = { size: 12 };
+  if (mood === 'motivated') return <Flame {...props} className="text-emerald-400" />;
+  if (mood === 'happy')     return <Smile {...props} className="text-sky-400" />;
+  if (mood === 'unhappy')   return <Frown {...props} className="text-red-400" />;
+  return <Meh {...props} className="text-amber-400" />;
+}
+
+function MoodBadge({ mood }: { mood: string }) {
+  const labels: Record<string, string> = {
+    motivated: 'Motivado', happy: 'Feliz', neutral: 'Neutro', unhappy: 'Insatisfeito',
+  };
+  const variants: Record<string, 'success' | 'default' | 'warning' | 'destructive'> = {
+    motivated: 'success', happy: 'default', neutral: 'warning', unhappy: 'destructive',
+  };
+  return (
+    <Badge variant={variants[mood] ?? 'secondary'} className="gap-1">
+      <MoodIcon mood={mood} />
+      {labels[mood] ?? mood}
+    </Badge>
+  );
+}
+
+function getPlayerInitials(name: string) {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   player: Player;
@@ -13,178 +64,175 @@ interface Props {
   actionDisabled?: boolean;
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  GK: '#f59e0b', CB: '#3b82f6', LB: '#3b82f6', RB: '#3b82f6',
-  CDM: '#10b981', CM: '#10b981', CAM: '#8b5cf6',
-  LW: '#ef4444', RW: '#ef4444', ST: '#ef4444', CF: '#ef4444',
-};
+// ─── Compact row ─────────────────────────────────────────────────────────────
 
-const MOOD_EMOJI: Record<string, string> = {
-  motivated: '🔥', happy: '😊', neutral: '😐', unhappy: '😤',
-};
+function CompactRow({ player, onClick, selected, showPrice, price, actionLabel, onAction, actionDisabled }: Props) {
+  const posColor = POSITION_COLORS[player.position] ?? '#94a3b8';
+  const posVariant = POSITION_VARIANT[player.position] ?? 'secondary';
+  const initials = getPlayerInitials(player.name);
+  const isLegendary = player.rarity === 'legendary';
 
-const RARITY_STYLE: Record<string, React.CSSProperties> = {
-  normal: { background: '#1e293b', border: '1px solid #334155' },
-  legendary: {
-    background: 'linear-gradient(135deg, #78350f, #451a03)',
-    border: '1px solid #d97706',
-    boxShadow: '0 0 12px rgba(217,119,6,0.4)',
-  },
-};
-
-function Stars({ count }: { count: number }) {
   return (
-    <span style={{ fontSize: 10, letterSpacing: 1 }}>
-      {'★'.repeat(count)}{'☆'.repeat(5 - count)}
-    </span>
-  );
-}
+    <div
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-3 rounded-xl border p-3 transition-all duration-150',
+        isLegendary
+          ? 'border-amber-600/50 bg-gradient-to-r from-amber-950/50 to-slate-800'
+          : 'border-slate-700 bg-slate-800 hover:bg-slate-750',
+        onClick && 'cursor-pointer hover:border-slate-600',
+        selected && 'outline outline-2 outline-blue-500',
+      )}
+    >
+      {/* Avatar */}
+      <div
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-black"
+        style={{ background: posColor + '22', border: `1.5px solid ${posColor}44`, color: posColor }}
+      >
+        {initials}
+      </div>
 
-function RatingBadge({ value, label, color }: { value: number; label: string; color: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-      <div style={{ fontSize: 13, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>{label}</div>
+      {/* Info */}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="truncate text-[13px] font-bold text-slate-100">
+            {isLegendary && <span className="text-amber-400 mr-1">★</span>}
+            {player.name}
+          </span>
+          {player.injured && <AlertTriangle size={11} className="text-red-400 shrink-0" />}
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={posVariant} className="text-[9px] px-1.5 py-0">{player.position}</Badge>
+          <RatingBadge rating={player.stars} size={10} />
+          <MoodIcon mood={player.mood} />
+        </div>
+      </div>
+
+      {/* Price */}
+      {showPrice && price !== undefined && (
+        <span className="shrink-0 text-sm font-bold text-emerald-400">
+          ${new Intl.NumberFormat('pt-BR').format(price)}k
+        </span>
+      )}
+
+      {/* Action */}
+      {actionLabel && onAction && (
+        <button
+          onClick={e => { e.stopPropagation(); onAction(); }}
+          disabled={actionDisabled}
+          className={cn(
+            'shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors',
+            actionDisabled
+              ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-500'
+          )}
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }
 
-export default function PlayerCard({ player, onClick, selected, compact, showPrice, price, actionLabel, onAction, actionDisabled }: Props) {
-  const posColor = POSITION_COLORS[player.position] ?? '#94a3b8';
-  const cardStyle = RARITY_STYLE[player.rarity];
-  const moodEmoji = MOOD_EMOJI[player.mood] ?? '😐';
+// ─── Full card ────────────────────────────────────────────────────────────────
 
-  if (compact) {
-    return (
-      <div
-        onClick={onClick}
-        style={{
-          ...cardStyle,
-          borderRadius: 10,
-          padding: '10px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          cursor: onClick ? 'pointer' : 'default',
-          outline: selected ? '2px solid #3b82f6' : undefined,
-          transition: 'all 0.1s',
-        }}
-      >
-        <div style={{ width: 36, height: 36, borderRadius: 8, background: posColor + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, fontWeight: 900, color: posColor }}>{player.position}</span>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {player.rarity === 'legendary' && '⭐ '}{player.name}
-          </div>
-          <div style={{ fontSize: 10, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ color: '#fbbf24' }}><Stars count={player.stars} /></span>
-            <span>{player.flag} {player.nationality}</span>
-            <span>{moodEmoji}</span>
-            {player.injured && <span>🚑</span>}
-          </div>
-        </div>
-        {showPrice && price !== undefined && (
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#fde68a', flexShrink: 0 }}>
-            ${price.toLocaleString('pt-BR')}k
-          </div>
-        )}
-      </div>
-    );
-  }
+function FullCard({ player, onClick, selected, showPrice, price, actionLabel, onAction, actionDisabled }: Props) {
+  const posColor = POSITION_COLORS[player.position] ?? '#94a3b8';
+  const posVariant = POSITION_VARIANT[player.position] ?? 'secondary';
+  const initials = getPlayerInitials(player.name);
+  const isLegendary = player.rarity === 'legendary';
 
   const attrs = player.attributes;
   const mainAttrs = player.position === 'GK'
     ? [['GK', attrs.goalkeeping ?? 0], ['DEF', attrs.defending], ['FÍS', attrs.physical]]
     : [['PAS', attrs.passing], ['DRI', attrs.dribbling], ['FIN', attrs.shooting], ['VEL', attrs.pace], ['DEF', attrs.defending]];
 
+  function attrColor(v: number) {
+    if (v >= 85) return '#4ade80';
+    if (v >= 70) return '#fbbf24';
+    return '#94a3b8';
+  }
+
   return (
     <div
       onClick={onClick}
-      style={{
-        ...cardStyle,
-        borderRadius: 14,
-        padding: 14,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-        cursor: onClick ? 'pointer' : 'default',
-        outline: selected ? '2px solid #3b82f6' : undefined,
-        transition: 'all 0.15s',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
+      className={cn(
+        'relative overflow-hidden rounded-xl border p-4 transition-all duration-150',
+        isLegendary
+          ? 'border-amber-600/50 bg-gradient-to-br from-amber-950/60 to-slate-800'
+          : 'border-slate-700 bg-slate-800',
+        onClick && 'cursor-pointer hover:border-slate-600',
+        selected && 'outline outline-2 outline-blue-500',
+      )}
     >
-      {/* Legendary glow */}
-      {player.rarity === 'legendary' && (
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(217,119,6,0.2), transparent 70%)', pointerEvents: 'none' }} />
+      {isLegendary && (
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.15),transparent_70%)] pointer-events-none" />
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        {/* Avatar */}
-        <div style={{
-          width: 48, height: 48, borderRadius: 10, flexShrink: 0,
-          background: player.rarity === 'legendary' ? 'linear-gradient(135deg, #d97706, #92400e)' : posColor + '33',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, border: player.rarity === 'legendary' ? '1.5px solid #d97706' : 'none',
-        }}>
-          {player.rarity === 'legendary' ? '⭐' : player.flag}
+      <div className="flex items-start gap-3 mb-3">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black"
+          style={{
+            background: isLegendary ? 'linear-gradient(135deg, #d97706, #92400e)' : posColor + '22',
+            border: `2px solid ${isLegendary ? '#d97706' : posColor + '44'}`,
+            color: isLegendary ? '#fff' : posColor,
+          }}
+        >
+          {initials}
         </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 800, fontSize: 15, color: '#f1f5f9' }}>{player.name}</span>
-            {player.rarity === 'legendary' && (
-              <span style={{ fontSize: 9, fontWeight: 800, background: '#d97706', color: '#fff', padding: '1px 6px', borderRadius: 99 }}>LENDÁRIO</span>
-            )}
-            {player.injured && <span style={{ fontSize: 10 }}>🚑</span>}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[15px] font-black text-slate-100">{player.name}</span>
+            {isLegendary && <Badge variant="legendary">LENDÁRIO</Badge>}
+            {player.injured && <AlertTriangle size={13} className="text-red-400" />}
           </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{player.fullName}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <span style={{
-              fontSize: 9, fontWeight: 800, background: posColor + '33', color: posColor,
-              padding: '2px 6px', borderRadius: 6,
-            }}>{player.position}</span>
-            <span style={{ color: '#fbbf24', fontSize: 10 }}><Stars count={player.stars} /></span>
-            <span style={{ fontSize: 11 }}>{moodEmoji}</span>
+          <div className="text-xs text-slate-400 mt-0.5">{player.fullName}</div>
+          <div className="flex items-center gap-2 mt-1.5">
+            <Badge variant={posVariant}>{player.position}</Badge>
+            <RatingBadge rating={player.stars} size={11} />
+            <MoodBadge mood={player.mood} />
           </div>
         </div>
       </div>
 
-      {/* Attributes */}
-      <div style={{ display: 'flex', justifyContent: 'space-around', padding: '8px 0', borderTop: '1px solid #334155', borderBottom: '1px solid #334155' }}>
+      {/* Attributes row */}
+      <div className="flex justify-around border-t border-b border-slate-700 py-2.5 my-2">
         {(mainAttrs as [string, number][]).map(([lbl, val]) => (
-          <RatingBadge key={lbl} value={val} label={lbl} color={val >= 85 ? '#4ade80' : val >= 70 ? '#facc15' : '#94a3b8'} />
+          <div key={lbl} className="flex flex-col items-center gap-0.5">
+            <span className="text-[13px] font-black" style={{ color: attrColor(val) }}>{val}</span>
+            <span className="text-[8px] font-bold uppercase tracking-wide text-slate-500">{lbl}</span>
+          </div>
         ))}
       </div>
 
-      {/* Info row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
-        <span>{player.flag} {player.nationality} · {player.age} anos</span>
-        <span>Nv.{player.level} · XP {player.xp}</span>
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+        <span>{player.nationality} · {player.age} anos</span>
+        <span>Nv.{player.level} · {player.xp} XP</span>
       </div>
 
       {/* Price & action */}
       {(showPrice || actionLabel) && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
           {showPrice && (
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fde68a' }}>${price?.toLocaleString('pt-BR') ?? player.marketValue.toLocaleString('pt-BR')}k</div>
-              <div style={{ fontSize: 10, color: '#64748b' }}>${player.wage}k/sem</div>
+              <div className="text-sm font-black text-amber-400">
+                ${new Intl.NumberFormat('pt-BR').format(price ?? player.marketValue)}k
+              </div>
+              <div className="text-[10px] text-slate-500">${player.wage}k/sem</div>
             </div>
           )}
           {actionLabel && onAction && (
             <button
               onClick={e => { e.stopPropagation(); onAction(); }}
               disabled={actionDisabled}
-              style={{
-                padding: '8px 16px', borderRadius: 8, border: 'none',
-                background: actionDisabled ? '#374151' : '#2563eb',
-                color: actionDisabled ? '#6b7280' : '#fff',
-                fontWeight: 700, fontSize: 12, cursor: actionDisabled ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-body)',
-              }}
+              className={cn(
+                'rounded-lg px-4 py-2 text-xs font-bold transition-colors',
+                actionDisabled
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-500'
+              )}
             >
               {actionLabel}
             </button>
@@ -194,3 +242,11 @@ export default function PlayerCard({ player, onClick, selected, compact, showPri
     </div>
   );
 }
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+export default function PlayerCard(props: Props) {
+  return props.compact ? <CompactRow {...props} /> : <FullCard {...props} />;
+}
+
+export { MoodBadge, MoodIcon, getPlayerInitials };
