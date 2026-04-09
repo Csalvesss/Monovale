@@ -15,6 +15,7 @@ import HomePage from './components/HomePage';
 import GameHub from './components/GameHub';
 import JoinRoom from './components/JoinRoom';
 import RoomLobby from './components/RoomLobby';
+import MercadoDaBola from './games/mercado-da-bola/index';
 import { useAuth } from './contexts/AuthContext';
 import {
   createGameDoc, saveGameState, saveGameStateNow, finishGame, cancelPendingGameSave,
@@ -32,7 +33,7 @@ const STORAGE_KEY = 'monovale_game_state';
 const ROOM_KEY    = 'monovale_room_code';
 const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
-type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
+type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game' | 'mercado-da-bola';
 type MobileTab = 'board' | 'players' | 'log';
 
 function useWindowWidth() {
@@ -297,8 +298,12 @@ export default function App() {
     );
   }
 
+  if (screen === 'mercado-da-bola') return (
+    <MercadoDaBola onBack={() => setScreen('hub')} />
+  );
+
   if (screen === 'hub') return (
-    <GameHub onSelectMonovale={() => setScreen('home')} />
+    <GameHub onSelectMonovale={() => setScreen('home')} onSelectMercadoDaBola={() => setScreen('mercado-da-bola')} />
   );
 
   if (screen === 'home') return (
