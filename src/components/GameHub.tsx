@@ -7,6 +7,7 @@ import type { GameResult } from '../types';
 
 interface Props {
   onSelectMonovale: () => void;
+  onSelectMercadoDaBola: () => void;
 }
 
 interface GameCard {
@@ -30,13 +31,13 @@ const GAMES: GameCard[] = [
     available: true,
   },
   {
-    id: 'game2',
-    name: 'Em Breve',
-    tagline: 'Novo jogo chegando',
-    description: 'Um novo título está sendo desenvolvido para a plataforma. Fique ligado!',
-    tags: ['Em breve'],
-    gradient: 'linear-gradient(135deg, #374151 0%, #6B7280 100%)',
-    available: false,
+    id: 'mercado-da-bola',
+    name: 'Mercado da Bola',
+    tagline: 'Manager de futebol',
+    description: 'Gerencie seu clube, contrate estrelas, dispute o campeonato e encontre cartas lendárias!',
+    tags: ['Futebol', 'Estratégia', 'Gerenciamento'],
+    gradient: 'linear-gradient(135deg, #064e3b 0%, #065f46 60%, #059669 100%)',
+    available: true,
   },
   {
     id: 'game3',
@@ -49,7 +50,7 @@ const GAMES: GameCard[] = [
   },
 ];
 
-export default function GameHub({ onSelectMonovale }: Props) {
+export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola }: Props) {
   const { profile, logout, updatePawn } = useAuth();
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [editingPawn, setEditingPawn] = useState(false);
@@ -71,6 +72,7 @@ export default function GameHub({ onSelectMonovale }: Props) {
   function handleSelect(game: GameCard) {
     if (!game.available) return;
     if (game.id === 'monovale') onSelectMonovale();
+    if (game.id === 'mercado-da-bola') onSelectMercadoDaBola();
   }
 
   return (
@@ -151,6 +153,11 @@ export default function GameHub({ onSelectMonovale }: Props) {
                           <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9"/>
                         </svg>
                         <span style={S.bannerGameName}>Monovale</span>
+                      </div>
+                    ) : game.id === 'mercado-da-bola' ? (
+                      <div style={S.bannerInner}>
+                        <span style={{ fontSize: 48 }}>⚽</span>
+                        <span style={S.bannerGameName}>Mercado da Bola</span>
                       </div>
                     ) : (
                       <div style={S.bannerInner}>
