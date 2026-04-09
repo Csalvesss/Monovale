@@ -133,7 +133,7 @@ const S: Record<string, React.CSSProperties> = {
     zIndex: 3000, backdropFilter: 'blur(8px)', padding: 16,
   },
   modal: {
-    background: 'var(--card)',
+    background: '#FFFFFF',
     borderRadius: 'var(--radius-xl)',
     border: '1px solid var(--border)',
     boxShadow: 'var(--shadow-lg)',
