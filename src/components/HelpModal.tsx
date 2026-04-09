@@ -210,15 +210,16 @@ const S: Record<string, React.CSSProperties> = {
     gap: 0,
     background: 'var(--card-alt)',
     borderRadius: 10,
-    overflow: 'hidden',
     border: '1px solid var(--border)',
   },
   accent: {
     width: 4,
     flexShrink: 0,
+    borderTopLeftRadius: 9,
+    borderBottomLeftRadius: 9,
   },
   sectionInner: {
-    flex: 1,
+    flex: '1 1 auto',
     minWidth: 0,
   },
   sectionBtn: {
