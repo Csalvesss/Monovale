@@ -7,6 +7,7 @@ export interface MatchRecord {
   losses: number;
   goalsFor: number;
   goalsAgainst: number;
+  totalMatchPoints: number; // accumulated via Cartas de Notícias + result bonuses
 }
 
 interface GameState {
@@ -24,7 +25,7 @@ interface GameState {
   advanceWeek: () => void;
   unlockLegend: (id: string) => void;
   resetGame: () => void;
-  recordMatchResult: (homeGoals: number, awayGoals: number, nextOpponentId?: string) => void;
+  recordMatchResult: (homeGoals: number, awayGoals: number, matchPoints: number, nextOpponentId?: string) => void;
 }
 
 const OPPONENT_ROTATION = [
@@ -42,7 +43,7 @@ export const useGameStore = create<GameState>()(
       selectedSponsorId: null,
       tournamentStage: 'group',
       unlockedLegends: [],
-      matchRecord: { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 },
+      matchRecord: { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, totalMatchPoints: 0 },
       nextOpponentId: 'argentina',
 
       setGameData: (data) => set((state) => ({ ...state, ...data })),
@@ -69,18 +70,23 @@ export const useGameStore = create<GameState>()(
         selectedSponsorId: null,
         tournamentStage: 'group',
         unlockedLegends: [],
-        matchRecord: { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 },
+        matchRecord: { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, totalMatchPoints: 0 },
         nextOpponentId: 'argentina',
       }),
 
-      recordMatchResult: (homeGoals, awayGoals, nextOpponentId) => set((state) => {
-        const wins   = homeGoals > awayGoals ? state.matchRecord.wins + 1   : state.matchRecord.wins;
+      recordMatchResult: (homeGoals, awayGoals, matchPoints, nextOpponentId) => set((state) => {
+        const wins   = homeGoals > awayGoals  ? state.matchRecord.wins + 1  : state.matchRecord.wins;
         const draws  = homeGoals === awayGoals ? state.matchRecord.draws + 1 : state.matchRecord.draws;
         const losses = awayGoals > homeGoals  ? state.matchRecord.losses + 1 : state.matchRecord.losses;
         const played = wins + draws + losses;
         const nextIdx = played % OPPONENT_ROTATION.length;
         return {
-          matchRecord: { wins, draws, losses, goalsFor: state.matchRecord.goalsFor + homeGoals, goalsAgainst: state.matchRecord.goalsAgainst + awayGoals },
+          matchRecord: {
+            wins, draws, losses,
+            goalsFor:         state.matchRecord.goalsFor + homeGoals,
+            goalsAgainst:     state.matchRecord.goalsAgainst + awayGoals,
+            totalMatchPoints: state.matchRecord.totalMatchPoints + matchPoints,
+          },
           nextOpponentId: nextOpponentId ?? OPPONENT_ROTATION[nextIdx],
         };
       }),

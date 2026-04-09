@@ -61,6 +61,7 @@ export interface Sponsor {
 export interface MatchResult {
   score: { home: number; away: number };
   events: string[];
+  matchPoints: number;
 }
 
 export type LDBScreen = 'home' | 'squad' | 'match' | 'market' | 'standings' | 'sponsor';
