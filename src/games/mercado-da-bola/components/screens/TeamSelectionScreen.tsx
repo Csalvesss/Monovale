@@ -3,6 +3,7 @@ import { useMB } from '../../store/gameStore';
 import { ALL_TEAMS } from '../../data/teams';
 import { LEAGUES } from '../../constants';
 import { getAvailablePlayers } from '../../data/players';
+import TeamBadge from '../ui/TeamBadge';
 import type { LeagueId, Team, GameSave, Stadium } from '../../types';
 
 interface Props {
@@ -151,7 +152,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
                   transition: 'all 0.15s', fontFamily: 'var(--font-body)',
                 }}
               >
-                <div style={{ fontSize: 36 }}>{team.badge}</div>
+                <TeamBadge team={team} size={52} />
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', textAlign: 'center', lineHeight: 1.3 }}>{team.name}</div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>{league?.flag} {team.shortName}</div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -173,7 +174,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
           borderTop: '1px solid #334155', padding: '16px 20px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 40 }}>{selected.badge}</div>
+            <TeamBadge team={selected} size={52} />
             <div>
               <div style={{ fontSize: 16, fontWeight: 900, color: '#f1f5f9' }}>{selected.name}</div>
               <div style={{ fontSize: 12, color: '#64748b' }}>
