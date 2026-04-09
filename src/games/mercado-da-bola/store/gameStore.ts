@@ -54,7 +54,13 @@ function reducer(state: MBState, action: Action): MBState {
       return { ...state, save: action.save, screen: 'home' };
 
     case 'SET_SCREEN':
-      return { ...state, screen: action.screen, selectedPlayerId: null };
+      return {
+        ...state,
+        screen: action.screen,
+        selectedPlayerId: null,
+        // Reset match result when navigating to match screen so it shows pre-match, not the last result
+        ...(action.screen === 'match' ? { lastMatchResult: null, matchPhase: null } : {}),
+      };
 
     case 'SELECT_PLAYER':
       return { ...state, selectedPlayerId: action.playerId, screen: action.playerId ? 'player-detail' : state.screen };
