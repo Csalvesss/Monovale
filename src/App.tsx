@@ -340,7 +340,7 @@ const S: Record<string, React.CSSProperties> = {
     minWidth: 0,
   },
   boardWrapper: { flexShrink: 0 },
-  actionWrapper: { width: '100%', maxWidth: 660, paddingBottom: 8 },
+  actionWrapper: { width: '100%', maxWidth: 800, paddingBottom: 8 },
   rightPanel: {
     width: 260,
     flexShrink: 0,

@@ -150,7 +150,7 @@ export default function LoginScreen() {
 
 const S: Record<string, React.CSSProperties> = {
   page: {
-    height: '100%',
+    minHeight: '100%',
     background: 'var(--bg)',
     display: 'flex',
     flexDirection: 'column',
