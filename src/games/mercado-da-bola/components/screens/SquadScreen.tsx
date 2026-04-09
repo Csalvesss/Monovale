@@ -4,12 +4,12 @@ import { getTeam } from '../../data/teams';
 import { LEGENDARY_PLAYERS } from '../../data/legendary-players';
 import { FICTIONAL_PLAYERS } from '../../data/players';
 import PitchView from '../ui/PitchView';
+import PlayerCard from '../ui/PlayerCard';
 import type { Player, Position } from '../../types';
 import { getEffectiveRating } from '../../utils/matchEngine';
 import { calcDefenseTokens } from '../../utils/matchEngine';
 import {
-  AlertTriangle, Users, Star, DollarSign, Flame, Smile,
-  ChevronRight, Shield, TrendingUp, Heart, BookOpen, User,
+  AlertTriangle, Users, Star, Shield, Heart, BookOpen, User,
 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -46,20 +46,6 @@ function squadWarnings(squad: Player[]): string[] {
   if (atks < 1)      w.push('Nenhum atacante!');
   if (squad.length < 11) w.push(`${squad.length} jogadores (mín. 11 para jogar).`);
   return w;
-}
-
-function moodEmoji(mood: string) {
-  if (mood === 'motivated') return '😄';
-  if (mood === 'happy') return '🙂';
-  if (mood === 'neutral') return '😐';
-  return '😞';
-}
-
-function moodColor(mood: string): string {
-  if (mood === 'motivated') return 'var(--ldb-pitch-bright)';
-  if (mood === 'happy') return '#60A5FA';
-  if (mood === 'neutral') return 'var(--ldb-text-muted)';
-  return 'var(--ldb-loss)';
 }
 
 function computeOVR(p: Player): number {
@@ -296,90 +282,6 @@ function AlbumView({ ownedIds, mySquadIds }: { ownedIds: string[]; mySquadIds: s
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Player row ───────────────────────────────────────────────────────────────
-
-function PlayerRow({ player, isSelected, onClick }: {
-  player: Player; isSelected: boolean; onClick: () => void;
-}) {
-  const mc = moodColor(player.mood);
-  const isLegendary = player.rarity === 'legendary';
-
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '11px 14px',
-        background: isSelected ? 'var(--ldb-elevated)' : 'var(--ldb-surface)',
-        backdropFilter: 'blur(12px)',
-        border: `1px solid ${isSelected ? 'var(--ldb-border-mid)' : 'rgba(255,255,255,0.06)'}`,
-        borderLeft: `3px solid ${isSelected ? 'var(--ldb-pitch-bright)' : isLegendary ? 'var(--ldb-gold-mid)' : 'transparent'}`,
-        borderRadius: 'var(--ldb-r-md)',
-        cursor: 'pointer',
-        transition: 'all 200ms var(--ldb-ease-out)',
-      }}
-    >
-      {/* Avatar or initials */}
-      {player.imageUrl ? (
-        <img
-          src={player.imageUrl}
-          alt={player.name}
-          style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-        />
-      ) : (
-        <span style={{ fontSize: 18, flexShrink: 0 }}>{player.flag}</span>
-      )}
-
-      {/* Name + position */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          {player.imageUrl && <span style={{ fontSize: 11 }}>{player.flag}</span>}
-          <span style={{
-            fontSize: 13, fontWeight: 700,
-            color: isLegendary ? 'var(--ldb-text-gold)' : 'var(--ldb-text)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {player.name}
-          </span>
-          {isLegendary && <span style={{ fontSize: 10 }}>⭐</span>}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{
-            fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
-            background: 'rgba(255,255,255,0.06)', color: 'var(--ldb-text-muted)',
-            border: '1px solid var(--ldb-border)',
-          }}>
-            {player.position}
-          </span>
-          <span style={{ fontSize: 10, color: 'var(--ldb-text-gold)' }}>{'★'.repeat(player.stars)}</span>
-          {player.injured && <span style={{ fontSize: 9, color: 'var(--ldb-loss)' }}>🏥</span>}
-          {player.suspended && <span style={{ fontSize: 9, color: 'var(--ldb-draw)' }}>🟥</span>}
-        </div>
-      </div>
-
-      {/* Mood */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-        <span style={{ fontSize: 14 }}>{moodEmoji(player.mood)}</span>
-        <div style={{ fontSize: 9, color: mc, fontWeight: 700, width: 28, textAlign: 'center' }}>
-          {player.moodPoints}
-        </div>
-      </div>
-
-      {/* Level */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0,
-        background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)',
-        borderRadius: 6, padding: '4px 8px',
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ldb-xp)', lineHeight: 1 }}>{player.level}</div>
-        <div style={{ fontSize: 8, color: 'var(--ldb-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nv</div>
-      </div>
-
-      <ChevronRight size={14} strokeWidth={1.5} style={{ color: 'var(--ldb-text-muted)', flexShrink: 0 }} />
     </div>
   );
 }
@@ -636,10 +538,11 @@ export default function SquadScreen() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {sortedFiltered.map(player => (
-                  <PlayerRow
+                  <PlayerCard
                     key={player.id}
                     player={player}
-                    isSelected={selectedPlayerId === player.id}
+                    compact={true}
+                    selected={selectedPlayerId === player.id}
                     onClick={() => handlePlayerSelect(player.id)}
                   />
                 ))}
