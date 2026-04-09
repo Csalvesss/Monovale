@@ -6,6 +6,9 @@ import { db } from '../../../firebase';
 import type { RoomDoc, BoardPlayer, PlayerColor, ActionResult } from './types';
 import { ALL_PLAYER_COLORS } from './types';
 import { TOTAL_SPACES } from './data';
+import type { BoardCard } from './cards';
+import { getStarterDeck, CARD_COST } from './cards';
+import { computePlayerStats } from './engine';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,16 +20,19 @@ function makeCode(): string {
 }
 
 function makePlayer(uid: string, name: string, color: PlayerColor): BoardPlayer {
+  const cards = getStarterDeck();
+  const stats = computePlayerStats(cards);
   return {
     uid, name, color,
     position: 0,
     nig: 1000,
     points: 0,
-    defenseTokens: 10,
-    attackRange: 16,
+    defenseTokens: stats.defenseTokens,
+    attackRange: stats.attackRange,
     skipsNext: false,
     legendCards: 0,
     laps: 0,
+    cards,
   };
 }
 
@@ -259,14 +265,14 @@ export async function leaveRoom(code: string, uid: string): Promise<void> {
   });
 }
 
-// ─── Buy upgrade (Transfer Market space) ─────────────────────────────────────
+// ─── Buy player card (Transfer Market space) ──────────────────────────────────
 
-export async function buyUpgrade(
+export async function buyCard(
   code: string,
   uid: string,
-  upgradeId: 'attack' | 'defense',
-  cost: number,
+  card: BoardCard,
 ): Promise<void> {
+  const cost = CARD_COST[card.stars];
   await runTransaction(db, async (tx) => {
     const ref = coll(code);
     const snap = await tx.get(ref);
@@ -275,15 +281,22 @@ export async function buyUpgrade(
     const player = room.players.find(p => p.uid === uid);
     if (!player || player.nig < cost) return;
 
+    const newCards = [...player.cards, card];
+    const stats    = computePlayerStats(newCards);
+
     const updated: BoardPlayer = {
       ...player,
       nig: player.nig - cost,
-      attackRange: upgradeId === 'attack' ? player.attackRange + 2 : player.attackRange,
-      defenseTokens: upgradeId === 'defense' ? player.defenseTokens + 5 : player.defenseTokens,
+      cards: newCards,
+      defenseTokens: stats.defenseTokens,
+      attackRange: stats.attackRange,
     };
 
-    const label = upgradeId === 'attack' ? 'Ataque +2' : 'Defesa +5 fichas';
-    const newLog = [...room.log.slice(-19), `${player.name} comprou ${label} (-${cost} NIG)`];
+    const starsStr = '★'.repeat(card.stars);
+    const newLog = [
+      ...room.log.slice(-19),
+      `${player.name} contratou ${card.name} (${starsStr}) por ${cost} NIG`,
+    ];
 
     tx.update(ref, {
       players: room.players.map(p => p.uid === uid ? updated : p),
@@ -292,7 +305,7 @@ export async function buyUpgrade(
   });
 }
 
-// ─── Move position (only used internally by engine) ──────────────────────────
+// ─── Move position helper ─────────────────────────────────────────────────────
 
 export function computeNewPosition(
   current: number,
