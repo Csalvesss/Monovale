@@ -43,11 +43,12 @@ export interface BoardPlayer {
   position: number;      // 0 .. TOTAL_SPACES-1
   nig: number;           // coins (starts at 1000)
   points: number;        // match points + sponsor + legend bonuses
-  defenseTokens: number; // 10 base, upgradeable
-  attackRange: number;   // 16 base, upgradeable
+  defenseTokens: number; // computed from cards (never set manually)
+  attackRange: number;   // computed from cards (never set manually)
   skipsNext: boolean;
   legendCards: number;
   laps: number;          // completed full laps (for pass-GO bonus)
+  cards: import('./cards').BoardCard[]; // player's card collection (cartelas)
 }
 
 // ─── Action Result ────────────────────────────────────────────────────────────
@@ -68,6 +69,8 @@ export interface ActionResult {
     events: string[];
     outcome: 'win' | 'draw' | 'loss';
   };
+  /** Market card offers — only present for 'transfer' spaces */
+  marketOffers?: import('./cards').BoardCard[];
 }
 
 // ─── Room ─────────────────────────────────────────────────────────────────────

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Trophy } from 'lucide-react';
+import { ChevronLeft, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { listenRoom, submitAction, endTurn } from './service';
 import { rollDice, resolveSpaceAction, getSpace } from './engine';
 import type { RoomDoc, BoardPlayer } from './types';
 import { PLAYER_COLORS } from './types';
 import { TOTAL_SPACES } from './data';
+import { POSITION_LABEL } from './cards';
 import CircleBoard from './CircleBoard';
 import ActionModal from './ActionModal';
 
@@ -59,8 +60,10 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
   const [diceVal, setDiceVal]     = useState(1);
   const [spinning, setSpinning]   = useState(false);
   const [animPos, setAnimPos]     = useState<Record<string, number>>({});
-  const [busy, setBusy]           = useState(false); // locked during roll+animation
+  const [busy, setBusy]           = useState(false);
   const [showExit, setShowExit]   = useState(false);
+  const [showSquad, setShowSquad] = useState(false);
+  const [squadUid, setSquadUid]   = useState<string | null>(null);
   const [boardSize, setBoardSize] = useState(() => Math.min(window.innerWidth - 8, 560));
 
   const unsubRef    = useRef<(() => void) | null>(null);
@@ -241,11 +244,21 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
             LENDAS DA BOLA
           </span>
         </div>
-        <div style={{
-          fontSize: 11, fontWeight: 800, color: 'var(--text-muted)',
-          background: 'rgba(255,255,255,0.06)', padding: '4px 8px', borderRadius: 6,
-        }}>
-          R {room.round}/{room.maxRounds}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={() => { setSquadUid(uid); setShowSquad(true); }}
+            className="lenda-btn-ghost"
+            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: 10, fontWeight: 800 }}
+          >
+            <Users size={12} />
+            🃏
+          </button>
+          <div style={{
+            fontSize: 11, fontWeight: 800, color: 'var(--text-muted)',
+            background: 'rgba(255,255,255,0.06)', padding: '4px 8px', borderRadius: 6,
+          }}>
+            R {room.round}/{room.maxRounds}
+          </div>
         </div>
       </header>
 
@@ -395,6 +408,115 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
           onConfirm={handleConfirm}
         />
       )}
+
+      {/* ── Squad modal ── */}
+      {showSquad && (() => {
+        const target = room.players.find(p => p.uid === squadUid) ?? myPlayer;
+        if (!target) return null;
+        const pc = PLAYER_COLORS[target.color];
+        const byPos: Record<string, typeof target.cards> = { GK: [], DEF: [], MID: [], ATK: [] };
+        for (const c of target.cards) byPos[c.position].push(c);
+        const totalStars = target.cards.reduce((s, c) => s + c.stars, 0);
+        const posColors: Record<string, string> = { GK: '#7c3aed', DEF: '#2563eb', MID: '#16a34a', ATK: '#dc2626' };
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            background: 'rgba(2,6,23,0.92)', backdropFilter: 'blur(10px)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }} onClick={() => setShowSquad(false)}>
+            <div style={{
+              width: '100%', maxWidth: 440, maxHeight: '88dvh',
+              background: '#1e293b', borderRadius: '24px 24px 0 0',
+              borderTop: `3px solid ${pc.light}`,
+              display: 'flex', flexDirection: 'column',
+              animation: 'lenda-slide-up 0.3s var(--ease-out)',
+            }} onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div style={{ padding: '16px 20px 10px', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: pc.bg, border: `2px solid ${pc.light}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 900, color: '#fff',
+                  }}>
+                    {target.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 900, color: '#f8fafc' }}>
+                      Elenco de {target.name}
+                    </p>
+                    <p style={{ fontSize: 10, color: '#64748b' }}>
+                      {target.cards.length} jogadores · {totalStars}★ total · {target.defenseTokens} fichas defesa · Ataque 1-{target.attackRange}
+                    </p>
+                  </div>
+                  <button onClick={() => setShowSquad(false)} className="lenda-btn-ghost"
+                    style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
+                    Fechar
+                  </button>
+                </div>
+                {/* Switch between players */}
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+                  {room.players.map(p => {
+                    const c = PLAYER_COLORS[p.color];
+                    return (
+                      <button key={p.uid}
+                        onClick={() => setSquadUid(p.uid)}
+                        style={{
+                          flexShrink: 0,
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 800,
+                          background: squadUid === p.uid ? c.bg : 'rgba(255,255,255,0.06)',
+                          border: `1px solid ${squadUid === p.uid ? c.light : 'rgba(255,255,255,0.1)'}`,
+                          color: squadUid === p.uid ? '#fff' : '#94a3b8',
+                          cursor: 'pointer',
+                        }}>
+                        {p.name.charAt(0)} {p.name.split(' ')[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Cards by position */}
+              <div style={{ overflowY: 'auto', flex: 1, padding: '12px 20px 20px' }}>
+                {(['GK', 'DEF', 'MID', 'ATK'] as const).map(pos => {
+                  const cards = byPos[pos];
+                  if (cards.length === 0) return null;
+                  return (
+                    <div key={pos} style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                        <span style={{
+                          fontSize: 9, fontWeight: 800, color: '#fff',
+                          background: posColors[pos], padding: '2px 6px', borderRadius: 4,
+                        }}>
+                          {POSITION_LABEL[pos]}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#64748b' }}>{cards.length} jogadores</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {cards.map(card => (
+                          <div key={card.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 8, padding: '5px 8px',
+                          }}>
+                            <span style={{ fontSize: 16 }}>{card.flag}</span>
+                            <div>
+                              <p style={{ fontSize: 10, fontWeight: 800, color: '#f1f5f9' }}>{card.name}</p>
+                              <p style={{ fontSize: 9, color: '#fbbf24' }}>{'★'.repeat(card.stars)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Exit confirm ── */}
       {showExit && (
