@@ -7,8 +7,9 @@ import { BOARD_SPACES, TOTAL_SPACES, PASS_GO_BONUS } from './data';
 
 // ─── Dice ─────────────────────────────────────────────────────────────────────
 
+/** Single die 1–6 */
 export function rollDice(): number {
-  return Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+  return Math.floor(Math.random() * 6) + 1;
 }
 
 // ─── Token pool (Mercado da Bola rule) ────────────────────────────────────────
