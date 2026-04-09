@@ -344,7 +344,7 @@ const S: Record<string, React.CSSProperties> = {
 
   submitBtn: {
     padding: '13px',
-    background: 'var(--green-grad)',
+    background: 'linear-gradient(135deg, #B5294E, #8B1A33)',
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius)',
@@ -352,7 +352,7 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 15,
     fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 4px 14px rgba(5,150,105,0.35)',
+    boxShadow: '0 4px 14px rgba(181,41,78,0.35)',
     transition: 'opacity 0.15s, transform 0.1s',
     marginBottom: 4,
     letterSpacing: '0.2px',
@@ -374,7 +374,7 @@ const S: Record<string, React.CSSProperties> = {
   switchLink: {
     background: 'none',
     border: 'none',
-    color: 'var(--green)',
+    color: '#B5294E',
     fontWeight: 700,
     cursor: 'pointer',
     fontSize: 13,
