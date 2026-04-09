@@ -1,174 +1,274 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMB } from '../../store/gameStore';
+import { cn } from '../../../../lib/utils';
+import StatBar from '../ui/StatBar';
+import RatingBadge from '../ui/RatingBadge';
+import MoneyDisplay from '../ui/MoneyDisplay';
+import { MoodBadge, POSITION_COLORS, POSITION_VARIANT } from '../ui/PlayerCard';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import { Progress } from '../../../../components/ui/progress';
+import { Card } from '../../../../components/ui/card';
+import { AlertDialog } from '../../../../components/ui/dialog';
+import { Tooltip } from '../../../../components/ui/tooltip';
+import {
+  ChevronRight, TrendingUp, BarChart2, Dumbbell,
+  DollarSign, AlertTriangle, Calendar, Hash, Star, Crown,
+  Flame, Smile, Frown, Meh, Home, Shield,
+} from 'lucide-react';
 
-const POSITION_COLORS: Record<string, string> = {
-  GK: '#f59e0b', CB: '#3b82f6', LB: '#3b82f6', RB: '#3b82f6',
-  CDM: '#10b981', CM: '#10b981', CAM: '#8b5cf6',
-  LW: '#ef4444', RW: '#ef4444', ST: '#ef4444', CF: '#ef4444',
-};
-
-const MOOD_LABEL: Record<string, string> = {
-  motivated: '🔥 Motivado', happy: '😊 Feliz', neutral: '😐 Neutro', unhappy: '😤 Insatisfeito',
-};
-const MOOD_COLOR: Record<string, string> = {
-  motivated: '#4ade80', happy: '#86efac', neutral: '#fbbf24', unhappy: '#f87171',
-};
 const LIFESTYLE_LABEL: Record<string, string> = {
-  poor: '🏚️ Humilde', modest: '🏠 Modesto', comfortable: '🏡 Confortável',
-  luxury: '🏰 Luxo', superstar: '🌟 Superestrela',
+  poor: 'Humilde', modest: 'Modesto', comfortable: 'Confortável',
+  luxury: 'Luxo', superstar: 'Superestrela',
+};
+const LIFESTYLE_ICON: Record<string, typeof Home> = {
+  poor: Home, modest: Home, comfortable: Crown, luxury: Crown, superstar: Crown,
 };
 
-function AttrBar({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 36, fontSize: 10, fontWeight: 700, color: '#94a3b8', textAlign: 'right' }}>{label}</div>
-      <div style={{ flex: 1, height: 8, background: '#334155', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 99 }} />
-      </div>
-      <div style={{ width: 28, fontSize: 12, fontWeight: 800, color, textAlign: 'right' }}>{value}</div>
-    </div>
-  );
+const ATTR_FULL: Record<string, string> = {
+  RIT: 'Ritmo', FIN: 'Finalização', PAS: 'Passe', DRI: 'Drible',
+  DEF: 'Defesa', FÍS: 'Físico', GOL: 'Goleiro',
+};
+
+function getInitials(name: string) {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export default function PlayerDetailScreen() {
   const { state, selectPlayer, trainPlayer, sellPlayer } = useMB();
   const { save, selectedPlayerId } = state;
+  const [sellConfirm, setSellConfirm] = useState(false);
 
   if (!save || !selectedPlayerId) return null;
   const player = save.mySquad.find(p => p.id === selectedPlayerId);
   if (!player) return null;
 
-  const posColor = POSITION_COLORS[player.position] ?? '#94a3b8';
-  const xpInLevel = player.xp % 500;
+  const posColor   = POSITION_COLORS[player.position] ?? '#94a3b8';
+  const posVariant = POSITION_VARIANT[player.position] ?? 'secondary';
+  const isLegendary = player.rarity === 'legendary';
+
+  const xpInLevel  = player.xp % 500;
   const xpProgress = xpInLevel / 500;
-  const xpToNext = 500 - xpInLevel;
-  const trainCost = 50 * player.level;
-  const canTrain = save.budget >= trainCost && player.level < 10;
+  const xpToNext   = 500 - xpInLevel;
+  const trainCost  = 50 * player.level;
+  const canTrain   = save.budget >= trainCost && player.level < 10;
 
   const attrs = player.attributes;
-  const attrList: [string, number, string][] = player.position === 'GK'
-    ? [['GOL', attrs.goalkeeping ?? 60, '#f59e0b'], ['DEF', attrs.defending, '#3b82f6'], ['FÍS', attrs.physical, '#8b5cf6'], ['PAS', attrs.passing, '#10b981']]
-    : [['RIT', attrs.pace, '#ef4444'], ['FIN', attrs.shooting, '#f59e0b'], ['PAS', attrs.passing, '#10b981'], ['DRI', attrs.dribbling, '#8b5cf6'], ['DEF', attrs.defending, '#3b82f6'], ['FÍS', attrs.physical, '#64748b']];
+  const attrList: [string, string, number, string][] = player.position === 'GK'
+    ? [['GOL', 'Goleiro',      attrs.goalkeeping ?? 60, '#f59e0b'],
+       ['DEF', 'Defesa',       attrs.defending,         '#3b82f6'],
+       ['FÍS', 'Físico',       attrs.physical,          '#8b5cf6'],
+       ['PAS', 'Passe',        attrs.passing,           '#10b981']]
+    : [['RIT', 'Ritmo',        attrs.pace,              '#ef4444'],
+       ['FIN', 'Finalização',  attrs.shooting,          '#f59e0b'],
+       ['PAS', 'Passe',        attrs.passing,           '#10b981'],
+       ['DRI', 'Drible',       attrs.dribbling,         '#8b5cf6'],
+       ['DEF', 'Defesa',       attrs.defending,         '#3b82f6'],
+       ['FÍS', 'Físico',       attrs.physical,          '#64748b']];
+
+  const sellPrice = Math.round(player.marketValue * 0.8);
 
   return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <button onClick={() => selectPlayer(null)} style={{
-        background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
-        color: '#94a3b8', padding: '8px 14px', fontSize: 13, cursor: 'pointer',
-        fontFamily: 'var(--font-body)', alignSelf: 'flex-start', fontWeight: 700,
-      }}>← Voltar ao Elenco</button>
+    <div className="flex flex-col gap-4 p-4 pb-8">
 
-      <div style={{
-        background: player.rarity === 'legendary' ? 'linear-gradient(135deg, #78350f, #451a03)' : '#1e293b',
-        border: `1px solid ${player.rarity === 'legendary' ? '#d97706' : '#334155'}`,
-        borderRadius: 16, padding: 20,
-      }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 14, flexShrink: 0,
-            background: player.rarity === 'legendary' ? 'linear-gradient(135deg, #d97706, #92400e)' : posColor + '33',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
-            border: player.rarity === 'legendary' ? '2px solid #d97706' : 'none',
-          }}>{player.rarity === 'legendary' ? '⭐' : player.flag}</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#f1f5f9' }}>{player.name}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{player.fullName}</div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 800, background: posColor + '33', color: posColor, padding: '3px 8px', borderRadius: 6 }}>{player.position}</span>
-              <span style={{ color: '#fbbf24', fontSize: 12 }}>{'★'.repeat(player.stars)}{'☆'.repeat(5 - player.stars)}</span>
-              {player.rarity === 'legendary' && <span style={{ fontSize: 10, fontWeight: 900, background: '#d97706', color: '#fff', padding: '2px 8px', borderRadius: 99 }}>LENDÁRIO</span>}
-              {player.injured && <span style={{ fontSize: 12 }}>🚑 Lesionado</span>}
+      {/* ── Breadcrumb ── */}
+      <nav className="flex items-center gap-1 text-xs text-slate-500">
+        <button onClick={() => selectPlayer(null)} className="flex items-center gap-1 hover:text-slate-300 transition-colors font-semibold">
+          <Shield size={12} />
+          Elenco
+        </button>
+        <ChevronRight size={12} />
+        <span className="text-slate-300 font-bold truncate">{player.name}</span>
+      </nav>
+
+      {/* ── Player hero card ── */}
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-2xl border p-5',
+          isLegendary
+            ? 'border-amber-600/50 bg-gradient-to-br from-amber-950/70 to-slate-800'
+            : 'border-slate-700 bg-gradient-to-br from-slate-800 to-[#0f172a]'
+        )}
+      >
+        {isLegendary && (
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.2),transparent_70%)] pointer-events-none" />
+        )}
+        <div className="flex items-center gap-4 mb-4">
+          {/* Big avatar */}
+          <div
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-xl font-black"
+            style={{
+              background: isLegendary ? 'linear-gradient(135deg, #d97706, #92400e)' : posColor + '22',
+              border: `2px solid ${isLegendary ? '#d97706' : posColor + '55'}`,
+              color: isLegendary ? '#fff' : posColor,
+            }}
+          >
+            {getInitials(player.name)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-black text-slate-100 leading-tight">
+              {player.name}
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">{player.fullName}</p>
+            <div className="flex items-center gap-2 flex-wrap mt-1.5">
+              <Badge variant={posVariant} className="text-xs px-2 py-0.5">{player.position}</Badge>
+              <RatingBadge rating={player.stars} size={13} />
+              {isLegendary && <Badge variant="legendary">LENDÁRIO</Badge>}
+              {player.injured && (
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle size={9} /> Lesionado
+                </Badge>
+              )}
             </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+
+        {/* Stat grid */}
+        <div className="grid grid-cols-4 gap-2">
           {[
-            { label: 'Idade', value: `${player.age}a`, icon: '🎂' },
-            { label: 'Nível', value: `Nv.${player.level}`, icon: '⬆️' },
-            { label: 'Valor', value: `$${player.marketValue}k`, icon: '💰' },
-            { label: 'Salário', value: `$${player.wage}k/s`, icon: '💳' },
-          ].map(s => (
-            <div key={s.label} style={{ background: '#0f172a', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 16 }}>{s.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#f1f5f9', marginTop: 2 }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: '#64748b', marginTop: 1 }}>{s.label}</div>
+            { icon: Calendar,   label: 'Idade',   value: `${player.age}a` },
+            { icon: TrendingUp, label: 'Nível',   value: `Nv.${player.level}` },
+            { icon: DollarSign, label: 'Valor',   value: `$${player.marketValue}k` },
+            { icon: Hash,       label: 'Salário', value: `$${player.wage}k/s` },
+          ].map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex flex-col items-center gap-1 rounded-xl bg-[#0f172a] p-3">
+              <Icon size={13} className="text-slate-500" />
+              <span className="text-xs font-black text-slate-100">{value}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wide text-slate-600">{label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 14, padding: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9' }}>⬆️ Evolução</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>
+      {/* ── XP / Evolution ── */}
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp size={15} className="text-purple-400" />
+          <span className="text-sm font-black text-slate-100">Evolução</span>
+          <span className="ml-auto text-xs text-slate-500">
             {player.level < 10 ? `${xpToNext} XP para nível ${player.level + 1}` : 'Nível MÁXIMO'}
+          </span>
+        </div>
+        <Progress
+          value={player.level < 10 ? xpProgress * 100 : 100}
+          color="linear-gradient(90deg, #7c3aed, #a855f7)"
+          className="h-3"
+        />
+        <div className="flex justify-between mt-2 text-[10px] text-slate-500">
+          <span>XP: {player.xp}</span>
+          <span>Nível {player.level} / 10</span>
+        </div>
+      </Card>
+
+      {/* ── Attributes ── */}
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart2 size={15} className="text-blue-400" />
+          <span className="text-sm font-black text-slate-100">Atributos</span>
+        </div>
+        <div className="flex flex-col gap-3">
+          {attrList.map(([short, full, val, col]) => (
+            <StatBar key={short} label={short} fullLabel={full} value={val} color={col} />
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Mood + Lifestyle ── */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">HUMOR</p>
+          <MoodBadge mood={player.mood} />
+          <div className="mt-3 space-y-1">
+            <Progress
+              value={player.moodPoints}
+              color={
+                player.mood === 'motivated' ? '#22c55e' :
+                player.mood === 'happy'     ? '#3b82f6' :
+                player.mood === 'neutral'   ? '#eab308' : '#ef4444'
+              }
+            />
+            <p className="text-[10px] text-slate-500">{player.moodPoints}/100</p>
           </div>
-        </div>
-        <div style={{ height: 10, background: '#334155', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
-          <div style={{ width: `${player.level < 10 ? xpProgress * 100 : 100}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #7c3aed)', borderRadius: 99 }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
-          <span>XP: {player.xp}</span><span>Nível {player.level}/10</span>
-        </div>
+        </Card>
+        <Card className="p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">ESTILO</p>
+          {(() => {
+            const Icon = LIFESTYLE_ICON[player.lifestyle] ?? Home;
+            return (
+              <div className="flex items-center gap-2">
+                <Icon size={14} className="text-amber-400 shrink-0" />
+                <span className="text-sm font-bold text-slate-100">
+                  {LIFESTYLE_LABEL[player.lifestyle] ?? player.lifestyle}
+                </span>
+              </div>
+            );
+          })()}
+          <p className="text-xs text-red-400 mt-2">-${player.lifestyleExpenses}k/mês</p>
+        </Card>
       </div>
 
-      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 14, padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9', marginBottom: 12 }}>📊 Atributos</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {attrList.map(([lbl, val, col]) => <AttrBar key={lbl} label={lbl} value={val} color={col} />)}
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 14, padding: 14 }}>
-          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontWeight: 700 }}>HUMOR</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: MOOD_COLOR[player.mood] }}>{MOOD_LABEL[player.mood]}</div>
-          <div style={{ height: 6, background: '#334155', borderRadius: 99, marginTop: 8, overflow: 'hidden' }}>
-            <div style={{ width: `${player.moodPoints}%`, height: '100%', background: MOOD_COLOR[player.mood], borderRadius: 99 }} />
+      {/* ── Legendary card info ── */}
+      {isLegendary && player.legendaryCard && (
+        <div className="rounded-2xl border border-amber-600/50 bg-gradient-to-br from-amber-950/60 to-slate-800 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Star size={14} className="text-amber-400 fill-amber-400" />
+            <span className="text-xs font-black text-amber-400 uppercase tracking-widest">
+              CARTA LENDÁRIA · {player.legendaryCard.visual.toUpperCase()}
+            </span>
           </div>
-          <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>{player.moodPoints}/100</div>
-        </div>
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 14, padding: 14 }}>
-          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontWeight: 700 }}>ESTILO</div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9' }}>{LIFESTYLE_LABEL[player.lifestyle]}</div>
-          <div style={{ fontSize: 12, color: '#fde68a', marginTop: 6 }}>-${player.lifestyleExpenses}k/mês</div>
-        </div>
-      </div>
-
-      {player.rarity === 'legendary' && player.legendaryCard && (
-        <div style={{ background: 'linear-gradient(135deg, #78350f, #451a03)', border: '1px solid #d97706', borderRadius: 14, padding: 16 }}>
-          <div style={{ fontSize: 12, color: '#fde68a', fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-            🌟 CARTA LENDÁRIA · {player.legendaryCard.visual.toUpperCase()}
-          </div>
-          <div style={{ fontSize: 13, color: '#fef3c7', fontStyle: 'italic', marginBottom: 8 }}>"{player.legendaryCard.lore}"</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <span style={{ fontSize: 12, color: '#fde68a', background: 'rgba(0,0,0,0.3)', padding: '4px 10px', borderRadius: 8 }}>Era: {player.legendaryCard.era}</span>
-            <span style={{ fontSize: 12, color: '#4ade80', background: 'rgba(0,0,0,0.3)', padding: '4px 10px', borderRadius: 8 }}>+{Math.round((player.legendaryCard.boostMultiplier - 1) * 100)}% atributos</span>
+          <p className="text-sm text-amber-100 italic mb-3">"{player.legendaryCard.lore}"</p>
+          <div className="flex gap-2 flex-wrap">
+            <Badge variant="warning">Era: {player.legendaryCard.era}</Badge>
+            <Badge variant="success">
+              +{Math.round((player.legendaryCard.boostMultiplier - 1) * 100)}% atributos
+            </Badge>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={() => { if (canTrain) trainPlayer(player.id, trainCost); }} disabled={!canTrain} style={{
-          flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-          background: canTrain ? '#2563eb' : '#374151', color: canTrain ? '#fff' : '#6b7280',
-          fontWeight: 800, fontSize: 13, cursor: canTrain ? 'pointer' : 'not-allowed',
-          fontFamily: 'var(--font-body)',
-        }}>
-          🏋️ Treino Extra<br /><span style={{ fontSize: 11, fontWeight: 600, opacity: 0.8 }}>+200 XP · ${trainCost}k</span>
-        </button>
-        <button onClick={() => {
-          const price = Math.round(player.marketValue * 0.8);
-          sellPlayer(player.id, price, 'Mercado Livre');
-          selectPlayer(null);
-        }} style={{
-          flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #334155',
-          background: '#0f172a', color: '#f87171', fontWeight: 800, fontSize: 13,
-          cursor: 'pointer', fontFamily: 'var(--font-body)',
-        }}>
-          💸 Vender<br /><span style={{ fontSize: 11, fontWeight: 600, opacity: 0.8 }}>${Math.round(player.marketValue * 0.8).toLocaleString('pt-BR')}k</span>
-        </button>
+      {/* ── Actions ── */}
+      <div className="flex gap-3">
+        <Tooltip content={canTrain ? `Custa $${trainCost}k · +200 XP` : 'Sem orçamento ou nível máximo'}>
+          <Button
+            variant="default"
+            size="lg"
+            className="flex-1 flex-col h-auto py-3 gap-1"
+            disabled={!canTrain}
+            onClick={() => { if (canTrain) trainPlayer(player.id, trainCost); }}
+          >
+            <Dumbbell size={16} />
+            <span>Treino Extra</span>
+            <span className="text-[10px] font-semibold opacity-75">+200 XP · ${trainCost}k</span>
+          </Button>
+        </Tooltip>
+        <Button
+          variant="outline"
+          size="lg"
+          className="flex-1 flex-col h-auto py-3 gap-1 border-red-700/50 text-red-400 hover:bg-red-600/10"
+          onClick={() => setSellConfirm(true)}
+        >
+          <DollarSign size={16} />
+          <span>Vender</span>
+          <MoneyDisplay amount={sellPrice} size="sm" className="opacity-75" />
+        </Button>
       </div>
+
+      {/* ── Sell confirmation ── */}
+      <AlertDialog
+        open={sellConfirm}
+        onOpenChange={setSellConfirm}
+        title={`Vender ${player.name}?`}
+        description={`Você receberá $${sellPrice}k pela venda. Esta ação não pode ser desfeita.`}
+        confirmLabel="Vender!"
+        cancelLabel="Cancelar"
+        variant="destructive"
+        onConfirm={() => {
+          sellPlayer(player.id, sellPrice, 'Mercado Livre');
+          selectPlayer(null);
+        }}
+      />
     </div>
   );
 }

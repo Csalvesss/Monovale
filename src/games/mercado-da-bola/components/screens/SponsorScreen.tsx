@@ -2,112 +2,158 @@ import React from 'react';
 import { useMB } from '../../store/gameStore';
 import { ALL_SPONSORS } from '../../data/sponsors';
 import type { Sponsor } from '../../types';
+import { cn } from '../../../../lib/utils';
+import { Badge } from '../../../../components/ui/badge';
+import { Card } from '../../../../components/ui/card';
+import { Progress } from '../../../../components/ui/progress';
+import { CheckCircle, Minus, XCircle, Lock, Star, DollarSign, TrendingUp } from 'lucide-react';
 
-const TIER_LABEL: Record<number, string> = { 1: 'Local', 2: 'Regional', 3: 'Nacional' };
-const TIER_COLOR: Record<number, string> = { 1: '#64748b', 2: '#3b82f6', 3: '#f59e0b' };
+// ─── Tier config ──────────────────────────────────────────────────────────────
+
+const TIER_CONFIG: Record<number, { label: string; color: string; badgeClass: string }> = {
+  1: { label: 'Local',    color: '#94a3b8', badgeClass: 'bg-slate-600/20 text-slate-400 border border-slate-600/30' },
+  2: { label: 'Regional', color: '#3b82f6', badgeClass: 'bg-blue-600/20 text-blue-400 border border-blue-600/30' },
+  3: { label: 'Nacional', color: '#f59e0b', badgeClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/30' },
+};
+
+// ─── Sponsor card ─────────────────────────────────────────────────────────────
 
 function SponsorCard({ sponsor, active, locked, onSelect }: {
   sponsor: Sponsor; active: boolean; locked: boolean; onSelect: () => void;
 }) {
-  const tc = TIER_COLOR[sponsor.tier];
+  const tc = TIER_CONFIG[sponsor.tier];
+
   return (
-    <div style={{
-      background: active ? 'rgba(37,99,235,0.15)' : '#1e293b',
-      border: `1px solid ${active ? '#2563eb' : '#334155'}`,
-      borderRadius: 14, padding: 16, opacity: locked ? 0.5 : 1, position: 'relative',
-    }}>
+    <div className={cn(
+      'relative rounded-xl border transition-all',
+      active  ? 'border-blue-600/50 bg-blue-600/5' : 'border-slate-700 bg-slate-800',
+      locked  && 'opacity-50',
+    )}>
       {active && (
-        <div style={{
-          position: 'absolute', top: 8, right: 8, background: '#2563eb', color: '#fff',
-          fontSize: 9, fontWeight: 900, letterSpacing: 1, padding: '2px 8px', borderRadius: 99,
-        }}>ATIVO</div>
+        <div className="absolute right-3 top-3">
+          <Badge variant="default" className="text-[9px] font-black">ATIVO</Badge>
+        </div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <div style={{ fontSize: 32 }}>{sponsor.logo}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#f1f5f9' }}>{sponsor.name}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
-            <span style={{ fontSize: 9, fontWeight: 800, background: tc + '22', color: tc, padding: '2px 8px', borderRadius: 99, border: `1px solid ${tc}44` }}>
-              Tier {sponsor.tier} · {TIER_LABEL[sponsor.tier]}
-            </span>
-            <span style={{ fontSize: 11, color: '#64748b' }}>{sponsor.industry}</span>
+
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-700 text-2xl">
+            {sponsor.logo}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-black text-slate-100">{sponsor.name}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black', tc.badgeClass)}>
+                Tier {sponsor.tier} · {tc.label}
+              </span>
+              <span className="text-xs text-slate-500">{sponsor.industry}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
-        {[
-          { label: 'Vitória', value: sponsor.winFee, icon: '✅', color: '#4ade80' },
-          { label: 'Empate', value: sponsor.drawFee, icon: '🟡', color: '#facc15' },
-          { label: 'Derrota', value: sponsor.lossFee, icon: '❌', color: '#f87171' },
-        ].map(f => (
-          <div key={f.label} style={{ background: '#0f172a', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14 }}>{f.icon}</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: f.color }}>+${f.value}k</div>
-            <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{f.label}</div>
+
+        {/* Fee grid */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {[
+            { label: 'Vitória', value: sponsor.winFee,  Icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-600/10 border-emerald-600/20' },
+            { label: 'Empate',  value: sponsor.drawFee, Icon: Minus,       color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20' },
+            { label: 'Derrota', value: sponsor.lossFee, Icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-600/10 border-red-600/20' },
+          ].map(({ label, value, Icon, color, bg }) => (
+            <div key={label} className={cn('rounded-lg border p-2.5 text-center', bg)}>
+              <Icon size={14} className={cn('mx-auto mb-1', color)} />
+              <p className={cn('text-sm font-black', color)}>+${value}k</p>
+              <p className="text-[9px] text-slate-500 mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Action */}
+        {locked ? (
+          <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 py-2.5 text-xs text-slate-500">
+            <Lock size={12} />
+            Reputação mínima: {sponsor.minReputation}
           </div>
-        ))}
+        ) : active ? (
+          <div className="flex items-center justify-center gap-2 rounded-lg border border-blue-600/30 bg-blue-600/10 py-2.5 text-xs font-bold text-blue-400">
+            <CheckCircle size={12} />
+            Patrocínio ativo
+          </div>
+        ) : (
+          <button
+            onClick={onSelect}
+            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-black text-white hover:bg-blue-500 active:scale-[0.98] transition-all"
+          >
+            Fechar Patrocínio
+          </button>
+        )}
       </div>
-      {locked ? (
-        <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center' }}>🔒 Reputação mínima: {sponsor.minReputation}</div>
-      ) : active ? (
-        <div style={{ fontSize: 12, color: '#60a5fa', textAlign: 'center', fontWeight: 700 }}>Patrocínio atual ativo ✓</div>
-      ) : (
-        <button onClick={onSelect} style={{
-          width: '100%', padding: '10px', borderRadius: 8, border: 'none',
-          background: '#2563eb', color: '#fff', fontWeight: 800, fontSize: 13,
-          cursor: 'pointer', fontFamily: 'var(--font-body)',
-        }}>Fechar Patrocínio</button>
-      )}
     </div>
   );
 }
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function SponsorScreen() {
   const { state, setSponsor } = useMB();
   const { save } = state;
   if (!save) return null;
 
-  const myStanding = save.standings.find(s => s.teamId === save.myTeamId);
-  const sorted = [...save.standings].sort((a, b) => b.points - a.points);
-  const position = myStanding ? sorted.findIndex(s => s.teamId === save.myTeamId) + 1 : 10;
-  const reputation = Math.max(20, 80 - (position - 1) * 3 + (myStanding?.won ?? 0) * 2);
+  const myStanding     = save.standings.find(s => s.teamId === save.myTeamId);
+  const sorted         = [...save.standings].sort((a, b) => b.points - a.points);
+  const position       = myStanding ? sorted.findIndex(s => s.teamId === save.myTeamId) + 1 : 10;
+  const reputation     = Math.max(20, 80 - (position - 1) * 3 + (myStanding?.won ?? 0) * 2);
   const currentSponsor = ALL_SPONSORS.find(s => s.id === save.sponsorId);
 
   return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="flex flex-col gap-5 p-4 pb-8">
+
+      {/* ── Header ── */}
       <div>
-        <div style={{ fontSize: 20, fontWeight: 900, color: '#f1f5f9' }}>💰 Patrocínio</div>
-        <div style={{ fontSize: 12, color: '#64748b' }}>
-          Reputação: {reputation} · {currentSponsor ? currentSponsor.name : 'Sem patrocinador'}
+        <h2 className="text-xl font-black text-slate-100">Patrocínio</h2>
+        <div className="flex items-center gap-2 mt-1">
+          <Star size={13} className="text-amber-400" />
+          <span className="text-xs text-slate-400">Reputação: {reputation}</span>
+          <span className="text-slate-700">·</span>
+          <span className="text-xs text-slate-500">{currentSponsor ? currentSponsor.name : 'Sem patrocinador'}</span>
+        </div>
+        <div className="mt-2 space-y-1">
+          <Progress value={reputation} color="linear-gradient(90deg, #f59e0b, #d97706)" />
         </div>
       </div>
 
+      {/* ── Active sponsor card ── */}
       {currentSponsor && (
-        <div style={{
-          background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)',
-          border: '1px solid #2563eb', borderRadius: 14, padding: 16,
-        }}>
-          <div style={{ fontSize: 11, color: '#93c5fd', fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>PATROCÍNIO ATUAL</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 36 }}>{currentSponsor.logo}</div>
+        <div className="rounded-2xl border border-blue-600/30 bg-gradient-to-br from-blue-900/40 to-purple-900/20 p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-3">Patrocínio Atual</p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-3xl">
+              {currentSponsor.logo}
+            </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{currentSponsor.name}</div>
-              <div style={{ fontSize: 12, color: '#93c5fd', marginTop: 4 }}>
-                +${currentSponsor.winFee}k (V) / +${currentSponsor.drawFee}k (E) / +${currentSponsor.lossFee}k (D)
-              </div>
+              <p className="text-lg font-black text-white">{currentSponsor.name}</p>
+              <p className="text-xs text-blue-300 mt-1">
+                +${currentSponsor.winFee}k (V) · +${currentSponsor.drawFee}k (E) · +${currentSponsor.lossFee}k (D)
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {[3, 2, 1].map(tier => (
+      {/* ── Sponsor tiers ── */}
+      {[3, 2, 1].map(tier => {
+        const tc = TIER_CONFIG[tier];
+        const sponsors = ALL_SPONSORS.filter(s => s.tier === tier);
+        return (
           <div key={tier}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: TIER_COLOR[tier], letterSpacing: 2, marginBottom: 8, paddingLeft: 4 }}>
-              ── TIER {tier} · {TIER_LABEL[tier].toUpperCase()} ──
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1 bg-slate-700" />
+              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: tc.color }}>
+                Tier {tier} · {tc.label}
+              </span>
+              <div className="h-px flex-1 bg-slate-700" />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {ALL_SPONSORS.filter(s => s.tier === tier).map(sp => (
+            <div className="flex flex-col gap-3">
+              {sponsors.map(sp => (
                 <SponsorCard
                   key={sp.id}
                   sponsor={sp}
@@ -118,8 +164,8 @@ export default function SponsorScreen() {
               ))}
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

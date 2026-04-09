@@ -2,72 +2,43 @@ import React from 'react';
 import { useMB } from '../../store/gameStore';
 import { getTeam } from '../../data/teams';
 import TeamBadge from '../ui/TeamBadge';
+import MoneyDisplay from '../ui/MoneyDisplay';
 import type { FinancialRecord, MatchFixture, NewsPost } from '../../types';
 import { LEGENDARY_BASE_CHANCE, LEGENDARY_MAX_CHANCE } from '../../constants';
+import { cn } from '../../../../lib/utils';
+import {
+  BarChart2, Users, Trophy, Play,
+  TrendingUp, Home, Plane, DollarSign,
+  Heart, MessageCircle, Newspaper, ArrowLeftRight,
+  Star, Shirt, RefreshCw,
+} from 'lucide-react';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { Progress } from '../../../../components/ui/progress';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const NEWS_ICONS: Record<string, string> = {
-  transfer: '🔄',
-  match:    '⚽',
-  sponsor:  '💰',
-  player:   '👤',
-  legendary:'🌟',
-  stadium:  '🏟️',
-  general:  '📰',
+function fmt(n: number) { return new Intl.NumberFormat('pt-BR').format(n); }
+
+const NEWS_ICONS: Record<string, typeof Newspaper> = {
+  transfer: ArrowLeftRight,
+  match:    Trophy,
+  sponsor:  DollarSign,
+  player:   Users,
+  legendary: Star,
+  stadium:  Home,
+  general:  Newspaper,
 };
-
-const PLATFORM_ICONS: Record<string, string> = {
-  instagram: '📸',
-  twitter:   '🐦',
-  report:    '📰',
-};
-
-function fmt(n: number) {
-  return n.toLocaleString('pt-BR');
-}
-
-function fmtAmount(n: number) {
-  const sign = n >= 0 ? '+' : '';
-  const color = n >= 0 ? '#4ade80' : '#f87171';
-  return { label: `${sign}$${fmt(Math.abs(n))}k`, color };
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function StatCard({ icon, label, value, sub }: { icon: string; label: string; value: string; sub?: string }) {
-  return (
-    <div style={{
-      background: '#1e293b',
-      border: '1px solid #334155',
-      borderRadius: 12,
-      padding: '12px 14px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-    }}>
-      <div style={{ fontSize: 18, lineHeight: 1 }}>{icon}</div>
-      <div style={{ fontSize: 18, fontWeight: 900, color: '#f1f5f9', lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: '#94a3b8' }}>{sub}</div>}
-    </div>
-  );
-}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      fontSize: 11,
-      fontWeight: 800,
-      color: '#64748b',
-      textTransform: 'uppercase',
-      letterSpacing: '0.8px',
-      marginBottom: 8,
-    }}>
+    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
       {children}
     </div>
   );
 }
+
+// ─── Result Pill ──────────────────────────────────────────────────────────────
 
 function ResultPill({ fixture, myTeamId }: { fixture: MatchFixture; myTeamId: string }) {
   const r = fixture.result!;
@@ -78,97 +49,108 @@ function ResultPill({ fixture, myTeamId }: { fixture: MatchFixture; myTeamId: st
   const opTeam = getTeam(opTeamId);
   const won = myGoals > opGoals;
   const drew = myGoals === opGoals;
-  const outcomeColor = won ? '#4ade80' : drew ? '#facc15' : '#f87171';
-  const outcomeLabel = won ? 'V' : drew ? 'E' : 'D';
+
+  const outcomeVariant = won ? 'win' : drew ? 'draw' : 'loss';
+  const outcomeLabel   = won ? 'V' : drew ? 'E' : 'D';
 
   return (
-    <div style={{
-      background: '#1e293b',
-      border: '1px solid #334155',
-      borderRadius: 10,
-      padding: '10px 12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-        <div style={{
-          width: 24, height: 24, borderRadius: 6,
-          background: outcomeColor + '22',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 900, color: outcomeColor, flexShrink: 0,
-        }}>
-          {outcomeLabel}
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {isHome ? 'vs ' : 'em '}{opTeam?.badge ?? '⚽'} {opTeam?.shortName ?? opTeamId}
-        </div>
+    <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 p-3 hover:border-slate-600 transition-colors">
+      <Badge variant={outcomeVariant} className="h-7 w-7 shrink-0 rounded-lg px-0 justify-center text-xs font-black">
+        {outcomeLabel}
+      </Badge>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold text-slate-100 truncate">
+          {isHome ? 'vs' : 'em'} {opTeam?.shortName ?? opTeamId}
+        </p>
+        <p className="text-[10px] text-slate-500">Rodada {fixture.round}</p>
       </div>
-      <div style={{ fontSize: 14, fontWeight: 900, color: '#f1f5f9', flexShrink: 0 }}>
-        {myGoals} <span style={{ color: '#475569' }}>x</span> {opGoals}
-      </div>
-      <div style={{ fontSize: 10, color: '#64748b', flexShrink: 0 }}>Rd.{fixture.round}</div>
+      <span className="shrink-0 text-[15px] font-black text-slate-100">
+        {myGoals} <span className="text-slate-600">x</span> {opGoals}
+      </span>
     </div>
   );
 }
+
+// ─── News Card ────────────────────────────────────────────────────────────────
 
 function NewsCard({ post }: { post: NewsPost }) {
-  const icon = NEWS_ICONS[post.type] ?? '📰';
-  const platform = PLATFORM_ICONS[post.platform] ?? '📰';
+  const Icon = NEWS_ICONS[post.type] ?? Newspaper;
+
+  const platformColor: Record<string, string> = {
+    instagram: 'border-l-pink-500',
+    twitter:   'border-l-sky-500',
+    report:    'border-l-blue-500',
+  };
+  const borderColor = platformColor[post.platform] ?? 'border-l-slate-600';
 
   return (
-    <div style={{
-      background: '#1e293b',
-      border: '1px solid #334155',
-      borderRadius: 10,
-      padding: '10px 12px',
-      display: 'flex',
-      gap: 10,
-    }}>
-      <div style={{ fontSize: 20, flexShrink: 0, lineHeight: 1, marginTop: 1 }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8' }}>{platform} {post.author}</span>
-          {post.authorHandle && (
-            <span style={{ fontSize: 9, color: '#475569' }}>{post.authorHandle}</span>
-          )}
+    <div className={cn('flex gap-3 rounded-xl border border-slate-700 bg-slate-800 p-3 border-l-4', borderColor)}>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-700">
+        <Icon size={14} className="text-slate-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[11px] font-bold text-slate-400">{post.author}</span>
+          {post.authorHandle && <span className="text-[10px] text-slate-600">{post.authorHandle}</span>}
         </div>
-        <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>{post.content}</div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: '#475569' }}>❤️ {fmt(post.likes)}</span>
-          <span style={{ fontSize: 10, color: '#475569' }}>💬 {post.comments}</span>
+        <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{post.content}</p>
+        <div className="flex gap-3 mt-1.5">
+          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+            <Heart size={9} /> {fmt(post.likes)}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+            <MessageCircle size={9} /> {post.comments}
+          </span>
         </div>
       </div>
     </div>
   );
 }
+
+// ─── Finance Row ──────────────────────────────────────────────────────────────
 
 function FinanceRow({ record }: { record: FinancialRecord }) {
-  const { label, color } = fmtAmount(record.amount);
-  const CAT_ICONS: Record<string, string> = {
-    wage: '👕', transfer: '🔄', sponsor: '💰', ticket: '🎟️', training: '🏋️', stadium: '🏟️', other: '📋',
+  const isPositive = record.amount >= 0;
+  const CAT_ICONS: Record<string, typeof DollarSign> = {
+    wage: Shirt, transfer: ArrowLeftRight, sponsor: DollarSign,
+    ticket: Star, training: TrendingUp, stadium: Home, other: RefreshCw,
   };
+  const Icon = CAT_ICONS[record.category] ?? RefreshCw;
+
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '8px 0',
-      borderBottom: '1px solid #1e293b',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 14, flexShrink: 0 }}>{CAT_ICONS[record.category] ?? '📋'}</span>
-        <span style={{ fontSize: 12, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {record.description}
-        </span>
+    <div className="flex items-center gap-3 py-2.5 border-b border-slate-700/50 last:border-0">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-700/50">
+        <Icon size={12} className="text-slate-400" />
       </div>
-      <div style={{ fontSize: 12, fontWeight: 800, color, flexShrink: 0, marginLeft: 8 }}>{label}</div>
+      <p className="flex-1 min-w-0 text-xs text-slate-400 truncate">{record.description}</p>
+      <MoneyDisplay amount={record.amount} showSign size="sm" />
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({
+  icon: Icon, label, value, sub, color = '#3b82f6',
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string; value: string; sub?: string; color?: string;
+}) {
+  return (
+    <Card className="p-4 flex flex-col gap-2 hover:scale-105 transition-transform cursor-default">
+      <div className="flex items-center justify-between">
+        <Icon size={16} style={{ color }} />
+      </div>
+      <div>
+        <div className="text-xl font-black text-slate-100 leading-none">{value}</div>
+        {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
+      </div>
+      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">{label}</div>
+    </Card>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const { state, setScreen } = useMB();
@@ -178,7 +160,6 @@ export default function HomeScreen() {
 
   const myTeam = getTeam(save.myTeamId);
 
-  // --- Standings position ---
   const sortedStandings = [...save.standings].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     const gdA = a.goalsFor - a.goalsAgainst;
@@ -189,7 +170,6 @@ export default function HomeScreen() {
   const myPosition = sortedStandings.findIndex(s => s.teamId === save.myTeamId) + 1;
   const myStanding = save.standings.find(s => s.teamId === save.myTeamId);
 
-  // --- Next fixture ---
   const nextFixtureIdx = save.fixtures.findIndex(
     f => !f.played && (f.homeTeamId === save.myTeamId || f.awayTeamId === save.myTeamId)
   );
@@ -200,148 +180,113 @@ export default function HomeScreen() {
   const nextOpponent = nextOpponentId ? getTeam(nextOpponentId) : null;
   const nextIsHome = nextFixture ? nextFixture.homeTeamId === save.myTeamId : false;
 
-  // --- Recent results ---
   const recentResults = save.fixtures
     .filter(f => f.played && f.result && (f.homeTeamId === save.myTeamId || f.awayTeamId === save.myTeamId))
     .slice(-3)
     .reverse();
 
-  // --- News ---
   const recentNews = save.newsFeed.slice(0, 3);
-
-  // --- Legendary chance ---
   const legendaryChance = Math.min(LEGENDARY_MAX_CHANCE, LEGENDARY_BASE_CHANCE + save.legendaryChanceBonus);
   const legendaryPct = (legendaryChance / LEGENDARY_MAX_CHANCE) * 100;
-
-  // --- Finances ---
   const recentFinances = save.finances.slice(0, 3);
 
-  const positionLabel = myPosition
-    ? `${myPosition}°`
-    : '—';
+  const positionColor = myPosition <= 4 ? '#22c55e' : myPosition <= 10 ? '#eab308' : '#ef4444';
 
-  const positionColor = myPosition <= 4 ? '#4ade80' : myPosition <= 10 ? '#facc15' : '#f87171';
+  // Calc win probability
+  const totalGames = (myStanding?.won ?? 0) + (myStanding?.drawn ?? 0) + (myStanding?.lost ?? 0);
+  const winPct = totalGames > 0 ? Math.round(((myStanding?.won ?? 0) / totalGames) * 100) : 0;
 
   return (
-    <div style={{ padding: '16px', paddingBottom: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="flex flex-col gap-5 p-4 pb-8">
 
-      {/* ── Header ── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-        border: '1px solid #334155',
-        borderRadius: 16,
-        padding: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-      }}>
-        <div style={{ width: 56, height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {myTeam ? <TeamBadge team={myTeam} size={52} /> : <span style={{ fontSize: 30 }}>⚽</span>}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#f1f5f9', lineHeight: 1.1 }}>
-            {myTeam?.name ?? 'Meu Time'}
+      {/* ── Club header ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-800 to-[#0f172a]"
+        style={{ borderLeftWidth: 4, borderLeftColor: myTeam?.primaryColor ?? '#3b82f6' }}>
+        <div className="flex items-center gap-4 p-4">
+          {myTeam ? <TeamBadge team={myTeam} size={56} /> : <div className="h-14 w-14 rounded-xl bg-slate-700" />}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-black text-slate-100 leading-tight truncate"
+              style={{ fontFamily: 'var(--font-title)' }}>
+              {myTeam?.name ?? 'Meu Time'}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary">Temporada {save.currentSeason}</Badge>
+              <Badge variant="secondary">Rodada {save.currentRound}</Badge>
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-            Temporada {save.currentSeason} · Rodada {save.currentRound}
+          <div className="text-right shrink-0">
+            <MoneyDisplay amount={save.budget} size="md" showIcon />
+            <div className="text-[9px] text-slate-500 mt-0.5">orçamento</div>
           </div>
-        </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 900, color: '#fde68a' }}>
-            💰 ${fmt(save.budget)}k
-          </div>
-          <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>orçamento</div>
         </div>
       </div>
 
       {/* ── Quick stats grid ── */}
       <div>
         <SectionTitle>Visão Geral</SectionTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-3">
           <StatCard
-            icon="📊"
-            label="Posição"
-            value={positionLabel}
+            icon={BarChart2} label="Posição"
+            value={myPosition ? `${myPosition}°` : '—'}
             sub={`${myStanding?.points ?? 0} pts`}
+            color={positionColor}
           />
           <StatCard
-            icon="⚽"
-            label="Próxima Partida"
-            value={nextOpponent ? `${nextOpponent.badge} ${nextOpponent.shortName}` : '—'}
-            sub={nextFixture ? `Rd.${nextFixture.round} · ${nextIsHome ? 'Casa' : 'Fora'}` : 'Sem jogos'}
-          />
-          <StatCard
-            icon="👕"
-            label="Elenco"
-            value={String(save.mySquad.length)}
-            sub="jogadores"
-          />
-          <StatCard
-            icon="🏆"
-            label="Vitórias"
+            icon={Trophy} label="Vitórias"
             value={String(myStanding?.won ?? 0)}
             sub={`${myStanding?.drawn ?? 0}E · ${myStanding?.lost ?? 0}D`}
+            color="#22c55e"
+          />
+          <StatCard
+            icon={Users} label="Elenco"
+            value={String(save.mySquad.length)}
+            sub="jogadores"
+            color="#3b82f6"
+          />
+          <StatCard
+            icon={TrendingUp} label="Aproveitamento"
+            value={`${winPct}%`}
+            sub={`${totalGames} jogos`}
+            color="#a855f7"
           />
         </div>
       </div>
 
       {/* ── Next match card ── */}
-      {nextFixture && nextOpponent && (
-        <div style={{
-          background: 'linear-gradient(135deg, #1e3a5f, #1e293b)',
-          border: '1px solid #1d4ed8',
-          borderRadius: 16,
-          padding: 16,
-        }}>
+      {nextFixture && nextOpponent && myTeam && (
+        <div>
           <SectionTitle>Próxima Partida</SectionTitle>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-            {/* My team */}
-            <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              {myTeam ? <TeamBadge team={myTeam} size={40} /> : <span style={{ fontSize: 28 }}>⚽</span>}
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9' }}>
-                {myTeam?.shortName ?? 'MEU'}
+          <div className="rounded-2xl border border-blue-700/40 bg-gradient-to-br from-[#1e3a5f] to-slate-800 p-4">
+            {/* Teams */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1 flex flex-col items-center gap-2">
+                <TeamBadge team={myTeam} size={48} />
+                <span className="text-xs font-black text-slate-100">{myTeam.shortName}</span>
+                <Badge variant={nextIsHome ? 'success' : 'secondary'}>
+                  {nextIsHome ? <><Home size={9} /> Casa</> : <><Plane size={9} /> Fora</>}
+                </Badge>
               </div>
-              <div style={{ fontSize: 9, color: '#60a5fa', fontWeight: 600 }}>
-                {nextIsHome ? '🏠 Casa' : '✈️ Fora'}
+
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <span className="text-2xl font-black text-slate-600">VS</span>
+                <span className="text-[10px] font-bold text-slate-500">Rd.{nextFixture.round}</span>
+              </div>
+
+              <div className="flex-1 flex flex-col items-center gap-2">
+                <TeamBadge team={nextOpponent} size={48} />
+                <span className="text-xs font-black text-slate-100">{nextOpponent.shortName}</span>
+                <Badge variant="secondary">Rep. {nextOpponent.reputation}</Badge>
               </div>
             </div>
 
-            {/* VS */}
-            <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#475569' }}>VS</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>Rodada {nextFixture.round}</div>
-            </div>
-
-            {/* Opponent */}
-            <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <TeamBadge team={nextOpponent} size={40} />
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9' }}>
-                {nextOpponent.shortName}
-              </div>
-              <div style={{ fontSize: 9, color: '#94a3b8' }}>
-                Rep. {nextOpponent.reputation}
-              </div>
-            </div>
+            <button
+              onClick={() => setScreen('match')}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-black text-white hover:bg-blue-500 active:scale-[0.98] transition-all shadow-lg shadow-blue-600/30"
+            >
+              <Play size={16} />
+              Jogar Agora
+            </button>
           </div>
-
-          <button
-            onClick={() => setScreen('match')}
-            style={{
-              width: '100%',
-              padding: '12px 0',
-              borderRadius: 10,
-              border: 'none',
-              background: 'linear-gradient(90deg, #2563eb, #1d4ed8)',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: 14,
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              letterSpacing: '0.3px',
-            }}
-          >
-            ⚽ Jogar Agora
-          </button>
         </div>
       )}
 
@@ -349,7 +294,7 @@ export default function HomeScreen() {
       {recentResults.length > 0 && (
         <div>
           <SectionTitle>Resultados Recentes</SectionTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {recentResults.map((f, i) => (
               <ResultPill key={i} fixture={f} myTeamId={save.myTeamId} />
             ))}
@@ -361,7 +306,7 @@ export default function HomeScreen() {
       {recentNews.length > 0 && (
         <div>
           <SectionTitle>Notícias Recentes</SectionTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2.5">
             {recentNews.map(post => (
               <NewsCard key={post.id} post={post} />
             ))}
@@ -372,68 +317,35 @@ export default function HomeScreen() {
       {/* ── Legendary chance ── */}
       <div>
         <SectionTitle>Chance de Carta Lendária</SectionTitle>
-        <div style={{
-          background: '#1e293b',
-          border: '1px solid #334155',
-          borderRadius: 12,
-          padding: '12px 14px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18 }}>🌟</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Carta Lendária</span>
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Star size={16} className="text-amber-400 fill-amber-400" />
+              <span className="text-sm font-bold text-slate-100">Carta Lendária</span>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#fde68a' }}>
+            <span className="text-sm font-black text-amber-400">
               {(legendaryChance * 100).toFixed(2)}%
             </span>
           </div>
-
-          {/* Discrete bar — 20 segments */}
-          <div style={{ display: 'flex', gap: 3 }}>
-            {Array.from({ length: 20 }, (_, i) => {
-              const threshold = (i + 1) / 20;
-              const filled = legendaryPct / 100 >= threshold;
-              return (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: 6,
-                    borderRadius: 3,
-                    background: filled
-                      ? `hsl(${40 + i * 3}, 90%, 60%)`
-                      : '#334155',
-                    transition: 'background 0.3s',
-                  }}
-                />
-              );
-            })}
+          <Progress value={legendaryPct} color="linear-gradient(90deg, #f59e0b, #d97706)" />
+          <div className="flex justify-between mt-2 text-[10px] text-slate-500">
+            <span>{save.legendaryCardsOwned.length} carta(s) lendária(s) obtida(s)</span>
+            <span>Máx. {(LEGENDARY_MAX_CHANCE * 100).toFixed(0)}%</span>
           </div>
-
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 6 }}>
-            {save.legendaryCardsOwned.length} carta{save.legendaryCardsOwned.length !== 1 ? 's' : ''} lendária{save.legendaryCardsOwned.length !== 1 ? 's' : ''} obtida{save.legendaryCardsOwned.length !== 1 ? 's' : ''}
-            {' · '}Máx. {(LEGENDARY_MAX_CHANCE * 100).toFixed(0)}%
-          </div>
-        </div>
+        </Card>
       </div>
 
-      {/* ── Budget trends ── */}
+      {/* ── Finances ── */}
       {recentFinances.length > 0 && (
         <div>
           <SectionTitle>Movimentações Financeiras</SectionTitle>
-          <div style={{
-            background: '#1e293b',
-            border: '1px solid #334155',
-            borderRadius: 12,
-            padding: '10px 14px',
-          }}>
+          <Card className="px-4 py-2">
             {recentFinances.map((r, i) => (
               <FinanceRow key={i} record={r} />
             ))}
-          </div>
+          </Card>
         </div>
       )}
-
     </div>
   );
 }

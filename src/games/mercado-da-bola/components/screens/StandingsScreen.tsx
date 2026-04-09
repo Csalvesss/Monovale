@@ -1,7 +1,11 @@
 import React from 'react';
 import { useMB } from '../../store/gameStore';
-import { getTeam, ALL_TEAMS } from '../../data/teams';
+import { getTeam } from '../../data/teams';
 import type { Standing, MatchFixture } from '../../types';
+import { cn } from '../../../../lib/utils';
+import { Badge } from '../../../../components/ui/badge';
+import { Card } from '../../../../components/ui/card';
+import { BarChart2, Trophy, TrendingUp, AlertTriangle, Home, Plane } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -15,7 +19,7 @@ function sortedStandings(standings: Standing[]): Standing[] {
   });
 }
 
-function getMyResults(fixtures: MatchFixture[], myTeamId: string): { fixture: MatchFixture; label: 'V' | 'E' | 'D'; score: string }[] {
+function getMyResults(fixtures: MatchFixture[], myTeamId: string) {
   return fixtures
     .filter(f => f.played && (f.homeTeamId === myTeamId || f.awayTeamId === myTeamId))
     .slice(-5)
@@ -25,318 +29,279 @@ function getMyResults(fixtures: MatchFixture[], myTeamId: string): { fixture: Ma
       const myGoals = isHome ? f.result!.homeGoals : f.result!.awayGoals;
       const opGoals = isHome ? f.result!.awayGoals : f.result!.homeGoals;
       const label: 'V' | 'E' | 'D' = myGoals > opGoals ? 'V' : myGoals === opGoals ? 'E' : 'D';
-      const score = `${myGoals}x${opGoals}`;
-      return { fixture: f, label, score };
+      return { fixture: f, label, score: `${myGoals}x${opGoals}` };
     });
 }
 
-function getUpcomingFixtures(fixtures: MatchFixture[], myTeamId: string): MatchFixture[] {
+function getUpcomingFixtures(fixtures: MatchFixture[], myTeamId: string) {
   return fixtures
     .filter(f => !f.played && (f.homeTeamId === myTeamId || f.awayTeamId === myTeamId))
     .slice(0, 3);
 }
 
-function resultBadgeStyle(label: 'V' | 'E' | 'D'): React.CSSProperties {
-  const configs = {
-    V: { background: '#14532d', color: '#4ade80' },
-    E: { background: '#1e3a5f', color: '#93c5fd' },
-    D: { background: '#7f1d1d', color: '#f87171' },
-  };
-  const c = configs[label];
-  return {
-    width: 24, height: 24, borderRadius: 6,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 11, fontWeight: 900,
-    background: c.background, color: c.color,
-    flexShrink: 0,
-  };
-}
-
-// ─── Row component ────────────────────────────────────────────────────────────
+// ─── Table row ────────────────────────────────────────────────────────────────
 
 interface RowProps {
   pos: number;
   standing: Standing;
   myTeamId: string;
   totalTeams: number;
+  isLastPromo?: boolean;
+  isFirstRelegate?: boolean;
 }
 
-function StandingRow({ pos, standing, myTeamId, totalTeams }: RowProps) {
-  const isMe = standing.teamId === myTeamId;
-  const isPromotion = pos <= 4;
+function StandingRow({ pos, standing, myTeamId, totalTeams, isLastPromo, isFirstRelegate }: RowProps) {
+  const isMe         = standing.teamId === myTeamId;
+  const isPromotion  = pos <= 4;
   const isRelegation = pos > totalTeams - 4;
-  const team = getTeam(standing.teamId);
-  const sg = standing.goalsFor - standing.goalsAgainst;
+  const team         = getTeam(standing.teamId);
+  const sg           = standing.goalsFor - standing.goalsAgainst;
 
-  let rowBg = 'transparent';
-  let leftBorder = 'transparent';
+  const posColor = pos === 1 ? '#fde68a' : isPromotion ? '#22c55e' : isRelegation ? '#ef4444' : '#64748b';
 
-  if (isMe) {
-    rowBg = 'rgba(37,99,235,0.18)';
-    leftBorder = '#3b82f6';
-  } else if (isPromotion) {
-    rowBg = 'rgba(16,185,129,0.07)';
-    leftBorder = '#10b981';
-  } else if (isRelegation) {
-    rowBg = 'rgba(239,68,68,0.07)';
-    leftBorder = '#ef4444';
-  }
-
-  const cellStyle: React.CSSProperties = {
-    fontSize: 12,
-    color: isMe ? '#e2e8f0' : '#94a3b8',
-    fontWeight: isMe ? 700 : 400,
-    textAlign: 'center',
-    padding: '6px 4px',
-    whiteSpace: 'nowrap',
-  };
-
-  const posColor = pos === 1 ? '#fde68a' : pos <= 4 ? '#4ade80' : pos > totalTeams - 4 ? '#f87171' : '#94a3b8';
+  const cell = cn(
+    'py-2.5 px-2 text-xs text-center whitespace-nowrap',
+    isMe ? 'font-bold text-slate-100' : 'text-slate-400'
+  );
 
   return (
-    <tr style={{ background: rowBg, borderLeft: `3px solid ${leftBorder}` }}>
-      <td style={{ ...cellStyle, color: posColor, fontWeight: 800, width: 28 }}>{pos}</td>
-      <td style={{ ...cellStyle, textAlign: 'left', maxWidth: 120, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 14, flexShrink: 0 }}>{team?.badge ?? '⚽'}</span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: isMe ? '#fff' : '#cbd5e1', fontWeight: isMe ? 800 : 500 }}>
-            {team?.shortName ?? standing.teamId.toUpperCase()}
-          </span>
-          {isMe && <span style={{ fontSize: 8, background: '#2563eb', color: '#fff', padding: '1px 4px', borderRadius: 4, fontWeight: 800, flexShrink: 0 }}>EU</span>}
-        </div>
-      </td>
-      <td style={{ ...cellStyle, fontWeight: 900, color: isMe ? '#fde68a' : '#f1f5f9', fontSize: 13 }}>{standing.points}</td>
-      <td style={cellStyle}>{standing.played}</td>
-      <td style={{ ...cellStyle, color: '#4ade80' }}>{standing.won}</td>
-      <td style={{ ...cellStyle, color: '#93c5fd' }}>{standing.drawn}</td>
-      <td style={{ ...cellStyle, color: '#f87171' }}>{standing.lost}</td>
-      <td style={cellStyle}>{standing.goalsFor}</td>
-      <td style={cellStyle}>{standing.goalsAgainst}</td>
-      <td style={{ ...cellStyle, color: sg > 0 ? '#4ade80' : sg < 0 ? '#f87171' : '#94a3b8', fontWeight: 700 }}>
-        {sg > 0 ? `+${sg}` : sg}
-      </td>
-    </tr>
+    <>
+      {isLastPromo && (
+        <tr>
+          <td colSpan={10}>
+            <div className="h-px bg-emerald-500/40 my-0.5" />
+          </td>
+        </tr>
+      )}
+      {isFirstRelegate && (
+        <tr>
+          <td colSpan={10}>
+            <div className="h-px border-t border-red-500/40 border-dashed my-0.5" />
+          </td>
+        </tr>
+      )}
+      <tr className={cn(
+        'transition-colors',
+        isMe ? 'bg-blue-600/10' : isPromotion ? 'bg-emerald-600/5' : isRelegation ? 'bg-red-600/5' : ''
+      )}
+        style={isMe ? { borderLeft: '3px solid #3b82f6' } : {}}>
+        <td className={cn(cell, 'font-black')} style={{ color: posColor }}>{pos}</td>
+        <td className={cn(cell, '!text-left pl-3')}>
+          <div className="flex items-center gap-2">
+            {/* Color dot indicator */}
+            <div className="h-2 w-2 rounded-full shrink-0" style={{ background: team?.primaryColor ?? '#64748b' }} />
+            <span className={cn('truncate max-w-[90px]', isMe ? 'text-white' : 'text-slate-300')}>
+              {team?.shortName ?? standing.teamId.toUpperCase()}
+            </span>
+            {isMe && <Badge variant="default" className="text-[8px] px-1 py-0">EU</Badge>}
+          </div>
+        </td>
+        <td className={cn(cell, 'text-amber-400 font-black text-sm')}>{standing.points}</td>
+        <td className={cell}>{standing.played}</td>
+        <td className={cn(cell, 'text-emerald-400')}>{standing.won}</td>
+        <td className={cn(cell, 'text-blue-400')}>{standing.drawn}</td>
+        <td className={cn(cell, 'text-red-400')}>{standing.lost}</td>
+        <td className={cell}>{standing.goalsFor}</td>
+        <td className={cell}>{standing.goalsAgainst}</td>
+        <td className={cn(cell, 'font-bold', sg > 0 ? 'text-emerald-400' : sg < 0 ? 'text-red-400' : 'text-slate-500')}>
+          {sg > 0 ? `+${sg}` : sg}
+        </td>
+      </tr>
+    </>
   );
 }
 
-// ─── Section heading ──────────────────────────────────────────────────────────
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-      {children}
-    </div>
-  );
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function StandingsScreen() {
   const { state } = useMB();
 
   if (!state.save) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
-        Carregando…
-      </div>
-    );
+    return <div className="flex h-full items-center justify-center text-slate-500">Carregando…</div>;
   }
 
-  const save = state.save;
-  const myTeamId = save.myTeamId;
-  const sorted = sortedStandings(save.standings);
+  const save       = state.save;
+  const myTeamId   = save.myTeamId;
+  const sorted     = sortedStandings(save.standings);
   const totalTeams = sorted.length;
-  const myResults = getMyResults(save.fixtures, myTeamId);
-  const upcoming = getUpcomingFixtures(save.fixtures, myTeamId);
-  const myTeam = getTeam(myTeamId);
+  const myResults  = getMyResults(save.fixtures, myTeamId);
+  const upcoming   = getUpcomingFixtures(save.fixtures, myTeamId);
+  const myTeam     = getTeam(myTeamId);
+  const myPos      = sorted.findIndex(s => s.teamId === myTeamId) + 1;
+  const myStanding = save.standings.find(s => s.teamId === myTeamId);
 
-  // My current position
-  const myPos = sorted.findIndex(s => s.teamId === myTeamId) + 1;
+  const isInPromotion   = myPos <= 4;
+  const isInRelegation  = myPos > totalTeams - 4;
 
   return (
-    <div style={{ background: '#0f172a', minHeight: '100%', paddingBottom: 24 }}>
+    <div className="flex flex-col gap-4 p-4 pb-8 bg-[#0f172a] min-h-full">
 
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-        padding: '16px 16px 14px',
-        borderBottom: '1px solid #1e293b',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22 }}>📊</span>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 900, color: '#f1f5f9' }}>Tabela do Campeonato</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
-              Temporada {save.currentSeason} · {save.currentRound} rodadas disputadas
-            </div>
-          </div>
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/20 border border-blue-600/30">
+          <BarChart2 size={16} className="text-blue-400" />
         </div>
+        <div>
+          <h2 className="text-lg font-black text-slate-100">Tabela do Campeonato</h2>
+          <p className="text-xs text-slate-500">
+            Temporada {save.currentSeason} · {save.currentRound} rodadas disputadas
+          </p>
+        </div>
+      </div>
 
-        {/* My team quick summary */}
-        <div style={{
-          marginTop: 14, background: 'rgba(37,99,235,0.15)', borderRadius: 12,
-          padding: '10px 14px', border: '1px solid rgba(59,130,246,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 22 }}>{myTeam?.badge ?? '⚽'}</span>
+      {/* ── My team summary ── */}
+      <Card className="p-4 border-blue-700/40 bg-blue-600/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-sm"
+              style={{
+                background: (myTeam?.primaryColor ?? '#3b82f6') + '22',
+                border: `2px solid ${(myTeam?.primaryColor ?? '#3b82f6')}44`,
+                color: myTeam?.primaryColor ?? '#3b82f6',
+              }}
+            >
+              {myTeam?.shortName?.substring(0, 3) ?? '?'}
+            </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{myTeam?.name ?? 'Meu Time'}</div>
-              <div style={{ fontSize: 11, color: '#93c5fd' }}>
-                {myPos}º lugar · {save.standings.find(s => s.teamId === myTeamId)?.points ?? 0} pontos
-              </div>
+              <p className="text-sm font-black text-white">{myTeam?.name ?? 'Meu Time'}</p>
+              <p className="text-xs text-blue-400">{myPos}º lugar · {myStanding?.points ?? 0} pontos</p>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            {myPos <= 4 ? (
-              <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 700 }}>🏆 Zona de promoção</span>
-            ) : myPos > totalTeams - 4 ? (
-              <span style={{ fontSize: 11, color: '#f87171', fontWeight: 700 }}>⚠️ Zona de rebaixamento</span>
+          <div className="text-right">
+            {isInPromotion ? (
+              <Badge variant="success"><Trophy size={9} /> Promoção</Badge>
+            ) : isInRelegation ? (
+              <Badge variant="destructive"><AlertTriangle size={9} /> Rebaixamento</Badge>
             ) : (
-              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>Meio da tabela</span>
+              <Badge variant="secondary">Meio da tabela</Badge>
             )}
           </div>
         </div>
+      </Card>
+
+      {/* ── Legend ── */}
+      <div className="flex gap-3 flex-wrap">
+        {[
+          { color: '#22c55e', label: 'Promoção (Top 4)' },
+          { color: '#ef4444', label: 'Rebaixamento (Últimos 4)' },
+          { color: '#3b82f6', label: 'Seu time' },
+        ].map(({ color, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-sm shrink-0" style={{ background: color }} />
+            <span className="text-[10px] text-slate-500 font-medium">{label}</span>
+          </div>
+        ))}
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-          <LegendItem color="#10b981" label="Promoção (Top 4)" />
-          <LegendItem color="#ef4444" label="Rebaixamento (Últimos 4)" />
-          <LegendItem color="#3b82f6" label="Seu time" />
-        </div>
-
-        {/* Standings table */}
-        <div style={{ background: '#1e293b', borderRadius: 14, overflow: 'hidden', border: '1px solid #334155', marginBottom: 20 }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155' }}>
-                  {['Pos', 'Time', 'P', 'J', 'V', 'E', 'D', 'GF', 'GA', 'SG'].map(col => (
-                    <th key={col} style={{
-                      fontSize: 10, fontWeight: 800, color: '#64748b', textAlign: col === 'Time' ? 'left' : 'center',
-                      padding: '8px 4px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: 0.5,
-                      ...(col === 'Time' ? { paddingLeft: 10 } : {}),
-                    }}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((standing, idx) => (
-                  <React.Fragment key={standing.teamId}>
-                    {/* Dividers */}
-                    {idx === 4 && (
-                      <tr>
-                        <td colSpan={10} style={{ height: 1, background: '#10b981', opacity: 0.4, padding: 0 }} />
-                      </tr>
+      {/* ── Table ── */}
+      <Card className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-900 border-b border-slate-700">
+                {['Pos', 'Time', 'P', 'J', 'V', 'E', 'D', 'GF', 'GA', 'SG'].map(col => (
+                  <th
+                    key={col}
+                    className={cn(
+                      'py-2.5 px-2 text-[9px] font-black uppercase tracking-wider text-slate-500',
+                      col === 'Time' ? 'text-left pl-3' : 'text-center'
                     )}
-                    {idx === totalTeams - 4 && (
-                      <tr>
-                        <td colSpan={10} style={{ height: 1, background: '#ef4444', opacity: 0.4, padding: 0 }} />
-                      </tr>
-                    )}
-                    <StandingRow
-                      pos={idx + 1}
-                      standing={standing}
-                      myTeamId={myTeamId}
-                      totalTeams={totalTeams}
-                    />
-                  </React.Fragment>
+                  >
+                    {col}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((standing, idx) => (
+                <StandingRow
+                  key={standing.teamId}
+                  pos={idx + 1}
+                  standing={standing}
+                  myTeamId={myTeamId}
+                  totalTeams={totalTeams}
+                  isLastPromo={idx === 3}
+                  isFirstRelegate={idx === totalTeams - 4}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
+      </Card>
 
-        {/* Recent results */}
-        {myResults.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <SectionTitle>Últimos resultados</SectionTitle>
-            <div style={{ background: '#1e293b', borderRadius: 14, padding: 14, border: '1px solid #334155' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {myResults.map(({ fixture, label, score }) => {
-                  const isHome = fixture.homeTeamId === myTeamId;
-                  const oppId = isHome ? fixture.awayTeamId : fixture.homeTeamId;
-                  const opp = getTeam(oppId);
-                  return (
-                    <div key={`${fixture.round}-${oppId}`} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={resultBadgeStyle(label)}>{label}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 600 }}>
-                          {isHome ? 'vs' : 'em'} {opp?.name ?? oppId}
-                          <span style={{ fontSize: 10, color: '#64748b', marginLeft: 6 }}>Rd.{fixture.round}</span>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: label === 'V' ? '#4ade80' : label === 'D' ? '#f87171' : '#93c5fd' }}>
-                        {score}
+      {/* ── Recent results ── */}
+      {myResults.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Últimos Resultados</p>
+          <Card className="p-4">
+            <div className="flex flex-col gap-2">
+              {myResults.map(({ fixture, label, score }) => {
+                const isHome = fixture.homeTeamId === myTeamId;
+                const oppId  = isHome ? fixture.awayTeamId : fixture.homeTeamId;
+                const opp    = getTeam(oppId);
+                return (
+                  <div key={`${fixture.round}-${oppId}`} className="flex items-center gap-3">
+                    <Badge
+                      variant={label === 'V' ? 'win' : label === 'D' ? 'loss' : 'draw'}
+                      className="h-7 w-7 shrink-0 rounded-lg px-0 justify-center text-xs font-black"
+                    >
+                      {label}
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-200 truncate">
+                        {isHome ? 'vs' : 'em'} {opp?.name ?? oppId}
+                      </p>
+                      <p className="text-[10px] text-slate-500">Rodada {fixture.round}</p>
+                    </div>
+                    <span className={cn(
+                      'text-sm font-black',
+                      label === 'V' ? 'text-emerald-400' : label === 'D' ? 'text-red-400' : 'text-blue-400'
+                    )}>
+                      {score}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Upcoming ── */}
+      {upcoming.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Próximas Partidas</p>
+          <Card className="p-4">
+            <div className="flex flex-col gap-3">
+              {upcoming.map(f => {
+                const isHome = f.homeTeamId === myTeamId;
+                const oppId  = isHome ? f.awayTeamId : f.homeTeamId;
+                const opp    = getTeam(oppId);
+                return (
+                  <div key={`${f.round}-${oppId}`} className="flex items-center gap-3">
+                    <Badge variant="secondary" className="h-7 w-7 shrink-0 rounded-lg px-0 justify-center text-xs font-black">
+                      {f.round}
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-200 truncate">
+                        {isHome ? 'vs' : 'em'} {opp?.name ?? oppId}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {isHome
+                          ? <><Home size={9} className="text-emerald-400" /><span className="text-[10px] text-slate-500">Mandante</span></>
+                          : <><Plane size={9} className="text-slate-400" /><span className="text-[10px] text-slate-500">Visitante</span></>
+                        }
+                        <span className="text-[10px] text-slate-600">· Rep. {opp?.reputation ?? '?'}</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        )}
-
-        {/* Upcoming fixtures */}
-        {upcoming.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <SectionTitle>Próximas partidas</SectionTitle>
-            <div style={{ background: '#1e293b', borderRadius: 14, padding: 14, border: '1px solid #334155' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {upcoming.map(f => {
-                  const isHome = f.homeTeamId === myTeamId;
-                  const oppId = isHome ? f.awayTeamId : f.homeTeamId;
-                  const opp = getTeam(oppId);
-                  return (
-                    <div key={`${f.round}-${oppId}`} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: 6, background: '#1e3a5f',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 9, fontWeight: 800, color: '#93c5fd', flexShrink: 0,
-                      }}>
-                        {f.round}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 600 }}>
-                          {isHome ? 'vs' : 'em'} {opp?.name ?? oppId}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#64748b' }}>
-                          {isHome ? '🏠 Mandante' : '✈️ Visitante'} · Rep. {opp?.reputation ?? '?'}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Rd.{f.round}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {upcoming.length === 0 && myResults.length > 0 && (
-          <div style={{
-            textAlign: 'center', padding: '20px 0', color: '#64748b', fontSize: 13, fontWeight: 600,
-          }}>
-            🏁 Todos os jogos da temporada foram disputados.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Legend item ──────────────────────────────────────────────────────────────
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-      <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>{label}</span>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
