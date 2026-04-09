@@ -59,13 +59,7 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
   const [room, setRoom]           = useState<RoomDoc | null>(null);
   const [diceVal, setDiceVal]     = useState(1);
   const [spinning, setSpinning]   = useState(false);
-  const [animPos, _setAnimPos]    = useState<Record<string, number>>({});
-  const animPosRef                = useRef<Record<string, number>>({});
-  function setAnimPos(val: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) {
-    const next = typeof val === 'function' ? val(animPosRef.current) : val;
-    animPosRef.current = next;
-    _setAnimPos(next);
-  }
+  const [animPos, setAnimPos]     = useState<Record<string, number>>({});
   const [busy, setBusy]           = useState(false);
   const [showExit, setShowExit]   = useState(false);
   const [showSquad, setShowSquad] = useState(false);
@@ -75,6 +69,8 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
   const unsubRef    = useRef<(() => void) | null>(null);
   const spinRef     = useRef<ReturnType<typeof setInterval> | null>(null);
   const walkRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  // True while the pawn is animating + submitAction is in-flight
+  const walkingRef  = useRef(false);
 
   // Responsive board size
   useEffect(() => {
@@ -93,6 +89,27 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
       if (walkRef.current) clearInterval(walkRef.current);
     };
   }, [roomCode]);
+
+  // Keep animPos in sync with Firebase — but never override the local player's
+  // position while they are walking (walkingRef.current = true).
+  useEffect(() => {
+    if (!room) return;
+    setAnimPos(prev => {
+      const next: Record<string, number> = {};
+      let changed = false;
+      for (const p of room.players) {
+        if (walkingRef.current && p.uid === uid) {
+          // Preserve whatever the animation last set
+          next[p.uid] = prev[p.uid] ?? p.position;
+        } else {
+          next[p.uid] = p.position;
+          if (prev[p.uid] !== p.position) changed = true;
+        }
+      }
+      if (Object.keys(prev).length !== room.players.length) changed = true;
+      return changed ? next : prev;
+    });
+  }, [room, uid]);
 
   const myPlayer      = room?.players.find(p => p.uid === uid) ?? null;
   const isMyTurn      = !!room && room.turnOrder[room.currentTurnIndex] === uid;
@@ -124,7 +141,8 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
 
   // ── Roll handler ───────────────────────────────────────────────────────────
   const handleRoll = useCallback(() => {
-    if (!room || !myPlayer || !isMyTurn || busy) return;
+    if (!room || !myPlayer || !isMyTurn || busy || walkingRef.current) return;
+    walkingRef.current = true; // block Firebase animPos sync while walking
     setBusy(true);
     setSpinning(true);
 
@@ -147,7 +165,10 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
           const newPos  = (myPlayer.position + final) % TOTAL_SPACES;
           const space   = getSpace(newPos);
           const { action, updatedPlayer } = resolveSpaceAction(myPlayer, space, final, room.players);
-          submitAction(roomCode, uid, final, action, updatedPlayer).finally(() => setBusy(false));
+          submitAction(roomCode, uid, final, action, updatedPlayer).finally(() => {
+            walkingRef.current = false; // allow Firebase sync again
+            setBusy(false);
+          });
         });
       }
     }, 80);
