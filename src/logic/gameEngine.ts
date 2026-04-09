@@ -102,8 +102,8 @@ export function initGame(config: LobbyConfig, gameId: string | null = null): Gam
 // ─── Roll Dice ───────────────────────────────────────────────────────────────
 
 export function rollDice(state: GameState): GameState {
-  const die1 = Math.ceil(Math.random() * 6);
-  const die2 = Math.ceil(Math.random() * 6);
+  const die1 = Math.floor(Math.random() * 6) + 1;
+  const die2 = Math.floor(Math.random() * 6) + 1;
   const isDouble = die1 === die2;
   const player = state.players[state.currentPlayerIndex];
 

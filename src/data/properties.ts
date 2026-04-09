@@ -60,6 +60,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 60,
     rent: [2, 10, 30, 90, 160, 250],
     housePrice: 50,
+    icon: '⛪',  // Basílica Santo Antônio / P. Donizetti
   },
   {
     position: 2,
@@ -75,6 +76,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 60,
     rent: [4, 20, 60, 180, 320, 450],
     housePrice: 50,
+    icon: '🎓',  // Faenac / UNISAL — cidade universitária
   },
   {
     position: 4,
@@ -85,7 +87,7 @@ export const BOARD_SPACES: BoardSpace[] = [
   },
   {
     position: 5,
-    name: 'Estação Guaratinguetá',
+    name: 'Est. Guaratinguetá',
     type: 'railroad',
     group: 'railroad',
     price: 200,
@@ -99,6 +101,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 100,
     rent: [6, 30, 90, 270, 400, 550],
     housePrice: 50,
+    icon: '🌾',  // Agropecuária / polo agroindustrial
   },
   {
     position: 7,
@@ -114,6 +117,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 100,
     rent: [6, 30, 90, 270, 400, 550],
     housePrice: 50,
+    icon: '🌿',  // Cidade verde, área rural
   },
   {
     position: 9,
@@ -123,6 +127,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 120,
     rent: [8, 40, 100, 300, 450, 600],
     housePrice: 50,
+    icon: '🕊️',  // Canção Nova — comunidade religiosa
   },
 
   // ── CORNER: JAIL ────────────────────────────────────────────────────────────
@@ -142,6 +147,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 140,
     rent: [10, 50, 150, 450, 625, 750],
     housePrice: 100,
+    icon: '🙏',  // Basílica de Nossa Senhora Aparecida
   },
   {
     position: 12,
@@ -149,7 +155,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     type: 'utility',
     group: 'utility',
     price: 150,
-    icon: '⚡',
+    icon: '⚡',  // Energia elétrica — EDP
   },
   {
     position: 13,
@@ -159,6 +165,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 140,
     rent: [10, 50, 150, 450, 625, 750],
     housePrice: 100,
+    icon: '🏘️',  // Bairro / distrito próximo a Aparecida
   },
   {
     position: 14,
@@ -168,10 +175,11 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 160,
     rent: [12, 60, 180, 500, 700, 900],
     housePrice: 100,
+    icon: '🏺',  // Cerâmica artesanal — polo de artes
   },
   {
     position: 15,
-    name: 'Estação Taubaté',
+    name: 'Est. Taubaté',
     type: 'railroad',
     group: 'railroad',
     price: 200,
@@ -185,6 +193,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 180,
     rent: [14, 70, 200, 550, 750, 950],
     housePrice: 100,
+    icon: '⚙️',  // Polo industrial metalúrgico
   },
   {
     position: 17,
@@ -200,6 +209,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 180,
     rent: [14, 70, 200, 550, 750, 950],
     housePrice: 100,
+    icon: '☕',  // Lavoura de café — interior paulista
   },
   {
     position: 19,
@@ -209,6 +219,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 200,
     rent: [16, 80, 220, 600, 800, 1000],
     housePrice: 100,
+    icon: '🏰',  // Centro histórico colonial
   },
 
   // ── CORNER: FREE PARKING ─────────────────────────────────────────────────
@@ -228,6 +239,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 220,
     rent: [18, 90, 250, 700, 875, 1050],
     housePrice: 150,
+    icon: '🎖️',  // AMAN — Academia Militar das Agulhas Negras
   },
   {
     position: 22,
@@ -243,6 +255,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 220,
     rent: [18, 90, 250, 700, 875, 1050],
     housePrice: 150,
+    icon: '🏔️',  // Parque Nacional do Itatiaia
   },
   {
     position: 24,
@@ -252,10 +265,11 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 240,
     rent: [20, 100, 300, 750, 925, 1100],
     housePrice: 150,
+    icon: '🏭',  // Fábrica Peugeot / polo industrial
   },
   {
     position: 25,
-    name: 'Est. S. J. dos Campos',
+    name: 'Est. S.J. dos Campos',
     type: 'railroad',
     group: 'railroad',
     price: 200,
@@ -269,6 +283,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 260,
     rent: [22, 110, 330, 800, 975, 1150],
     housePrice: 150,
+    icon: '🔩',  // Siderurgia / metalurgia
   },
   {
     position: 27,
@@ -278,6 +293,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 260,
     rent: [22, 110, 330, 800, 975, 1150],
     housePrice: 150,
+    icon: '🏗️',  // CSN — Companhia Siderúrgica Nacional
   },
   {
     position: 28,
@@ -285,7 +301,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     type: 'utility',
     group: 'utility',
     price: 150,
-    icon: '💧',
+    icon: '💧',  // Água — Sabesp
   },
   {
     position: 29,
@@ -295,6 +311,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 280,
     rent: [24, 120, 360, 850, 1025, 1200],
     housePrice: 150,
+    icon: '🌲',  // Pinheiros / natureza
   },
 
   // ── CORNER: GO TO JAIL ───────────────────────────────────────────────────
@@ -314,6 +331,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 300,
     rent: [26, 130, 390, 900, 1100, 1275],
     housePrice: 200,
+    icon: '🦎',  // Nome vem do tupi "lugar de jacarés"
   },
   {
     position: 32,
@@ -323,6 +341,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 300,
     rent: [26, 130, 390, 900, 1100, 1275],
     housePrice: 200,
+    icon: '✈️',  // Base Aérea de Caçapava — FAB
   },
   {
     position: 33,
@@ -338,10 +357,11 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 320,
     rent: [28, 150, 450, 1000, 1200, 1400],
     housePrice: 200,
+    icon: '🚀',  // EMBRAER / INPE / tecnologia aeroespacial
   },
   {
     position: 35,
-    name: 'Estação Cruzeiro',
+    name: 'Est. Cruzeiro',
     type: 'railroad',
     group: 'railroad',
     price: 200,
@@ -361,6 +381,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 350,
     rent: [35, 175, 500, 1100, 1300, 1500],
     housePrice: 200,
+    icon: '📚',  // Monteiro Lobato nasceu em Taubaté
   },
   {
     position: 38,
@@ -377,6 +398,7 @@ export const BOARD_SPACES: BoardSpace[] = [
     price: 400,
     rent: [50, 200, 600, 1400, 1700, 2000],
     housePrice: 200,
+    icon: '🎭',  // Carnaval histórico / cidade colonial
   },
 ];
 

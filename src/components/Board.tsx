@@ -40,6 +40,23 @@ function Die({ value }: { value: number }) {
 export default function Board({ state, onSpaceClick }: Props) {
   const [hoveredPos, setHoveredPos] = useState<number | null>(null);
 
+  // ── Dice auto-hide ──
+  const dice         = state.dice ?? [0, 0];
+  const diceKey      = dice.join(',');
+  const prevDiceKey  = useRef('');
+  const [diceVisible, setDiceVisible] = useState(false);
+  const diceTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (diceKey === '0,0' || diceKey === prevDiceKey.current) return;
+    prevDiceKey.current = diceKey;
+    setDiceVisible(true);
+    if (diceTimer.current) clearTimeout(diceTimer.current);
+    // Keep visible for max pawn animation (12 steps × 130ms) + 600ms buffer
+    diceTimer.current = setTimeout(() => setDiceVisible(false), 2600);
+    return () => { if (diceTimer.current) clearTimeout(diceTimer.current); };
+  }, [diceKey]); // eslint-disable-line
+
   // ── Pawn step-by-step animation ──
   const [visualPositions, setVisualPositions] = useState<Record<string, number>>(() => {
     const m: Record<string, number> = {};
@@ -127,10 +144,7 @@ export default function Board({ state, onSpaceClick }: Props) {
     );
   }
 
-  // Center area — guard against null/undefined state (old localStorage saves)
-  const dice         = state.dice ?? [0, 0];
-  const diceRolled   = dice[0] > 0;
-  const diceTotal    = dice[0] + dice[1];
+  const diceTotal     = dice[0] + dice[1];
   const currentPlayer = state.players?.[state.currentPlayerIndex] ?? null;
 
   cells.push(
@@ -139,119 +153,118 @@ export default function Board({ state, onSpaceClick }: Props) {
       style={{
         gridRow: '2 / 11',
         gridColumn: '2 / 11',
-        background: 'linear-gradient(160deg, #0d4a27 0%, #165a30 50%, #1a6b3a 100%)',
+        background: 'linear-gradient(160deg, #0d4a27 0%, #165a30 60%, #1a6b3a 100%)',
         borderRadius: 8,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 12,
-        gap: 6,
+        padding: 16,
+        gap: 0,
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* Background texture lines */}
+      {/* Subtle diagonal pattern */}
       <div style={{
-        position: 'absolute', inset: 0, opacity: 0.05,
+        position: 'absolute', inset: 0, opacity: 0.04,
         backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)',
-        backgroundSize: '20px 20px',
+        backgroundSize: '24px 24px',
+        pointerEvents: 'none',
       }} />
 
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-          <rect width="40" height="40" rx="10" fill="white" fillOpacity="0.12" />
-          <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
-        </svg>
-        <span style={{
-          fontFamily: 'var(--font-title)',
-          fontSize: 20,
-          fontWeight: 900,
-          color: '#fff',
-          letterSpacing: '-0.3px',
-        }}>Monovale</span>
-      </div>
-
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
-        Vale do Paraíba
-      </div>
-
-      {/* Dice display */}
-      {diceRolled && (
+      {/* Dice overlay — pops in on roll, fades after ~2.6s */}
+      {diceVisible ? (
         <div
-          key={dice.join('+')}
+          key={diceKey}
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 6,
-            marginTop: 8,
-            animation: 'pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+            gap: 10,
+            animation: 'pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Die value={dice[0]} />
-            <div style={{ width: 6, height: 2, background: 'rgba(255,255,255,0.4)', borderRadius: 1 }} />
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, fontWeight: 300 }}>+</span>
             <Die value={dice[1]} />
           </div>
           <div style={{
-            background: 'rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.18)',
             borderRadius: 99,
-            padding: '3px 14px',
-            fontSize: 14,
+            padding: '4px 18px',
+            fontSize: 16,
             fontWeight: 800,
             color: '#fff',
             fontFamily: 'var(--font-title)',
-            letterSpacing: '0.5px',
           }}>
             = {diceTotal}
             {dice[0] === dice[1] && (
-              <span style={{ marginLeft: 6, fontSize: 11, color: '#fcd34d' }}>par!</span>
+              <span style={{ marginLeft: 8, fontSize: 12, color: '#fcd34d', fontWeight: 700 }}>par!</span>
             )}
           </div>
+          {currentPlayer && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: 99,
+              padding: '4px 14px',
+            }}>
+              <div style={{
+                width: 9, height: 9,
+                borderRadius: '50%',
+                background: getPawn(currentPlayer.pawnId).color,
+                flexShrink: 0,
+              }} />
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: 600, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentPlayer.name}
+              </span>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Current player indicator */}
-      {currentPlayer && state.phase === 'playing' && (
-        <div style={{
-          marginTop: diceRolled ? 6 : 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          background: 'rgba(255,255,255,0.1)',
-          borderRadius: 99,
-          padding: '4px 12px',
-          position: 'relative',
-        }}>
-          <div style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: getPawn(currentPlayer.pawnId).color,
-            boxShadow: `0 0 0 2px ${getPawn(currentPlayer.pawnId).color}44`,
-            animation: 'pulse-ring 1.5s ease infinite',
-            flexShrink: 0,
-          }} />
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: 600, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {currentPlayer.name}
+      ) : (
+        /* Default center — logo + current player */
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="white" fillOpacity="0.12" />
+              <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+            </svg>
+            <span style={{ fontFamily: 'var(--font-title)', fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>
+              Monovale
+            </span>
+          </div>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+            Vale do Paraíba
           </span>
+          {currentPlayer && state.phase === 'playing' && (
+            <div style={{
+              marginTop: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: 99,
+              padding: '5px 14px',
+            }}>
+              <div style={{
+                width: 9, height: 9,
+                borderRadius: '50%',
+                background: getPawn(currentPlayer.pawnId).color,
+                boxShadow: `0 0 0 3px ${getPawn(currentPlayer.pawnId).color}44`,
+                animation: 'pulse-ring 1.5s ease infinite',
+                flexShrink: 0,
+              }} />
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: 600, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentPlayer.name}
+              </span>
+            </div>
+          )}
         </div>
       )}
-
-      {/* Color legend */}
-      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: 180 }}>
-        {Object.entries(GROUP_COLORS).slice(0, 8).map(([group, color]) => (
-          <div key={group} style={{
-            width: 14,
-            height: 14,
-            borderRadius: 3,
-            background: color,
-            opacity: 0.8,
-          }} />
-        ))}
-      </div>
     </div>
   );
 
@@ -390,7 +403,7 @@ function CellContent({
   );
 
   const nameStyle: React.CSSProperties = {
-    fontSize: 8.5,
+    fontSize: 9.5,
     fontWeight: 700,
     color: '#111827',
     textAlign: 'center',
@@ -401,7 +414,7 @@ function CellContent({
   };
 
   const priceStyle: React.CSSProperties = {
-    fontSize: 8,
+    fontSize: 8.5,
     color: '#4b5563',
     fontWeight: 600,
   };
@@ -425,7 +438,7 @@ function CellContent({
           gap: 1,
           overflow: 'hidden',
         }}>
-          {space.icon && <span style={{ fontSize: 14, lineHeight: 1 }}>{space.icon}</span>}
+          {space.icon && <span style={{ fontSize: 16, lineHeight: 1 }}>{space.icon}</span>}
           <span style={nameStyle}>{space.name}</span>
           {space.price     !== undefined && <span style={priceStyle}>R${space.price}</span>}
           {space.taxAmount !== undefined && <span style={{ ...priceStyle, color: '#dc2626' }}>R${space.taxAmount}</span>}
@@ -456,7 +469,7 @@ function CellContent({
         padding: '3px 0',
         position: 'relative',
       }}>
-        {space.icon && <span style={{ fontSize: 13, lineHeight: 1 }}>{space.icon}</span>}
+        {space.icon && <span style={{ fontSize: 15, lineHeight: 1 }}>{space.icon}</span>}
         <span style={{ ...nameStyle, maxWidth: undefined }}>
           {space.name}
         </span>
@@ -516,10 +529,10 @@ function CornerCell({ space, players, state }: {
       gap: 2,
       position: 'relative',
     }}>
-      <span style={{ fontSize: 26, lineHeight: 1 }}>{cfg.icon}</span>
+      <span style={{ fontSize: 30, lineHeight: 1 }}>{cfg.icon}</span>
       {cfg.lines.map((line, i) => (
         <span key={i} style={{
-          fontSize: i === 2 ? 8 : 9,
+          fontSize: i === 2 ? 9 : 10,
           fontWeight: i === 0 ? 800 : 600,
           color: '#111827',
           textAlign: 'center',
@@ -539,8 +552,8 @@ function PlayerTokens({ players, size, vertical }: {
   vertical?: boolean;
 }) {
   if (players.length === 0) return null;
-  const sz = size === 'md' ? 20 : 15;
-  const fs = size === 'md' ? 12 : 9;
+  const sz = size === 'md' ? 28 : 22;
+  const fs = size === 'md' ? 17 : 13;
 
   return (
     <div style={{

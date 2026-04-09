@@ -40,6 +40,14 @@ export default function ActionPanel(props: Props) {
     .filter(([, ps]) => ps.ownerId === player.id)
     .map(([pos]) => Number(pos));
 
+  // Trade is only useful if at least one other player has properties to offer
+  const otherPlayersWithProps = state.players.filter(p =>
+    p.id !== player.id &&
+    !p.bankrupt &&
+    Object.values(state.properties).some(ps => ps.ownerId === p.id)
+  );
+  const canTrade = otherPlayersWithProps.length > 0;
+
   return (
     <div style={S.panel}>
       {/* ── Player strip ── */}
@@ -135,11 +143,13 @@ export default function ActionPanel(props: Props) {
                 onClick={() => setShowManage(!showManage)}
               />
             )}
-            <Btn
-              label="🤝 Negociar"
-              color="purple"
-              onClick={() => props.onProposeTrade(-1)}
-            />
+            {canTrade && (
+              <Btn
+                label="🤝 Negociar"
+                color="purple"
+                onClick={() => props.onProposeTrade(-1)}
+              />
+            )}
           </div>
         )}
 
