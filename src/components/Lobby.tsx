@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ArrowLeft, Link, X, Search } from 'lucide-react';
 import { PAWNS } from '../data/pawns';
 import { useAuth } from '../contexts/AuthContext';
 import type { LobbyConfig, LobbyPlayerConfig } from '../types';
@@ -12,7 +13,6 @@ export default function Lobby({ onStart, onBack }: Props) {
   const { profile, allUsers } = useAuth();
 
   const makeDefaultPlayer = (i: number): LobbyPlayerConfig => {
-    // Slot 0 pre-filled with logged-in user
     if (i === 0 && profile) {
       return { name: profile.displayName, pawnId: profile.pawnId, uid: profile.uid };
     }
@@ -55,7 +55,6 @@ export default function Lobby({ onStart, onBack }: Props) {
 
   function linkAccount(slotIndex: number, uid: string | null) {
     if (!uid) {
-      // Unlink — restore to guest
       updatePlayer(slotIndex, { uid: null });
       setAccountSearch(prev => ({ ...prev, [slotIndex]: '' }));
       return;
@@ -77,27 +76,29 @@ export default function Lobby({ onStart, onBack }: Props) {
 
   return (
     <div style={S.page}>
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={S.header}>
-        <div style={S.headerTop}>
-          <button onClick={onBack} style={S.backBtn}>← Voltar</button>
-          <div style={S.headerInner}>
-            <span style={S.headerEmoji}>🗺️</span>
-            <span style={S.headerTitle}>MONOVALE</span>
-          </div>
-          <div style={{ width: 80 }} />
+        <button onClick={onBack} style={S.backBtn}>
+          <ArrowLeft size={16} />
+          Voltar
+        </button>
+        <div style={S.headerCenter}>
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="10" fill="white" fillOpacity="0.15" />
+            <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+          </svg>
+          <span style={S.headerTitle}>Jogo Local</span>
         </div>
-        <p style={S.headerSub}>Monopoly do Vale do Paraíba</p>
-        <p style={S.headerBanker}>🏦 Banco do <strong>Sr. Marinho</strong> — Onde cada terreno conta!</p>
+        <div style={{ width: 88 }} />
       </div>
 
-      {/* ── Main card ── */}
+      {/* Main */}
       <div style={S.scrollArea}>
         <div style={S.mainCard}>
 
           {/* Player count */}
           <div style={S.section}>
-            <div style={S.sectionLabel}>Número de Jogadores</div>
+            <div style={S.sectionLabel}>Número de jogadores</div>
             <div style={S.countRow}>
               {[2, 3, 4, 5, 6, 7, 8].map(n => (
                 <button
@@ -131,7 +132,6 @@ export default function Lobby({ onStart, onBack }: Props) {
                     <div style={S.playerNumBadge}>{i + 1}</div>
 
                     <div style={S.playerFields}>
-                      {/* Name + account link row */}
                       <div style={S.nameAccountRow}>
                         <input
                           type="text"
@@ -142,25 +142,30 @@ export default function Lobby({ onStart, onBack }: Props) {
                           style={S.nameInput}
                         />
 
-                        {/* Account link badge / search */}
                         {p.uid ? (
                           <div style={S.linkedBadge}>
-                            <span>🔗 {allUsers.find(u => u.uid === p.uid)?.email ?? 'Conta'}</span>
+                            <Link size={12} />
+                            <span>{allUsers.find(u => u.uid === p.uid)?.email ?? 'Conta'}</span>
                             <button
                               style={S.unlinkBtn}
                               onClick={() => linkAccount(i, null)}
-                              title="Desvincular conta"
-                            >✕</button>
+                              title="Desvincular"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         ) : (
                           <div style={S.accountSearchWrapper}>
-                            <input
-                              type="text"
-                              placeholder="🔍 Vincular conta..."
-                              value={search}
-                              onChange={e => setAccountSearch(prev => ({ ...prev, [i]: e.target.value }))}
-                              style={S.accountSearchInput}
-                            />
+                            <div style={S.searchInputRow}>
+                              <Search size={14} color="var(--text-light)" style={{ flexShrink: 0 }} />
+                              <input
+                                type="text"
+                                placeholder="Vincular conta..."
+                                value={search}
+                                onChange={e => setAccountSearch(prev => ({ ...prev, [i]: e.target.value }))}
+                                style={S.accountSearchInput}
+                              />
+                            </div>
                             {searchResults.length > 0 && (
                               <div style={S.dropdown}>
                                 {searchResults.map(u => (
@@ -192,7 +197,7 @@ export default function Lobby({ onStart, onBack }: Props) {
                               onClick={() => updatePlayer(i, { pawnId: pawn.id })}
                               style={{
                                 ...S.pawnBtn,
-                                ...(isSelected ? { ...S.pawnBtnActive, background: pawn.color } : {}),
+                                ...(isSelected ? { background: pawn.color, borderColor: pawn.color } : {}),
                                 ...(takenByOther ? S.pawnBtnDisabled : {}),
                               }}
                             >
@@ -201,7 +206,7 @@ export default function Lobby({ onStart, onBack }: Props) {
                           );
                         })}
                         <span style={{ ...S.pawnLabel, color: sel.color }}>
-                          {sel.emoji} {sel.name}
+                          {sel.name}
                         </span>
                       </div>
                     </div>
@@ -214,11 +219,15 @@ export default function Lobby({ onStart, onBack }: Props) {
           {/* Options */}
           <div style={S.section}>
             <label style={S.toggleRow}>
-              <div style={{
-                ...S.checkbox,
-                ...(randomOrder ? S.checkboxActive : {}),
-              }} onClick={() => setRandomOrder(!randomOrder)}>
-                {randomOrder && <span>✓</span>}
+              <div
+                style={{ ...S.checkbox, ...(randomOrder ? S.checkboxActive : {}) }}
+                onClick={() => setRandomOrder(!randomOrder)}
+              >
+                {randomOrder && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </div>
               <span style={S.toggleLabel}>Ordem aleatória dos turnos</span>
             </label>
@@ -226,10 +235,10 @@ export default function Lobby({ onStart, onBack }: Props) {
 
           {/* Feedback */}
           {!allNamesFilled && (
-            <div style={S.alert}>⚠️ Preencha o nome de todos os jogadores.</div>
+            <div style={S.alert}>Preencha o nome de todos os jogadores.</div>
           )}
           {allNamesFilled && !allPawnsUnique && (
-            <div style={S.alert}>⚠️ Dois jogadores escolheram o mesmo peão.</div>
+            <div style={S.alert}>Dois jogadores escolheram o mesmo peão.</div>
           )}
 
           {/* CTA */}
@@ -238,7 +247,7 @@ export default function Lobby({ onStart, onBack }: Props) {
             disabled={!canStart}
             style={{ ...S.startBtn, ...(!canStart ? S.startBtnDisabled : {}) }}
           >
-            🎲 COMEÇAR PARTIDA
+            Começar partida
           </button>
         </div>
       </div>
@@ -258,61 +267,40 @@ const S: Record<string, React.CSSProperties> = {
 
   header: {
     width: '100%',
-    background: 'var(--gold-grad)',
-    padding: '20px 24px 20px',
-    textAlign: 'center',
-    boxShadow: '0 4px 0 var(--gold-dark), 0 6px 20px rgba(0,0,0,0.15)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-  },
-  headerTop: {
+    height: 56,
+    background: 'linear-gradient(90deg, #065F46, #059669)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    padding: '0 16px',
+    flexShrink: 0,
+    boxShadow: '0 1px 0 rgba(0,0,0,0.15)',
   },
   backBtn: {
-    padding: '6px 14px',
-    background: 'rgba(0,0,0,0.15)',
-    border: 'none',
-    borderRadius: 99,
-    fontFamily: 'var(--font-body)',
-    fontWeight: 800,
-    fontSize: 13,
-    color: 'var(--text)',
-    cursor: 'pointer',
-    width: 80,
-  },
-  headerInner: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
+    gap: 6,
+    padding: '7px 14px',
+    background: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: 99,
+    fontFamily: 'var(--font-body)',
+    fontWeight: 600,
+    fontSize: 13,
+    color: '#fff',
+    cursor: 'pointer',
   },
-  headerEmoji: { fontSize: 44, lineHeight: 1 },
+  headerCenter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
   headerTitle: {
     fontFamily: 'var(--font-title)',
-    fontSize: 48,
-    color: 'var(--text)',
-    letterSpacing: '2px',
-    textShadow: '2px 2px 0 rgba(255,255,255,0.4), -1px -1px 0 rgba(0,0,0,0.1)',
-    lineHeight: 1,
-  },
-  headerSub: {
-    fontFamily: 'var(--font-body)',
-    fontSize: 14,
-    fontWeight: 700,
-    color: 'var(--text)',
-    opacity: 0.75,
-    margin: '4px 0 2px',
-  },
-  headerBanker: {
-    fontSize: 12,
-    color: 'var(--text)',
-    opacity: 0.65,
-    margin: 0,
-    fontWeight: 600,
+    fontSize: 18,
+    fontWeight: 800,
+    color: '#fff',
+    letterSpacing: '-0.2px',
   },
 
   scrollArea: {
@@ -328,7 +316,7 @@ const S: Record<string, React.CSSProperties> = {
   mainCard: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-xl)',
-    border: '3px solid var(--border-gold)',
+    border: '1px solid var(--border)',
     boxShadow: 'var(--shadow-lg)',
     padding: '28px 32px',
     width: '100%',
@@ -338,34 +326,33 @@ const S: Record<string, React.CSSProperties> = {
   section: { marginBottom: 24 },
 
   sectionLabel: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 20,
-    color: 'var(--text)',
-    letterSpacing: '1px',
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--text-mid)',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
     marginBottom: 12,
   },
 
   countRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   countBtn: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
+    border: '1.5px solid var(--border)',
     background: 'var(--card-alt)',
-    fontSize: 20,
-    fontWeight: 800,
+    fontSize: 16,
+    fontWeight: 700,
     fontFamily: 'var(--font-title)',
     cursor: 'pointer',
     transition: 'all 0.15s',
     color: 'var(--text-mid)',
-    boxShadow: '0 3px 0 var(--border)',
   },
   countBtnActive: {
-    background: 'var(--gold-grad)',
-    borderColor: 'var(--gold-dark)',
-    color: 'var(--text)',
-    boxShadow: '0 3px 0 var(--gold-dark)',
-    transform: 'translateY(-1px)',
+    background: 'var(--green)',
+    borderColor: 'var(--green)',
+    color: '#fff',
+    boxShadow: '0 2px 8px rgba(5,150,105,0.35)',
   },
 
   playerList: { display: 'flex', flexDirection: 'column', gap: 10 },
@@ -374,27 +361,26 @@ const S: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'flex-start',
     gap: 10,
-    padding: '12px 14px',
+    padding: '14px',
     background: 'var(--card-alt)',
     borderRadius: 'var(--radius-md)',
-    border: '2px solid var(--border)',
-    boxShadow: '0 3px 0 var(--border)',
+    border: '1px solid var(--border)',
   },
 
   playerNumBadge: {
     width: 28,
     height: 28,
     borderRadius: '50%',
-    background: 'var(--gold-grad)',
+    background: 'var(--green)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontFamily: 'var(--font-title)',
-    fontSize: 15,
-    color: 'var(--text)',
+    fontSize: 14,
+    fontWeight: 700,
+    color: '#fff',
     flexShrink: 0,
-    boxShadow: '0 2px 0 var(--gold-dark)',
-    marginTop: 4,
+    marginTop: 5,
   },
 
   playerFields: {
@@ -415,13 +401,13 @@ const S: Record<string, React.CSSProperties> = {
   nameInput: {
     flex: '1 1 140px',
     minWidth: 120,
-    padding: '9px 14px',
+    padding: '9px 12px',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
+    border: '1.5px solid var(--border)',
     fontSize: 14,
-    fontWeight: 700,
+    fontWeight: 600,
     fontFamily: 'var(--font-body)',
-    background: 'var(--white)',
+    background: 'var(--card)',
     color: 'var(--text)',
     outline: 'none',
   },
@@ -431,18 +417,26 @@ const S: Record<string, React.CSSProperties> = {
     flex: '1 1 160px',
     minWidth: 140,
   },
-  accountSearchInput: {
-    width: '100%',
-    padding: '9px 14px',
+  searchInputRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 12px',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: 'var(--font-body)',
-    background: 'var(--white)',
-    color: 'var(--text)',
+    border: '1.5px solid var(--border)',
+    background: 'var(--card)',
+  },
+  accountSearchInput: {
+    flex: 1,
+    border: 'none',
     outline: 'none',
-    boxSizing: 'border-box',
+    fontSize: 13,
+    fontWeight: 500,
+    fontFamily: 'var(--font-body)',
+    background: 'transparent',
+    color: 'var(--text)',
+    padding: 0,
+    minWidth: 0,
   },
   dropdown: {
     position: 'absolute',
@@ -450,9 +444,9 @@ const S: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     background: 'var(--card)',
-    border: '2px solid var(--border-gold)',
+    border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
-    boxShadow: 'var(--shadow-lg)',
+    boxShadow: 'var(--shadow-md)',
     zIndex: 200,
     overflow: 'hidden',
   },
@@ -469,8 +463,8 @@ const S: Record<string, React.CSSProperties> = {
     textAlign: 'left',
     fontFamily: 'var(--font-body)',
   },
-  dropdownName: { fontSize: 14, fontWeight: 700, color: 'var(--text)' },
-  dropdownEmail: { fontSize: 11, color: 'var(--text-mid)', fontWeight: 600 },
+  dropdownName: { fontSize: 14, fontWeight: 600, color: 'var(--text)' },
+  dropdownEmail: { fontSize: 11, color: 'var(--text-mid)', fontWeight: 500 },
 
   linkedBadge: {
     display: 'flex',
@@ -479,20 +473,23 @@ const S: Record<string, React.CSSProperties> = {
     background: 'var(--green)',
     color: '#fff',
     borderRadius: 99,
-    padding: '5px 12px',
+    padding: '6px 12px',
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 600,
     flexShrink: 0,
+    maxWidth: 220,
+    overflow: 'hidden',
   },
   unlinkBtn: {
     background: 'none',
     border: 'none',
-    color: '#fff',
+    color: 'rgba(255,255,255,0.8)',
     cursor: 'pointer',
-    fontWeight: 900,
-    fontSize: 14,
     padding: 0,
     lineHeight: 1,
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 0,
   },
 
   pawnRow: { display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' },
@@ -501,8 +498,8 @@ const S: Record<string, React.CSSProperties> = {
     width: 36,
     height: 36,
     borderRadius: 10,
-    border: '2px solid var(--border)',
-    background: 'var(--white)',
+    border: '1.5px solid var(--border)',
+    background: 'var(--card)',
     fontSize: 18,
     cursor: 'pointer',
     transition: 'all 0.12s',
@@ -510,23 +507,15 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
-    boxShadow: '0 2px 0 var(--border)',
-  },
-  pawnBtnActive: {
-    transform: 'translateY(-2px) scale(1.1)',
-    boxShadow: '0 4px 0 rgba(0,0,0,0.2)',
-    border: '2px solid rgba(255,255,255,0.4)',
   },
   pawnBtnDisabled: {
-    opacity: 0.25,
+    opacity: 0.2,
     cursor: 'not-allowed',
-    transform: 'none',
-    boxShadow: 'none',
   },
 
   pawnLabel: {
     fontSize: 12,
-    fontWeight: 800,
+    fontWeight: 700,
     whiteSpace: 'nowrap',
     marginLeft: 4,
   },
@@ -539,56 +528,54 @@ const S: Record<string, React.CSSProperties> = {
     userSelect: 'none',
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: 6,
-    border: '2px solid var(--border)',
-    background: 'var(--white)',
+    border: '1.5px solid var(--border)',
+    background: 'var(--card)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: 900,
-    fontSize: 14,
-    color: 'var(--green)',
     cursor: 'pointer',
     flexShrink: 0,
     transition: 'all 0.15s',
   },
   checkboxActive: {
     background: 'var(--green)',
-    borderColor: 'var(--green-dark)',
-    color: '#fff',
+    borderColor: 'var(--green)',
   },
-  toggleLabel: { fontSize: 15, fontWeight: 700, color: 'var(--text)' },
+  toggleLabel: { fontSize: 14, fontWeight: 600, color: 'var(--text)' },
 
   alert: {
-    background: '#fff3cd',
-    border: '2px solid #f9ca24',
+    background: '#FEF3C7',
+    border: '1px solid #FCD34D',
     borderRadius: 'var(--radius)',
     padding: '10px 14px',
     fontSize: 13,
-    fontWeight: 700,
-    color: '#8a6400',
+    fontWeight: 600,
+    color: '#92400E',
     marginBottom: 14,
   },
 
   startBtn: {
     width: '100%',
-    padding: '16px',
+    padding: '14px',
     background: 'var(--green-grad)',
     color: '#fff',
     border: 'none',
-    borderRadius: 'var(--radius-lg)',
-    fontFamily: 'var(--font-title)',
-    fontSize: 22,
-    letterSpacing: '1.5px',
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 15,
+    fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 5px 0 var(--green-dark)',
-    transition: 'transform 0.1s, box-shadow 0.1s',
+    boxShadow: '0 4px 14px rgba(5,150,105,0.35)',
+    transition: 'opacity 0.15s',
+    letterSpacing: '0.2px',
   },
   startBtnDisabled: {
-    background: 'linear-gradient(135deg, #b0b0b0, #909090)',
-    boxShadow: '0 5px 0 #606060',
+    background: 'var(--border)',
+    boxShadow: 'none',
     cursor: 'not-allowed',
+    color: 'var(--text-mid)',
   },
 };

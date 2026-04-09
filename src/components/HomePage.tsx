@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Trophy, Gamepad2, TrendingUp, Skull, DollarSign, LogOut, ChevronRight, Plus, Key } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserRecentGames } from '../services/gameService';
 import { PAWNS } from '../data/pawns';
@@ -33,6 +34,7 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Prop
   const avgNetWorth = profile.stats.gamesPlayed > 0
     ? Math.round(profile.stats.totalNetWorth / profile.stats.gamesPlayed)
     : 0;
+  const initials = profile.displayName.slice(0, 2).toUpperCase();
 
   async function handlePawnSelect(pawnId: string) {
     await updatePawn(pawnId);
@@ -41,113 +43,134 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Prop
 
   return (
     <div style={S.page}>
-      {/* ── Header ── */}
-      <div style={S.header}>
-        <div style={S.headerLogo}>
-          <span style={S.headerEmoji}>🗺️</span>
-          <div>
-            <div style={S.headerTitle}>MONOVALE</div>
-            <div style={S.headerSub}>Monopoly do Vale do Paraíba</div>
+      {/* ── Top bar ── */}
+      <header style={S.header}>
+        <div style={S.headerLeft}>
+          <div style={S.headerLogo}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="white" fillOpacity="0.2"/>
+              <path d="M5 20L10 11L14 16L18 8L23 20H5Z" fill="white" fillOpacity="0.95"/>
+            </svg>
+            <span style={S.headerName}>Monovale</span>
           </div>
         </div>
         <div style={S.headerRight}>
-          <span style={S.bankerTag}>🏦 Sr. Marinho</span>
-          <button onClick={logout} style={S.logoutBtn}>Sair</button>
+          <span style={S.headerBanker}>Banco do Sr. Marinho</span>
+          <button onClick={logout} style={S.logoutBtn}>
+            <LogOut size={15} />
+            <span>Sair</span>
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* ── Content ── */}
       <div style={S.scrollArea}>
         <div style={S.content}>
 
-          {/* ── Profile card ── */}
+          {/* ── Profile ── */}
           <div style={S.profileCard}>
-            <div style={S.avatarArea}>
-              <div
-                style={{ ...S.pawnBubble, background: pawn.bgColor, border: `3px solid ${pawn.color}` }}
+            <div style={S.avatarGroup}>
+              <button
+                style={{ ...S.avatar, background: `linear-gradient(135deg, ${pawn.color}cc, ${pawn.color})` }}
                 onClick={() => setEditingPawn(!editingPawn)}
-                title="Clique para trocar o peão"
+                title="Trocar peão"
               >
-                <span style={S.pawnEmoji}>{pawn.emoji}</span>
-              </div>
-              <div style={{ ...S.pawnBadge, background: pawn.color }}>{pawn.name}</div>
+                <span style={{ fontSize: 28 }}>{pawn.emoji}</span>
+                <div style={S.avatarEdit}>✏️</div>
+              </button>
               {editingPawn && (
-                <div style={S.pawnPicker}>
-                  {PAWNS.map(p => (
-                    <button
-                      key={p.id}
-                      title={p.name}
-                      onClick={() => handlePawnSelect(p.id)}
-                      style={{
-                        ...S.pawnPickerBtn,
-                        ...(p.id === profile.pawnId ? { background: p.color } : {}),
-                      }}
-                    >
-                      {p.emoji}
-                    </button>
-                  ))}
+                <div style={S.pawnPopover}>
+                  <p style={S.pawnPopoverTitle}>Escolha seu peão</p>
+                  <div style={S.pawnGrid}>
+                    {PAWNS.map(p => (
+                      <button
+                        key={p.id}
+                        title={p.name}
+                        onClick={() => handlePawnSelect(p.id)}
+                        style={{
+                          ...S.pawnPickBtn,
+                          ...(p.id === profile.pawnId ? { border: `2px solid ${p.color}`, background: `${p.color}18` } : {}),
+                        }}
+                      >
+                        <span style={{ fontSize: 22 }}>{p.emoji}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-mid)', fontWeight: 600 }}>{p.name.split(' ')[0]}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-
-            <div style={S.profileInfo}>
+            <div style={S.profileText}>
               <div style={S.profileName}>{profile.displayName}</div>
               <div style={S.profileEmail}>{profile.email}</div>
+              <div style={{ ...S.pawnBadge, color: pawn.color, background: `${pawn.color}15`, border: `1px solid ${pawn.color}30` }}>
+                {pawn.name}
+              </div>
             </div>
+            {/* Avatar initials fallback shown in background */}
+            <div style={{ ...S.initialsDecor, color: `${pawn.color}20` }}>{initials}</div>
           </div>
 
-          {/* ── Stats grid ── */}
+          {/* ── Stats ── */}
           <div style={S.statsGrid}>
-            <StatCard emoji="🎮" label="Partidas" value={profile.stats.gamesPlayed} color="var(--blue)" />
-            <StatCard emoji="🏆" label="Vitórias" value={profile.stats.gamesWon} color="var(--gold)" />
-            <StatCard emoji="📈" label="Taxa de Vitória" value={`${winRate}%`} color="var(--green)" />
-            <StatCard emoji="💀" label="Falências" value={profile.stats.bankruptcies} color="var(--red)" />
-            <StatCard emoji="💰" label="Patrimônio Médio" value={`M$ ${avgNetWorth.toLocaleString('pt-BR')}`} color="var(--purple)" />
+            <StatCard icon={<Gamepad2 size={20} />} label="Partidas" value={profile.stats.gamesPlayed} color="#3B82F6" />
+            <StatCard icon={<Trophy size={20} />} label="Vitórias" value={profile.stats.gamesWon} color="#D97706" />
+            <StatCard icon={<TrendingUp size={20} />} label="Taxa de vitória" value={`${winRate}%`} color="#059669" />
+            <StatCard icon={<Skull size={20} />} label="Falências" value={profile.stats.bankruptcies} color="#DC2626" />
+            <StatCard icon={<DollarSign size={20} />} label="Patrimônio médio" value={`M$${avgNetWorth.toLocaleString('pt-BR')}`} color="#7C3AED" />
           </div>
 
-          {/* ── CTA buttons ── */}
-          <div style={S.ctaGrid}>
-            <button onClick={onCreateRoom} style={S.ctaBtnGreen}>
-              🎮 Criar Sala Online
-            </button>
-            <button onClick={onJoinRoom} style={S.ctaBtnGold}>
-              🔑 Entrar numa Sala
+          {/* ── Play buttons ── */}
+          <div style={S.playSection}>
+            <div style={S.playGrid}>
+              <button onClick={onCreateRoom} style={S.btnPrimary}>
+                <Plus size={18} strokeWidth={2.5} />
+                <span>Criar Sala Online</span>
+              </button>
+              <button onClick={onJoinRoom} style={S.btnSecondary}>
+                <Key size={18} strokeWidth={2.5} />
+                <span>Entrar numa Sala</span>
+              </button>
+            </div>
+            <button onClick={onStartGame} style={S.btnGhost}>
+              Jogar local (mesmo dispositivo)
+              <ChevronRight size={14} />
             </button>
           </div>
-          <button onClick={onStartGame} style={S.ctaBtnLocal}>
-            📱 Jogar Local (mesmo dispositivo)
-          </button>
 
           {/* ── Recent games ── */}
           <div style={S.section}>
-            <div style={S.sectionTitle}>Partidas Recentes</div>
+            <h3 style={S.sectionTitle}>Partidas recentes</h3>
             {loadingGames ? (
-              <div style={S.emptyMsg}>Carregando...</div>
+              <div style={S.emptyState}>Carregando...</div>
             ) : recentGames.length === 0 ? (
-              <div style={S.emptyMsg}>Nenhuma partida registrada ainda. Jogue uma!</div>
+              <div style={S.emptyState}>Nenhuma partida registrada. Jogue uma!</div>
             ) : (
               <div style={S.gameList}>
                 {recentGames.map(g => {
                   const myRank = g.rankings.find(r => r.uid === profile.uid);
                   return (
                     <div key={g.gameId} style={S.gameRow}>
-                      <div style={S.gameDate}>
-                        {new Date(g.completedAt).toLocaleDateString('pt-BR')}
-                      </div>
-                      <div style={S.gamePlayers}>
-                        {g.rankings.map(r => r.displayName).join(', ')}
-                      </div>
-                      {myRank && (
-                        <div style={{
-                          ...S.gameRankBadge,
-                          background: myRank.winner ? 'var(--gold-grad)' : myRank.bankrupt ? 'var(--red-grad)' : 'var(--card-alt)',
-                          color: myRank.winner || myRank.bankrupt ? '#fff' : 'var(--text)',
-                        }}>
-                          {myRank.winner ? '🏆 1º' : myRank.bankrupt ? '💀 Faliu' : `#${myRank.rank}`}
+                      <div>
+                        <div style={S.gamePlayers}>
+                          {g.rankings.map(r => r.displayName).join(' · ')}
                         </div>
-                      )}
-                      <div style={S.gameNetWorth}>
-                        {myRank ? `M$ ${myRank.netWorth.toLocaleString('pt-BR')}` : ''}
+                        <div style={S.gameDate}>
+                          {new Date(g.completedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <div style={S.gameRight}>
+                        {myRank && (
+                          <span style={{
+                            ...S.rankBadge,
+                            background: myRank.winner ? '#D97706' : myRank.bankrupt ? '#DC2626' : 'var(--border)',
+                            color: myRank.winner || myRank.bankrupt ? '#fff' : 'var(--text-mid)',
+                          }}>
+                            {myRank.winner ? '1º lugar' : myRank.bankrupt ? 'Faliu' : `${myRank.rank}º`}
+                          </span>
+                        )}
+                        {myRank && (
+                          <span style={S.gameNetWorth}>M${myRank.netWorth.toLocaleString('pt-BR')}</span>
+                        )}
                       </div>
                     </div>
                   );
@@ -162,10 +185,10 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Prop
   );
 }
 
-function StatCard({ emoji, label, value, color }: { emoji: string; label: string; value: string | number; color: string }) {
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color: string }) {
   return (
     <div style={S.statCard}>
-      <div style={{ ...S.statEmoji, color }}>{emoji}</div>
+      <div style={{ ...S.statIcon, color, background: `${color}12` }}>{icon}</div>
       <div style={S.statValue}>{value}</div>
       <div style={S.statLabel}>{label}</div>
     </div>
@@ -186,243 +209,184 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 24px',
-    height: 64,
-    background: 'var(--gold-grad)',
-    boxShadow: '0 4px 0 var(--gold-dark), 0 6px 20px rgba(0,0,0,0.15)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
+    height: 60,
+    background: 'linear-gradient(135deg, #065F46, #047857)',
     flexShrink: 0,
+    boxShadow: '0 1px 0 rgba(255,255,255,0.06)',
   },
-  headerLogo: { display: 'flex', alignItems: 'center', gap: 12 },
-  headerEmoji: { fontSize: 40, lineHeight: 1 },
-  headerTitle: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 32,
-    color: 'var(--text)',
-    letterSpacing: '1.5px',
-    lineHeight: 1,
-    textShadow: '1px 1px 0 rgba(255,255,255,0.4)',
-  },
-  headerSub: { fontSize: 12, fontWeight: 700, color: 'var(--text)', opacity: 0.65 },
-  headerRight: { display: 'flex', alignItems: 'center', gap: 12 },
-  bankerTag: { fontSize: 13, fontWeight: 700, color: 'var(--text)', opacity: 0.7 },
+  headerLeft: { display: 'flex', alignItems: 'center' },
+  headerLogo: { display: 'flex', alignItems: 'center', gap: 10 },
+  headerName: { fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.2px' },
+  headerRight: { display: 'flex', alignItems: 'center', gap: 16 },
+  headerBanker: { fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', display: 'none' as const },
   logoutBtn: {
-    padding: '7px 16px',
-    background: 'rgba(0,0,0,0.18)',
-    color: 'var(--text)',
-    border: 'none',
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '7px 14px',
+    background: 'rgba(255,255,255,0.12)',
+    border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 99,
-    fontFamily: 'var(--font-body)',
-    fontWeight: 800,
-    fontSize: 12,
+    fontSize: 13, fontWeight: 600, color: '#fff',
     cursor: 'pointer',
-    boxShadow: '0 3px 0 rgba(0,0,0,0.15)',
+    fontFamily: 'var(--font-body)',
   },
 
   scrollArea: {
-    flex: 1,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
+    flex: 1, overflowY: 'auto',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
     padding: '28px 16px 60px',
   },
-
-  content: {
-    width: '100%',
-    maxWidth: 680,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
+  content: { width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 16 },
 
   /* Profile card */
   profileCard: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-xl)',
-    border: '3px solid var(--border-gold)',
-    boxShadow: 'var(--shadow-lg)',
-    padding: '24px 28px',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow)',
+    padding: '24px',
     display: 'flex',
-    alignItems: 'flex-start',
-    gap: 24,
-  },
-  avatarArea: {
-    display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
-    gap: 8,
+    gap: 20,
     position: 'relative',
+    overflow: 'hidden',
   },
-  pawnBubble: {
-    width: 80,
-    height: 80,
+  initialsDecor: {
+    position: 'absolute', right: -10, top: '50%',
+    transform: 'translateY(-50%)',
+    fontFamily: 'var(--font-title)',
+    fontSize: 120,
+    fontWeight: 900,
+    lineHeight: 1,
+    pointerEvents: 'none',
+    userSelect: 'none',
+  },
+  avatarGroup: { position: 'relative' as const, flexShrink: 0 },
+  avatar: {
+    width: 72, height: 72,
     borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-    transition: 'transform 0.15s',
+    border: 'none',
+    boxShadow: 'var(--shadow-md)',
+    position: 'relative',
     flexShrink: 0,
   },
-  pawnEmoji: { fontSize: 42 },
-  pawnBadge: {
-    borderRadius: 99,
-    padding: '3px 12px',
-    fontSize: 11,
-    fontWeight: 800,
-    color: '#fff',
-    whiteSpace: 'nowrap',
-  },
-  pawnPicker: {
-    position: 'absolute',
-    top: 96,
-    left: '50%',
-    transform: 'translateX(-50%)',
+  avatarEdit: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 22, height: 22,
     background: 'var(--card)',
-    border: '2px solid var(--border-gold)',
-    borderRadius: 'var(--radius-md)',
+    borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 11,
+    boxShadow: 'var(--shadow-sm)',
+    border: '1px solid var(--border)',
+  },
+  pawnPopover: {
+    position: 'absolute', top: 80, left: 0, zIndex: 100,
+    background: 'var(--card)',
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--border)',
     boxShadow: 'var(--shadow-lg)',
-    padding: 8,
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 6,
-    width: 200,
-    zIndex: 100,
+    padding: 16,
+    width: 260,
     animation: 'pop-in 0.15s ease',
   },
-  pawnPickerBtn: {
-    width: 40,
-    height: 40,
+  pawnPopoverTitle: { fontSize: 12, fontWeight: 700, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 10px' },
+  pawnGrid: { display: 'flex', flexWrap: 'wrap', gap: 6 },
+  pawnPickBtn: {
+    width: 52, height: 52,
     borderRadius: 10,
-    border: '2px solid var(--border)',
+    border: '1.5px solid var(--border)',
     background: 'var(--card-alt)',
-    fontSize: 22,
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    gap: 2, padding: 4,
     transition: 'all 0.1s',
   },
-  profileInfo: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  profileName: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 32,
-    color: 'var(--text)',
-    letterSpacing: '0.5px',
-  },
-  profileEmail: { fontSize: 13, color: 'var(--text-mid)', fontWeight: 600 },
+  profileText: { flex: 1, minWidth: 0, position: 'relative', zIndex: 1 },
+  profileName: { fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 2, letterSpacing: '-0.2px' },
+  profileEmail: { fontSize: 13, color: 'var(--text-mid)', fontWeight: 500, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  pawnBadge: { display: 'inline-flex', padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700 },
 
-  /* Stats grid */
+  /* Stats */
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
-    gap: 12,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(108px, 1fr))',
+    gap: 10,
   },
   statCard: {
     background: 'var(--card)',
-    borderRadius: 'var(--radius-md)',
-    border: '2px solid var(--border)',
-    boxShadow: '0 3px 0 var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-sm)',
     padding: '16px 12px 14px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
     textAlign: 'center',
   },
-  statEmoji: { fontSize: 26, lineHeight: 1 },
-  statValue: { fontFamily: 'var(--font-title)', fontSize: 22, color: 'var(--text)' },
-  statLabel: { fontSize: 11, fontWeight: 800, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  statIcon: { width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  statValue: { fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: 'var(--text)', lineHeight: 1 },
+  statLabel: { fontSize: 10, fontWeight: 600, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.3 },
 
-  /* CTA */
-  ctaGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 12,
-  },
-  ctaBtnGreen: {
-    padding: '16px 8px',
+  /* Play */
+  playSection: { display: 'flex', flexDirection: 'column', gap: 8 },
+  playGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
+  btnPrimary: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '14px 16px',
     background: 'var(--green-grad)',
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius-lg)',
-    fontFamily: 'var(--font-title)',
-    fontSize: 18,
-    letterSpacing: '0.5px',
+    fontFamily: 'var(--font-body)',
+    fontSize: 14, fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 5px 0 var(--green-dark)',
+    boxShadow: '0 4px 14px rgba(5,150,105,0.3)',
+    letterSpacing: '0.1px',
   },
-  ctaBtnGold: {
-    padding: '16px 8px',
-    background: 'var(--gold-grad)',
-    color: 'var(--text)',
-    border: 'none',
-    borderRadius: 'var(--radius-lg)',
-    fontFamily: 'var(--font-title)',
-    fontSize: 18,
-    letterSpacing: '0.5px',
-    cursor: 'pointer',
-    boxShadow: '0 5px 0 var(--gold-dark)',
-  },
-  ctaBtnLocal: {
-    width: '100%',
-    padding: '12px',
-    background: 'var(--card-alt)',
-    color: 'var(--text-mid)',
-    border: '2px solid var(--border)',
+  btnSecondary: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '14px 16px',
+    background: 'var(--card)',
+    color: 'var(--gold)',
+    border: '1.5px solid var(--gold)',
     borderRadius: 'var(--radius-lg)',
     fontFamily: 'var(--font-body)',
-    fontSize: 14,
-    fontWeight: 800,
+    fontSize: 14, fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 3px 0 var(--border)',
+    letterSpacing: '0.1px',
+  },
+  btnGhost: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+    padding: '11px',
+    background: 'transparent',
+    color: 'var(--text-mid)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 13, fontWeight: 600,
+    cursor: 'pointer',
   },
 
   /* Recent games */
   section: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-xl)',
-    border: '3px solid var(--border-gold)',
-    boxShadow: 'var(--shadow-lg)',
-    padding: '20px 24px',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-sm)',
+    padding: '20px',
   },
-  sectionTitle: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 22,
-    color: 'var(--text)',
-    marginBottom: 14,
-    letterSpacing: '0.5px',
-  },
-  emptyMsg: { fontSize: 13, color: 'var(--text-mid)', fontWeight: 600, textAlign: 'center', padding: '12px 0' },
-  gameList: { display: 'flex', flexDirection: 'column', gap: 8 },
+  sectionTitle: { fontFamily: 'var(--font-title)', fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: '0 0 14px', letterSpacing: '-0.2px' },
+  emptyState: { fontSize: 13, color: 'var(--text-light)', fontWeight: 500, textAlign: 'center', padding: '12px 0' },
+  gameList: { display: 'flex', flexDirection: 'column', gap: 2 },
   gameRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '10px 12px',
-    background: 'var(--card-alt)',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
-    flexWrap: 'wrap',
+    transition: 'background 0.1s',
   },
-  gameDate: { fontSize: 12, color: 'var(--text-mid)', fontWeight: 700, flexShrink: 0, minWidth: 80 },
-  gamePlayers: { flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)', minWidth: 120 },
-  gameRankBadge: {
-    borderRadius: 99,
-    padding: '3px 12px',
-    fontSize: 12,
-    fontWeight: 800,
-    flexShrink: 0,
-  },
-  gameNetWorth: { fontSize: 12, fontWeight: 700, color: 'var(--text-mid)', flexShrink: 0 },
+  gamePlayers: { fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 2 },
+  gameDate: { fontSize: 12, color: 'var(--text-light)', fontWeight: 500 },
+  gameRight: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 },
+  rankBadge: { padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700 },
+  gameNetWorth: { fontSize: 12, fontWeight: 700, color: 'var(--text-mid)' },
 };

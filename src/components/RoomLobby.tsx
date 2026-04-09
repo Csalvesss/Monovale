@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Copy, Check, Crown, Play, Loader } from 'lucide-react';
 import { PAWNS } from '../data/pawns';
 import { useAuth } from '../contexts/AuthContext';
 import { listenRoom, updateRoomPlayers, startRoomGame } from '../services/roomService';
@@ -27,9 +28,6 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
     const unsub = listenRoom(code, r => setRoom(r));
     return unsub;
   }, [code]);
-
-  // Host sees game start via room state change; guests are handled by App
-  // (App listens to room and redirects when status=playing)
 
   async function handleChangePawn(pawnId: string) {
     if (!room || !profile) return;
@@ -74,8 +72,8 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
   if (!room) {
     return (
       <div style={S.page}>
-        <div style={S.center}>
-          <div style={{ fontSize: 40 }}>⏳</div>
+        <div style={S.loadingWrap}>
+          <Loader size={32} color="var(--green)" style={{ animation: 'spin 1s linear infinite' }} />
           <div style={S.loadingText}>Conectando à sala...</div>
         </div>
       </div>
@@ -90,30 +88,43 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
     <div style={S.page}>
       {/* Header */}
       <div style={S.header}>
-        <button onClick={onLeave} style={S.backBtn}>← Sair</button>
-        <span style={S.headerTitle}>🎮 SALA DE ESPERA</span>
-        <div style={{ width: 80 }} />
+        <button onClick={onLeave} style={S.backBtn}>
+          <ArrowLeft size={16} />
+          Sair
+        </button>
+        <div style={S.headerCenter}>
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="10" fill="white" fillOpacity="0.15" />
+            <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+          </svg>
+          <span style={S.headerTitle}>Sala de espera</span>
+        </div>
+        <div style={{ width: 88 }} />
       </div>
 
       <div style={S.scrollArea}>
         <div style={S.content}>
 
-          {/* Room code */}
+          {/* Room code card */}
           <div style={S.codeCard}>
-            <div style={S.codeLabel}>Código da Sala</div>
+            <div style={S.codeLabel}>Código da sala</div>
             <div style={S.codeValue}>{code}</div>
             <button onClick={copyCode} style={S.copyBtn}>
-              {copied ? '✓ Copiado!' : '📋 Copiar código'}
+              {copied
+                ? <><Check size={14} /> Copiado!</>
+                : <><Copy size={14} /> Copiar código</>
+              }
             </button>
             <p style={S.codeSub}>Compartilhe com seus amigos para entrarem na partida</p>
           </div>
 
-          {/* Players */}
+          {/* Players card */}
           <div style={S.playersCard}>
             <div style={S.cardTitle}>
-              Jogadores ({room.players.length}/8)
+              <span>Jogadores</span>
+              <span style={S.playerCount}>{room.players.length}/8</span>
               <span style={S.waitingDot} />
-              <span style={{ fontSize: 12, color: 'var(--text-mid)', fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-mid)', fontWeight: 500, marginLeft: 'auto' }}>
                 Aguardando...
               </span>
             </div>
@@ -132,13 +143,16 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
                     <div style={S.playerInfo}>
                       <div style={S.playerName}>
                         {p.displayName}
-                        {isRoomHost && <span style={S.hostBadge}>👑 Host</span>}
+                        {isRoomHost && (
+                          <span style={S.hostBadge}>
+                            <Crown size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Host
+                          </span>
+                        )}
                         {isMe && <span style={S.meBadge}>Você</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: pawn.color, fontWeight: 700 }}>{pawn.name}</div>
+                      <div style={{ fontSize: 11, color: pawn.color, fontWeight: 600 }}>{pawn.name}</div>
                     </div>
 
-                    {/* Change pawn (own slot) */}
                     {isMe && (
                       <button onClick={() => setEditingPawn(!editingPawn)} style={S.changePawnBtn}>
                         Trocar peão
@@ -148,13 +162,14 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
                 );
               })}
 
-              {/* Empty slots */}
               {Array.from({ length: Math.max(0, 2 - room.players.length) }, (_, i) => (
                 <div key={`empty-${i}`} style={{ ...S.playerRow, opacity: 0.4 }}>
                   <div style={S.playerNum}>?</div>
-                  <div style={{ ...S.playerPawn, background: 'var(--card-alt)' }}>🎭</div>
+                  <div style={{ ...S.playerPawn, background: 'var(--card-alt)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="var(--text-light)" strokeWidth="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="var(--text-light)" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </div>
                   <div style={S.playerInfo}>
-                    <div style={S.playerName}>Aguardando jogador...</div>
+                    <div style={{ ...S.playerName, color: 'var(--text-mid)' }}>Aguardando jogador...</div>
                   </div>
                 </div>
               ))}
@@ -163,7 +178,7 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
             {/* Pawn picker */}
             {editingPawn && (
               <div style={S.pawnPicker}>
-                <div style={S.pawnPickerTitle}>Escolha seu peão:</div>
+                <div style={S.pawnPickerTitle}>Escolha seu peão</div>
                 <div style={S.pawnGrid}>
                   {PAWNS.map(pw => {
                     const taken = usedPawns.includes(pw.id) && pw.id !== myPlayer?.pawnId;
@@ -175,8 +190,8 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
                         onClick={() => handleChangePawn(pw.id)}
                         style={{
                           ...S.pawnBtn,
-                          ...(pw.id === myPawn.id ? { background: pw.color, border: `2px solid ${pw.color}` } : {}),
-                          ...(taken ? { opacity: 0.3, cursor: 'not-allowed' } : {}),
+                          ...(pw.id === myPawn.id ? { background: pw.color, borderColor: pw.color } : {}),
+                          ...(taken ? { opacity: 0.2, cursor: 'not-allowed' } : {}),
                         }}
                       >
                         {pw.emoji}
@@ -189,9 +204,7 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
           </div>
 
           {/* Error */}
-          {error && (
-            <div style={S.error}>{error}</div>
-          )}
+          {error && <div style={S.error}>{error}</div>}
 
           {/* CTA */}
           {isHost ? (
@@ -203,11 +216,14 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
                 ...(starting || room.players.length < 2 ? S.startBtnDisabled : {}),
               }}
             >
-              {starting ? '⏳ Iniciando...' : `🎲 INICIAR PARTIDA (${room.players.length} jogadores)`}
+              {starting
+                ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite', display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />Iniciando...</>
+                : <><Play size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />Iniciar partida ({room.players.length} jogadores)</>
+              }
             </button>
           ) : (
             <div style={S.waitingMsg}>
-              <div style={S.waitingMsgEmoji}>⏳</div>
+              <Loader size={24} color="var(--text-light)" style={{ animation: 'spin 1.5s linear infinite', marginBottom: 8 }} />
               <div style={S.waitingMsgText}>Aguardando o host iniciar a partida...</div>
             </div>
           )}
@@ -227,31 +243,41 @@ const S: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-body)',
   },
   header: {
+    width: '100%',
+    height: 56,
+    background: 'linear-gradient(90deg, #065F46, #059669)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 16px',
-    height: 56,
-    background: 'var(--gold-grad)',
-    boxShadow: '0 3px 0 var(--gold-dark)',
     flexShrink: 0,
+    boxShadow: '0 1px 0 rgba(0,0,0,0.15)',
   },
   backBtn: {
-    padding: '6px 14px',
-    background: 'rgba(0,0,0,0.15)',
-    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '7px 14px',
+    background: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.2)',
     borderRadius: 99,
-    fontWeight: 800,
+    fontFamily: 'var(--font-body)',
+    fontWeight: 600,
     fontSize: 13,
-    color: 'var(--text)',
+    color: '#fff',
     cursor: 'pointer',
-    width: 80,
+  },
+  headerCenter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
   },
   headerTitle: {
     fontFamily: 'var(--font-title)',
-    fontSize: 20,
-    color: 'var(--text)',
-    letterSpacing: '1px',
+    fontSize: 18,
+    fontWeight: 800,
+    color: '#fff',
+    letterSpacing: '-0.2px',
   },
   scrollArea: {
     flex: 1,
@@ -268,7 +294,7 @@ const S: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: 16,
   },
-  center: {
+  loadingWrap: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
@@ -276,59 +302,82 @@ const S: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     gap: 12,
   },
-  loadingText: { fontFamily: 'var(--font-title)', fontSize: 20, color: 'var(--text-mid)' },
+  loadingText: { fontFamily: 'var(--font-title)', fontSize: 18, fontWeight: 700, color: 'var(--text-mid)' },
 
   codeCard: {
-    background: 'var(--gold-grad)',
+    background: 'linear-gradient(160deg, #065F46 0%, #047857 50%, #059669 100%)',
     borderRadius: 'var(--radius-xl)',
-    boxShadow: '0 6px 0 var(--gold-dark), 0 8px 24px rgba(0,0,0,0.1)',
-    padding: '24px',
+    boxShadow: 'var(--shadow-lg)',
+    padding: '28px 24px',
     textAlign: 'center',
   },
-  codeLabel: { fontSize: 12, fontWeight: 800, color: 'var(--text)', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 },
+  codeLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.65)',
+    textTransform: 'uppercase',
+    letterSpacing: '1.5px',
+    marginBottom: 10,
+  },
   codeValue: {
     fontFamily: 'var(--font-title)',
     fontSize: 52,
-    color: 'var(--text)',
-    letterSpacing: '8px',
-    textShadow: '2px 2px 0 rgba(255,255,255,0.4)',
+    fontWeight: 900,
+    color: '#fff',
+    letterSpacing: '10px',
     lineHeight: 1,
-    marginBottom: 12,
+    marginBottom: 16,
+    textShadow: '0 2px 12px rgba(0,0,0,0.2)',
   },
   copyBtn: {
-    padding: '8px 20px',
-    background: 'rgba(0,0,0,0.15)',
-    border: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '8px 18px',
+    background: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.25)',
     borderRadius: 99,
-    fontWeight: 800,
+    fontWeight: 600,
     fontSize: 13,
-    color: 'var(--text)',
+    color: '#fff',
     cursor: 'pointer',
     marginBottom: 10,
+    transition: 'background 0.15s',
+    fontFamily: 'var(--font-body)',
   },
-  codeSub: { fontSize: 12, color: 'var(--text)', opacity: 0.65, margin: 0, fontWeight: 600 },
+  codeSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0, fontWeight: 500 },
 
   playersCard: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-xl)',
-    border: '3px solid var(--border-gold)',
-    boxShadow: 'var(--shadow-lg)',
-    padding: '20px 20px 16px',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow)',
+    padding: '20px',
   },
   cardTitle: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 20,
+    fontSize: 15,
+    fontWeight: 700,
     color: 'var(--text)',
     marginBottom: 14,
     display: 'flex',
     alignItems: 'center',
     gap: 8,
   },
+  playerCount: {
+    fontSize: 12,
+    fontWeight: 600,
+    background: 'var(--card-alt)',
+    border: '1px solid var(--border)',
+    borderRadius: 99,
+    padding: '2px 8px',
+    color: 'var(--text-mid)',
+  },
   waitingDot: {
-    width: 8, height: 8,
+    width: 7,
+    height: 7,
     borderRadius: '50%',
     background: 'var(--green)',
-    animation: 'pulse-gold 1.5s ease infinite',
+    animation: 'pulse-ring 1.5s ease infinite',
   },
 
   playerList: { display: 'flex', flexDirection: 'column', gap: 8 },
@@ -339,34 +388,40 @@ const S: Record<string, React.CSSProperties> = {
     padding: '10px 12px',
     background: 'var(--card-alt)',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
+    border: '1px solid var(--border)',
   },
   playerRowMe: {
-    border: '2px solid var(--gold)',
-    background: '#fefbef',
+    border: '1.5px solid var(--green)',
+    background: 'rgba(5,150,105,0.04)',
   },
   playerNum: {
-    width: 24, height: 24,
+    width: 24,
+    height: 24,
     borderRadius: '50%',
-    background: 'var(--gold-grad)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--green)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     fontFamily: 'var(--font-title)',
-    fontSize: 13,
-    color: 'var(--text)',
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#fff',
     flexShrink: 0,
-    boxShadow: '0 2px 0 var(--gold-dark)',
   },
   playerPawn: {
-    width: 40, height: 40,
+    width: 38,
+    height: 38,
     borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 22,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 20,
     flexShrink: 0,
   },
   playerInfo: { flex: 1, minWidth: 0 },
   playerName: {
     fontSize: 14,
-    fontWeight: 800,
+    fontWeight: 700,
     color: 'var(--text)',
     display: 'flex',
     alignItems: 'center',
@@ -377,91 +432,113 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 11,
     background: 'var(--gold-grad)',
     borderRadius: 99,
-    padding: '1px 8px',
+    padding: '2px 8px',
     fontWeight: 700,
+    color: 'var(--text)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
   },
   meBadge: {
     fontSize: 11,
     background: 'var(--green)',
     color: '#fff',
     borderRadius: 99,
-    padding: '1px 8px',
+    padding: '2px 8px',
     fontWeight: 700,
   },
   changePawnBtn: {
     padding: '5px 12px',
     background: 'var(--card)',
-    border: '2px solid var(--border)',
+    border: '1px solid var(--border)',
     borderRadius: 99,
     fontSize: 11,
-    fontWeight: 800,
+    fontWeight: 600,
     color: 'var(--text-mid)',
     cursor: 'pointer',
     flexShrink: 0,
+    fontFamily: 'var(--font-body)',
   },
 
   pawnPicker: {
     marginTop: 12,
-    padding: '12px',
+    padding: '14px',
     background: 'var(--card-alt)',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
+    border: '1px solid var(--border)',
   },
-  pawnPickerTitle: { fontSize: 12, fontWeight: 800, color: 'var(--text-mid)', marginBottom: 8, textTransform: 'uppercase' },
+  pawnPickerTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: 'var(--text-mid)',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
   pawnGrid: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   pawnBtn: {
-    width: 44, height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    border: '2px solid var(--border)',
-    background: 'var(--white)',
-    fontSize: 24,
+    border: '1.5px solid var(--border)',
+    background: 'var(--card)',
+    fontSize: 22,
     cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 0,
     transition: 'all 0.1s',
   },
 
   error: {
-    background: '#fef2f2',
-    border: '2px solid #fecaca',
+    background: '#FEF2F2',
+    border: '1px solid #FECACA',
     borderRadius: 'var(--radius)',
     padding: '12px 16px',
     fontSize: 13,
-    fontWeight: 700,
+    fontWeight: 600,
     color: 'var(--red)',
     textAlign: 'center',
   },
 
   startBtn: {
     width: '100%',
-    padding: '18px',
+    padding: '14px',
     background: 'var(--green-grad)',
     color: '#fff',
     border: 'none',
-    borderRadius: 'var(--radius-lg)',
-    fontFamily: 'var(--font-title)',
-    fontSize: 20,
-    letterSpacing: '1px',
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 15,
+    fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 5px 0 var(--green-dark)',
+    boxShadow: '0 4px 14px rgba(5,150,105,0.35)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    letterSpacing: '0.2px',
   },
   startBtnDisabled: {
-    background: 'linear-gradient(135deg, #b0b0b0, #909090)',
-    boxShadow: '0 5px 0 #606060',
+    background: 'var(--border)',
+    boxShadow: 'none',
     cursor: 'not-allowed',
+    color: 'var(--text-mid)',
   },
 
   waitingMsg: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-xl)',
-    border: '3px solid var(--border-gold)',
-    padding: '24px',
+    border: '1px solid var(--border)',
+    padding: '28px',
     textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   },
-  waitingMsgEmoji: { fontSize: 36, marginBottom: 8 },
   waitingMsgText: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 20,
+    fontSize: 15,
+    fontWeight: 600,
     color: 'var(--text-mid)',
   },
 };
