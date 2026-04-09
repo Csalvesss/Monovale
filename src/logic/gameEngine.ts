@@ -8,9 +8,11 @@ import type {
   LogEntry,
   LobbyConfig,
   TurnPhase,
+  EventCard,
 } from '../types';
 import { BOARD_SPACES, GROUP_POSITIONS } from '../data/properties';
 import { CHANCE_CARDS, COMMUNITY_CARDS, shuffleDeck } from '../data/cards';
+import { EVENT_CARDS } from '../data/eventCards';
 import { calculateRent } from './rentCalculator';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -96,6 +98,11 @@ export function initGame(config: LobbyConfig, gameId: string | null = null): Gam
     log: [makeLog('🎲 Partida iniciada! Bem-vindos ao Monovale!', 'info')],
     winner: null,
     gameId,
+    pendingEvent: null,
+    roundNumber: 1,
+    doubleNextRent: false,
+    skipNextRent: false,
+    recentEventIds: [],
   };
 }
 
@@ -269,16 +276,30 @@ function resolveSpace(state: GameState, playerId: string, position: number): Gam
         return { ...state, turnPhase: 'turn_complete' };
       }
 
+      // Skip rent flag (from Evento do Vale)
+      if (state.skipNextRent) {
+        state = addLog(state, `🛡️ Greve! Aluguel em ${space.name} dispensado pelo Evento do Vale.`, 'event');
+        return { ...state, skipNextRent: false, turnPhase: 'turn_complete' };
+      }
+
       // Pay rent
       const owner = state.players.find(p => p.id === propState.ownerId)!;
       const diceTotal = state.dice ? state.dice[0] + state.dice[1] : 7;
-      const rent = calculateRent(space, propState, state.properties, owner, diceTotal);
+      let rent = calculateRent(space, propState, state.properties, owner, diceTotal);
+      let doubleCleared = false;
+
+      // Double rent flag (from Evento do Vale)
+      if (state.doubleNextRent) {
+        rent = rent * 2;
+        doubleCleared = true;
+      }
 
       state = addLog(
         state,
-        `🏦 Sr. Marinho cobra aluguel de R$${rent} de ${player.name} para ${owner.name} em ${space.name}!`,
+        `🏦 Sr. Marinho cobra aluguel de R$${rent} de ${player.name} para ${owner.name} em ${space.name}!${doubleCleared ? ' (dobrado pelo Carnaval!)' : ''}`,
         'bank'
       );
+      if (doubleCleared) state = { ...state, doubleNextRent: false };
       state = transferMoney(state, playerId, propState.ownerId, rent);
       return { ...state, turnPhase: 'turn_complete' };
     }
@@ -552,7 +573,180 @@ export function endTurn(state: GameState): GameState {
     auction: null,
     trade: null,
   };
-  s = addLog(s, `🎲 Vez de ${next.name}.`, 'info');
+
+  // New round: nextIndex wrapped back to first active player
+  const isNewRound = nextIndex <= state.currentPlayerIndex;
+  if (isNewRound) {
+    const newRound = state.roundNumber + 1;
+    s = { ...s, roundNumber: newRound };
+    const event = drawEventCard(s);
+    if (event) {
+      s = { ...s, pendingEvent: event, recentEventIds: [event.id, ...s.recentEventIds].slice(0, 15) };
+      s = addLog(s, `🎴 Rodada ${newRound}! Evento do Vale: "${event.title}"`, 'event');
+    } else {
+      s = addLog(s, `🎲 Vez de ${next.name}.`, 'info');
+    }
+  } else {
+    s = addLog(s, `🎲 Vez de ${next.name}.`, 'info');
+  }
+
+  return s;
+}
+
+// ─── Evento do Vale ──────────────────────────────────────────────────────────
+
+function drawEventCard(state: GameState): EventCard | null {
+  const ownedProps = Object.values(state.properties).filter(p => p.ownerId !== null);
+  const hasProperties = ownedProps.length > 0;
+
+  // Filter cards that fit current game conditions
+  let eligible = EVENT_CARDS.filter(card => {
+    if (card.condition === 'someone_owns_property' && !hasProperties) return false;
+    // For specific location events, check if that property is owned
+    if (
+      card.action.type === 'specific_owner_pays' ||
+      card.action.type === 'specific_owner_collects'
+    ) {
+      return state.properties[card.action.position]?.ownerId !== null;
+    }
+    return true;
+  });
+
+  // Prefer cards not recently used
+  const fresh = eligible.filter(c => !state.recentEventIds.includes(c.id));
+  if (fresh.length > 0) eligible = fresh;
+
+  if (eligible.length === 0) return null;
+  return eligible[Math.floor(Math.random() * eligible.length)];
+}
+
+export function resolveEventCard(state: GameState): GameState {
+  const event = state.pendingEvent;
+  if (!event) return state;
+
+  const active = getActivePlayers(state.players);
+  let s: GameState = { ...state, pendingEvent: null };
+  const action = event.action;
+
+  switch (action.type) {
+    case 'all_pay': {
+      for (const p of active) {
+        s = chargeMoney(s, p.id, action.amount, null);
+      }
+      s = addLog(s, `🎴 ${event.title}: todos pagaram R$${action.amount}.`, 'event');
+      break;
+    }
+    case 'all_collect': {
+      for (const p of active) {
+        const cur = s.players.find(x => x.id === p.id)!;
+        s = updatePlayer(s, p.id, { money: cur.money + action.amount });
+      }
+      s = addLog(s, `🎴 ${event.title}: todos receberam R$${action.amount}.`, 'event');
+      break;
+    }
+    case 'richest_pays_bank': {
+      const richest = [...active].sort((a, b) => b.money - a.money)[0];
+      if (richest) {
+        s = chargeMoney(s, richest.id, action.amount, null);
+        s = addLog(s, `🎴 ${event.title}: ${richest.name} (mais rico) pagou R$${action.amount}.`, 'event');
+      }
+      break;
+    }
+    case 'poorest_collects': {
+      const poorest = [...active].sort((a, b) => a.money - b.money)[0];
+      if (poorest) {
+        const cur = s.players.find(x => x.id === poorest.id)!;
+        s = updatePlayer(s, poorest.id, { money: cur.money + action.amount });
+        s = addLog(s, `🎴 ${event.title}: ${poorest.name} (mais pobre) recebeu R$${action.amount}.`, 'event');
+      }
+      break;
+    }
+    case 'richest_pays_poorest': {
+      if (active.length >= 2) {
+        const sorted = [...active].sort((a, b) => b.money - a.money);
+        const richest = sorted[0];
+        const poorest = sorted[sorted.length - 1];
+        const amt = Math.min(action.amount, richest.money);
+        s = updatePlayer(s, richest.id, { money: richest.money - amt });
+        const po = s.players.find(x => x.id === poorest.id)!;
+        s = updatePlayer(s, poorest.id, { money: po.money + amt });
+        s = addLog(s, `🎴 ${event.title}: ${richest.name} pagou R$${amt} para ${poorest.name}.`, 'event');
+      }
+      break;
+    }
+    case 'random_player_pays': {
+      const victim = active[Math.floor(Math.random() * active.length)];
+      s = chargeMoney(s, victim.id, action.amount, null);
+      s = addLog(s, `🎴 ${event.title}: ${victim.name} foi o azarado e perdeu R$${action.amount}!`, 'event');
+      break;
+    }
+    case 'random_player_collects': {
+      const lucky = active[Math.floor(Math.random() * active.length)];
+      const cur = s.players.find(x => x.id === lucky.id)!;
+      s = updatePlayer(s, lucky.id, { money: cur.money + action.amount });
+      s = addLog(s, `🎴 ${event.title}: ${lucky.name} foi o sortudo e ganhou R$${action.amount}!`, 'event');
+      break;
+    }
+    case 'all_property_owners_pay': {
+      const owners = active.filter(p =>
+        Object.values(s.properties).some(ps => ps.ownerId === p.id)
+      );
+      for (const p of owners) {
+        s = chargeMoney(s, p.id, action.amount, null);
+      }
+      s = addLog(s, `🎴 ${event.title}: donos de imóvel pagaram R$${action.amount}.`, 'event');
+      break;
+    }
+    case 'all_property_owners_collect': {
+      const owners = active.filter(p =>
+        Object.values(s.properties).some(ps => ps.ownerId === p.id)
+      );
+      for (const p of owners) {
+        const cur = s.players.find(x => x.id === p.id)!;
+        s = updatePlayer(s, p.id, { money: cur.money + action.amount });
+      }
+      s = addLog(s, `🎴 ${event.title}: donos de imóvel receberam R$${action.amount}.`, 'event');
+      break;
+    }
+    case 'specific_owner_pays': {
+      const prop = s.properties[action.position];
+      if (prop?.ownerId) {
+        s = chargeMoney(s, prop.ownerId, action.amount, null);
+        const owner = state.players.find(p => p.id === prop.ownerId);
+        s = addLog(s, `🎴 ${event.title}: ${owner?.name ?? 'Dono'} de ${action.spaceName} pagou R$${action.amount}.`, 'event');
+      } else {
+        s = addLog(s, `🎴 ${event.title}: ninguém é dono de ${action.spaceName}. Sem efeito.`, 'event');
+      }
+      break;
+    }
+    case 'specific_owner_collects': {
+      const prop = s.properties[action.position];
+      if (prop?.ownerId) {
+        const cur = s.players.find(x => x.id === prop.ownerId)!;
+        s = updatePlayer(s, prop.ownerId, { money: cur.money + action.amount });
+        const owner = state.players.find(p => p.id === prop.ownerId);
+        s = addLog(s, `🎴 ${event.title}: ${owner?.name ?? 'Dono'} de ${action.spaceName} recebeu R$${action.amount}.`, 'event');
+      } else {
+        s = addLog(s, `🎴 ${event.title}: ninguém é dono de ${action.spaceName}. Sem efeito.`, 'event');
+      }
+      break;
+    }
+    case 'double_next_rent': {
+      s = { ...s, doubleNextRent: true };
+      s = addLog(s, `🎴 ${event.title}: próximo aluguel será cobrado em dobro!`, 'event');
+      break;
+    }
+    case 'skip_next_rent': {
+      s = { ...s, skipNextRent: true };
+      s = addLog(s, `🎴 ${event.title}: nenhum aluguel cobrado nesta rodada!`, 'event');
+      break;
+    }
+    case 'no_effect':
+    default:
+      s = addLog(s, `🎴 ${event.title}: ${event.description}`, 'event');
+      break;
+  }
+
   return s;
 }
 

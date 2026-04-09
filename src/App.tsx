@@ -8,6 +8,7 @@ import ActionPanel from './components/ActionPanel';
 import AuctionModal from './components/AuctionModal';
 import HelpModal from './components/HelpModal';
 import TradeModal from './components/TradeModal';
+import EventModal from './components/EventModal';
 import EndScreen from './components/EndScreen';
 import LoginScreen from './components/LoginScreen';
 import HomePage from './components/HomePage';
@@ -23,7 +24,7 @@ import {
   initGame, rollDice, buyProperty, startAuction, placeBid, passBid,
   endTurn, payJailFine, useJailCard, buildHouse, sellHouse,
   mortgageProperty, unmortgageProperty, proposeTrade, updateTrade,
-  acceptTrade, cancelTrade, resolveCard,
+  acceptTrade, cancelTrade, resolveCard, resolveEventCard,
 } from './logic/gameEngine';
 
 const STORAGE_KEY = 'monovale_game_state';
@@ -101,6 +102,12 @@ export default function App() {
           Array.isArray(parsed.spaces) &&
           Array.isArray(parsed.dice)
         ) {
+          // Backfill new fields for saves from before Evento do Vale
+          if (parsed.pendingEvent === undefined) parsed.pendingEvent = null;
+          if (parsed.roundNumber === undefined) parsed.roundNumber = 1;
+          if (parsed.doubleNextRent === undefined) parsed.doubleNextRent = false;
+          if (parsed.skipNextRent === undefined) parsed.skipNextRent = false;
+          if (parsed.recentEventIds === undefined) parsed.recentEventIds = [];
           return parsed;
         }
         // Stale/incompatible save — remove it
@@ -325,6 +332,13 @@ export default function App() {
   // ── Modals ──
   const modals = (
     <>
+      {gameState.pendingEvent && (
+        <EventModal
+          event={gameState.pendingEvent}
+          state={gameState}
+          onContinue={() => act(resolveEventCard)}
+        />
+      )}
       {gameState.turnPhase === 'auction' && gameState.auction && (
         <AuctionModal state={gameState} onBid={(p, a) => act(s => placeBid(s, p, a))} onPass={(p) => act(s => passBid(s, p))} />
       )}
