@@ -125,6 +125,9 @@ export interface Player {
   injured: boolean;
   injuredForRounds: number;
   suspended: boolean;
+
+  // Avatar (DiceBear URL ou outro)
+  imageUrl?: string;
 }
 
 // ─── Team ─────────────────────────────────────────────────────────────────────

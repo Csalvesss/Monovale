@@ -83,10 +83,12 @@ function CompactRow({ player, onClick, selected, showPrice, price, actionLabel, 
     >
       {/* Avatar */}
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-black"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-black overflow-hidden"
         style={{ background: posColor + '22', border: `1.5px solid ${posColor}55`, color: posColor }}
       >
-        {initials}
+        {player.imageUrl
+          ? <img src={player.imageUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : initials}
       </div>
 
       {/* Info */}
@@ -170,7 +172,7 @@ function FullCard({ player, onClick, selected, showPrice, price, actionLabel, on
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black overflow-hidden"
           style={{
             background: isLegendary
               ? 'linear-gradient(135deg, var(--ldb-gold-mid), var(--ldb-gold-deep))'
@@ -179,7 +181,9 @@ function FullCard({ player, onClick, selected, showPrice, price, actionLabel, on
             color: isLegendary ? 'var(--ldb-void)' : posColor,
           }}
         >
-          {initials}
+          {player.imageUrl
+            ? <img src={player.imageUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : initials}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
