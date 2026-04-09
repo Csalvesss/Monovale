@@ -95,12 +95,12 @@ export const BASE_TICKET_REVENUE = 0.5; // $k por fã (metade da capacidade méd
 // ─── Ligas ────────────────────────────────────────────────────────────────────
 
 export const LEAGUES: League[] = [
-  { id: 'brasileirao', name: 'Brasileirão Série A', country: 'Brasil',    flag: '🇧🇷' },
-  { id: 'premier',     name: 'Premier League',      country: 'Inglaterra', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-  { id: 'laliga',      name: 'La Liga',             country: 'Espanha',   flag: '🇪🇸' },
-  { id: 'seriea',      name: 'Serie A',             country: 'Itália',    flag: '🇮🇹' },
-  { id: 'bundesliga',  name: 'Bundesliga',          country: 'Alemanha',  flag: '🇩🇪' },
-  { id: 'ligue1',      name: 'Ligue 1',             country: 'França',    flag: '🇫🇷' },
+  { id: 'brasileirao', name: 'Liga Auriverde',  country: 'Auriverde', flag: '🌿' },
+  { id: 'premier',     name: 'Liga Albion',     country: 'Albion',    flag: '🦁' },
+  { id: 'laliga',      name: 'Liga Solaris',    country: 'Solaris',   flag: '☀️' },
+  { id: 'seriea',      name: 'Calcio Azzurra',  country: 'Azzurra',   flag: '⛵' },
+  { id: 'bundesliga',  name: 'Liga Nordenia',   country: 'Nordenia',  flag: '🏔️' },
+  { id: 'ligue1',      name: 'Ligue Atlantis',  country: 'Atlantis',  flag: '🌊' },
 ];
 
 // ─── Social ───────────────────────────────────────────────────────────────────
