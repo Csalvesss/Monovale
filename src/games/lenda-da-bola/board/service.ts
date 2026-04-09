@@ -186,7 +186,7 @@ export async function endTurn(
       return;
     }
 
-    let nextIndex = (room.currentTurnIndex + 1) % room.turnOrder.length;
+    const nextIndex = (room.currentTurnIndex + 1) % room.turnOrder.length;
     let newRound = room.round;
 
     // Full lap completed
@@ -199,21 +199,9 @@ export async function endTurn(
     let newStatus: RoomDoc['status'] = room.status;
 
     if (newRound > room.maxRounds) {
-      // Game over — highest points wins
       const sorted = [...room.players].sort((a, b) => b.points - a.points);
       winner = sorted[0].uid;
       newStatus = 'finished';
-    }
-
-    // Skip next player if they have skipsNext = true
-    let skipCount = 0;
-    while (skipCount < room.players.length) {
-      const nextUid = room.turnOrder[nextIndex];
-      const nextPlayer = room.players.find(p => p.uid === nextUid);
-      if (!nextPlayer?.skipsNext) break;
-      // Clear skip flag
-      nextIndex = (nextIndex + 1) % room.turnOrder.length;
-      skipCount++;
     }
 
     const nextPlayer = room.players.find(p => p.uid === room.turnOrder[nextIndex]);
@@ -224,19 +212,63 @@ export async function endTurn(
         : `Vez de ${nextPlayer?.name ?? ''}`,
     ];
 
-    // Clear skipsNext for the player who just used it
-    const clearedPlayers = room.players.map(p => {
-      const nextUid = room.turnOrder[nextIndex];
-      const prevUid = currentUid;
-      // Clear skip for players whose skip was consumed
-      if (p.uid !== prevUid && room.players.find(pp => pp.uid === p.uid)?.skipsNext) {
-        return { ...p, skipsNext: false };
-      }
-      return p;
+    tx.update(ref, {
+      currentTurnIndex: nextIndex,
+      round: newRound,
+      phase: 'roll',
+      lastAction: null,
+      lastDice: null,
+      log: newLog,
+      winner,
+      status: newStatus,
     });
+  });
+}
+
+// ─── Skip turn (rest space — player explicitly skips their own turn) ──────────
+
+export async function skipTurn(
+  code: string,
+  uid: string,
+): Promise<void> {
+  await runTransaction(db, async (tx) => {
+    const ref = coll(code);
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const room = snap.data() as RoomDoc;
+
+    const currentUid = room.turnOrder[room.currentTurnIndex];
+    if (currentUid !== uid) return;
+
+    // Clear skipsNext for current player
+    const updatedPlayers = room.players.map(p =>
+      p.uid === uid ? { ...p, skipsNext: false } : p
+    );
+
+    const nextIndex = (room.currentTurnIndex + 1) % room.turnOrder.length;
+    let newRound = room.round;
+    if (nextIndex === 0) newRound = room.round + 1;
+
+    let winner: string | null = null;
+    let newStatus: RoomDoc['status'] = room.status;
+    if (newRound > room.maxRounds) {
+      const sorted = [...room.players].sort((a, b) => b.points - a.points);
+      winner = sorted[0].uid;
+      newStatus = 'finished';
+    }
+
+    const skippedPlayer = room.players.find(p => p.uid === uid);
+    const nextPlayer = room.players.find(p => p.uid === room.turnOrder[nextIndex]);
+    const newLog = [
+      ...room.log.slice(-19),
+      `${skippedPlayer?.name ?? 'Jogador'} perdeu o turno 😴`,
+      winner
+        ? `🏆 Fim de jogo! Vencedor: ${room.players.find(p => p.uid === winner)?.name}`
+        : `Vez de ${nextPlayer?.name ?? ''}`,
+    ];
 
     tx.update(ref, {
-      players: clearedPlayers,
+      players: updatedPlayers,
       currentTurnIndex: nextIndex,
       round: newRound,
       phase: 'roll',
