@@ -96,7 +96,8 @@ export default function PlayerCard({ player, size = 'md', onClick, selected }: P
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'contain',
+            objectFit: 'cover',
+            objectPosition: 'center top',
             transition: 'transform 0.3s ease',
             display: 'block',
           }}
@@ -108,7 +109,7 @@ export default function PlayerCard({ player, size = 'md', onClick, selected }: P
           }}
           onError={e => {
             (e.target as HTMLImageElement).src =
-              `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(player.name)}&backgroundType=solid&backgroundColor=0f172a`;
+              `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(player.name)}&gender[]=male&backgroundType=solid&backgroundColor=0f172a&scale=120`;
           }}
         />
         {/* Bottom fade so name section blends cleanly */}

@@ -4,6 +4,39 @@ import { legendaryAvatarUrl, genericAvatarUrl } from '../utils/playerArt';
 const positions: Position[] = ['GK','CB','LB','RB','CDM','CM','CAM','LW','RW','CF','ST'];
 const nationalities = ['Brazil','Argentina','France','Germany','Spain','Italy','Portugal','England','Netherlands','Belgium','Uruguay','Croatia'];
 
+// 84 real-sounding male player names, ordered to match nationality rotation (i % 12)
+// Each block of 12 gives one name per nationality; repeated 7 times.
+const GENERIC_NAMES: string[] = [
+  // round 1
+  'Carlos Silva',       'Pablo García',        'Antoine Moreau',      'Lukas Bauer',
+  'Andrés Torres',      'Marco Ricci',          'João Sousa',          'James Holt',
+  'Lars de Boer',       'Kevin Claes',          'Federico Méndez',     'Tomislav Kovač',
+  // round 2
+  'Diego Santos',       'Alejandro López',      'Pierre Dupont',       'Maximilian Hoffmann',
+  'Sergio Vidal',       'Luca Bianchi',         'Rui Figueiredo',      'Ryan Fletcher',
+  'Sven Bakker',        'Tom Maes',             'Santiago Pérez',      'Josip Marić',
+  // round 3
+  'Rafael Costa',       'Gonzalo Herrera',      'Julien Lefèvre',      'Jonas Schäfer',
+  'Javier Ruiz',        'Andrea Greco',         'Tiago Marques',       'Oliver Booth',
+  'Joost van der Berg', 'Sander Leclercq',      'Rodrigo Benítez',     'Ivan Blažević',
+  // round 4
+  'Bruno Alves',        'Ezequiel Vera',        'Thomas Rousseau',     'Tobias Wolf',
+  'Miguel Jiménez',     'Davide Esposito',      'André Gonçalves',     'Thomas Sharp',
+  'Bas Smits',          'Bram Peeters',         'Leonel Suárez',       'Nikola Jurić',
+  // round 5
+  'Lucas Ferreira',     'Nicolás Flores',       'Nicolas Bernard',     'Florian Zimmermann',
+  'Álvaro Molina',      'Matteo Bruno',         'Diogo Morais',        'Samuel Ward',
+  'Tim Willems',        'Niels Jacobs',         'Álvaro Cabrera',      'Luka Šarić',
+  // round 6
+  'Matheus Ribeiro',    'Matías Romero',        'Sébastien Petit',     'Leon Schmidt',
+  'Raúl Iglesias',      'Giovanni Caruso',      'Paulo Vieira',        'Harry Bennett',
+  'Frank Janssen',      'Ruben Vermeersch',     'Damián Pereyra',      'Mario Vukić',
+  // round 7
+  'Thiago Cavalcanti',  'Maximiliano Cruz',     'Christophe Laurent',  'Moritz Wagner',
+  'Marcos Castro',      'Francesco De Luca',    'Nuno Correia',        'Jack Morrison',
+  'Daan Visser',        'Wouter Goossens',      'Franco Giménez',      'Ante Lovrić',
+];
+
 // Deterministic pseudo-random for consistent player generation
 function seededRand(seed: number) {
   let s = seed;
@@ -22,10 +55,11 @@ function generateGenericPlayers(count: number): Player[] {
   return Array.from({ length: count }, (_, i) => {
     const stars = getInt(rand, 2, 4);
     const base = stars * 15 + 20;
+    const playerName = GENERIC_NAMES[i] ?? `Jogador ${i + 1}`;
     return {
       id: `generic-${i}`,
-      name: `Jogador ${i + 1}`,
-      fullName: `Generic Player ${i + 1}`,
+      name: playerName,
+      fullName: playerName,
       photo: genericAvatarUrl(`generic-${i}`),
       age: getInt(rand, 18, 35),
       nationality: nationalities[i % nationalities.length],
