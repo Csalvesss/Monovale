@@ -1,29 +1,15 @@
 // ─── Space Types ────────────────────────────────────────────────────────────
 
 export type SpaceType =
-  | 'property'
-  | 'railroad'
-  | 'utility'
-  | 'go'
-  | 'jail'
-  | 'free_parking'
-  | 'go_to_jail'
-  | 'chance'
-  | 'community_chest'
-  | 'income_tax'
-  | 'luxury_tax';
+  | 'property' | 'railroad' | 'utility'
+  | 'go' | 'jail' | 'free_parking' | 'go_to_jail'
+  | 'chance' | 'community_chest'
+  | 'income_tax' | 'luxury_tax';
 
 export type PropertyGroup =
-  | 'purple'
-  | 'lightblue'
-  | 'pink'
-  | 'orange'
-  | 'red'
-  | 'yellow'
-  | 'green'
-  | 'darkblue'
-  | 'railroad'
-  | 'utility';
+  | 'purple' | 'lightblue' | 'pink' | 'orange'
+  | 'red' | 'yellow' | 'green' | 'darkblue'
+  | 'railroad' | 'utility';
 
 // ─── Static Board Data ───────────────────────────────────────────────────────
 
@@ -33,10 +19,9 @@ export interface BoardSpace {
   type: SpaceType;
   group?: PropertyGroup;
   price?: number;
-  // rent[0]=no house, [1]=1h, [2]=2h, [3]=3h, [4]=4h, [5]=hotel
   rent?: number[];
   housePrice?: number;
-  taxAmount?: number; // for income_tax / luxury_tax
+  taxAmount?: number;
   icon?: string;
 }
 
@@ -45,7 +30,7 @@ export interface BoardSpace {
 export interface PropertyState {
   position: number;
   ownerId: string | null;
-  houses: number; // 0-4
+  houses: number;
   hotel: boolean;
   mortgaged: boolean;
 }
@@ -56,14 +41,15 @@ export interface Player {
   id: string;
   name: string;
   pawnId: string;
+  uid: string | null;       // Firebase uid (null = guest)
   position: number;
   money: number;
-  jailTurns: number; // 0 = not in jail; 1-3 = turns spent in jail
+  jailTurns: number;
   bankrupt: boolean;
   getOutOfJailCards: number;
 }
 
-// ─── Pawn Definition ─────────────────────────────────────────────────────────
+// ─── Pawn ────────────────────────────────────────────────────────────────────
 
 export interface Pawn {
   id: string;
@@ -94,31 +80,31 @@ export interface Card {
   action: CardAction;
 }
 
-// ─── Auction State ───────────────────────────────────────────────────────────
+// ─── Auction ─────────────────────────────────────────────────────────────────
 
 export interface AuctionState {
   propertyPosition: number;
   highestBid: number;
   highestBidderIndex: number | null;
-  activeBidderIndex: number; // index into activePlayers
+  activeBidderIndex: number;
   passedPlayerIds: string[];
-  activePlayerIds: string[]; // players still bidding (in order)
-  startingPlayerIndex: number; // original turn player
+  activePlayerIds: string[];
+  startingPlayerIndex: number;
 }
 
-// ─── Trade State ─────────────────────────────────────────────────────────────
+// ─── Trade ───────────────────────────────────────────────────────────────────
 
 export interface TradeState {
   proposingPlayerIndex: number;
   targetPlayerIndex: number | null;
   offerMoney: number;
-  offerPositions: number[];     // property positions offered
+  offerPositions: number[];
   requestMoney: number;
-  requestPositions: number[];   // property positions requested
+  requestPositions: number[];
   status: 'selecting_target' | 'configuring' | 'awaiting_response';
 }
 
-// ─── Log Entry ───────────────────────────────────────────────────────────────
+// ─── Log ─────────────────────────────────────────────────────────────────────
 
 export interface LogEntry {
   id: string;
@@ -132,12 +118,12 @@ export interface LogEntry {
 export type GamePhase = 'lobby' | 'playing' | 'ended';
 
 export type TurnPhase =
-  | 'pre_roll'         // waiting for player to roll
-  | 'buy_decision'     // player can buy or auction the landed property
-  | 'card_drawn'       // a card was drawn, showing its text
-  | 'auction'          // auction in progress
-  | 'trade'            // trade in progress
-  | 'turn_complete';   // player finished, ready for next
+  | 'pre_roll'
+  | 'buy_decision'
+  | 'card_drawn'
+  | 'auction'
+  | 'trade'
+  | 'turn_complete';
 
 export interface GameState {
   phase: GamePhase;
@@ -145,17 +131,18 @@ export interface GameState {
   players: Player[];
   currentPlayerIndex: number;
   spaces: BoardSpace[];
-  properties: Record<number, PropertyState>; // keyed by position
+  properties: Record<number, PropertyState>;
   chanceCards: Card[];
   communityCards: Card[];
   dice: [number, number] | null;
   doubleCount: number;
-  pendingPropertyPosition: number | null; // property being decided on
+  pendingPropertyPosition: number | null;
   pendingCard: Card | null;
   auction: AuctionState | null;
   trade: TradeState | null;
   log: LogEntry[];
   winner: string | null;
+  gameId: string | null;   // Firestore doc id
 }
 
 // ─── Lobby Config ────────────────────────────────────────────────────────────
@@ -163,10 +150,43 @@ export interface GameState {
 export interface LobbyPlayerConfig {
   name: string;
   pawnId: string;
+  uid: string | null;     // Firebase uid
 }
 
 export interface LobbyConfig {
   playerCount: number;
   players: LobbyPlayerConfig[];
   randomOrder: boolean;
+}
+
+// ─── Firebase user profile ───────────────────────────────────────────────────
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  pawnId: string;
+  stats: {
+    gamesPlayed: number;
+    gamesWon: number;
+    totalNetWorth: number;
+    bankruptcies: number;
+  };
+  createdAt: number;
+}
+
+// ─── Game result (saved to Firestore on game end) ────────────────────────────
+
+export interface GameResult {
+  gameId: string;
+  playerIds: (string | null)[];
+  rankings: {
+    rank: number;
+    uid: string | null;
+    displayName: string;
+    netWorth: number;
+    winner: boolean;
+    bankrupt: boolean;
+  }[];
+  completedAt: number;
 }

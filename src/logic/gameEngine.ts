@@ -39,7 +39,7 @@ function getOwnedPositions(player: Player, properties: Record<number, PropertySt
 
 // ─── Initialise ──────────────────────────────────────────────────────────────
 
-export function initGame(config: LobbyConfig): GameState {
+export function initGame(config: LobbyConfig, gameId: string | null = null): GameState {
   const playerList = [...config.players];
   if (config.randomOrder) {
     for (let i = playerList.length - 1; i > 0; i--) {
@@ -52,6 +52,7 @@ export function initGame(config: LobbyConfig): GameState {
     id: `player_${i}`,
     name: p.name,
     pawnId: p.pawnId,
+    uid: p.uid ?? null,
     position: 0,
     money: 1500,
     jailTurns: 0,
@@ -94,6 +95,7 @@ export function initGame(config: LobbyConfig): GameState {
     trade: null,
     log: [makeLog('🎲 Partida iniciada! Bem-vindos ao Monovale!', 'info')],
     winner: null,
+    gameId,
   };
 }
 

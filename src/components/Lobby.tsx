@@ -1,17 +1,30 @@
 import React, { useState } from 'react';
 import { PAWNS } from '../data/pawns';
+import { useAuth } from '../contexts/AuthContext';
 import type { LobbyConfig, LobbyPlayerConfig } from '../types';
 
 interface Props {
   onStart: (config: LobbyConfig) => void;
+  onBack: () => void;
 }
 
-export default function Lobby({ onStart }: Props) {
+export default function Lobby({ onStart, onBack }: Props) {
+  const { profile, allUsers } = useAuth();
+
+  const makeDefaultPlayer = (i: number): LobbyPlayerConfig => {
+    // Slot 0 pre-filled with logged-in user
+    if (i === 0 && profile) {
+      return { name: profile.displayName, pawnId: profile.pawnId, uid: profile.uid };
+    }
+    return { name: '', pawnId: PAWNS[i].id, uid: null };
+  };
+
   const [playerCount, setPlayerCount] = useState(2);
   const [randomOrder, setRandomOrder] = useState(false);
   const [players, setPlayers] = useState<LobbyPlayerConfig[]>(
-    Array.from({ length: 8 }, (_, i) => ({ name: '', pawnId: PAWNS[i].id }))
+    Array.from({ length: 8 }, (_, i) => makeDefaultPlayer(i))
   );
+  const [accountSearch, setAccountSearch] = useState<Record<number, string>>({});
 
   const activePlayers = players.slice(0, playerCount);
   const usedPawns = activePlayers.map(p => p.pawnId);
@@ -40,18 +53,39 @@ export default function Lobby({ onStart }: Props) {
     });
   }
 
+  function linkAccount(slotIndex: number, uid: string | null) {
+    if (!uid) {
+      // Unlink — restore to guest
+      updatePlayer(slotIndex, { uid: null });
+      setAccountSearch(prev => ({ ...prev, [slotIndex]: '' }));
+      return;
+    }
+    const user = allUsers.find(u => u.uid === uid);
+    if (!user) return;
+    updatePlayer(slotIndex, { uid: user.uid, name: user.displayName, pawnId: user.pawnId });
+    setAccountSearch(prev => ({ ...prev, [slotIndex]: '' }));
+  }
+
   function handleStart() {
     if (!canStart) return;
-    onStart({ playerCount, players: activePlayers.map(p => ({ name: p.name.trim(), pawnId: p.pawnId })), randomOrder });
+    onStart({
+      playerCount,
+      players: activePlayers.map(p => ({ name: p.name.trim(), pawnId: p.pawnId, uid: p.uid ?? null })),
+      randomOrder,
+    });
   }
 
   return (
     <div style={S.page}>
       {/* ── Header ── */}
       <div style={S.header}>
-        <div style={S.headerInner}>
-          <span style={S.headerEmoji}>🗺️</span>
-          <span style={S.headerTitle}>MONOVALE</span>
+        <div style={S.headerTop}>
+          <button onClick={onBack} style={S.backBtn}>← Voltar</button>
+          <div style={S.headerInner}>
+            <span style={S.headerEmoji}>🗺️</span>
+            <span style={S.headerTitle}>MONOVALE</span>
+          </div>
+          <div style={{ width: 80 }} />
         </div>
         <p style={S.headerSub}>Monopoly do Vale do Paraíba</p>
         <p style={S.headerBanker}>🏦 Banco do <strong>Sr. Marinho</strong> — Onde cada terreno conta!</p>
@@ -84,43 +118,92 @@ export default function Lobby({ onStart }: Props) {
               {Array.from({ length: playerCount }, (_, i) => {
                 const p = players[i];
                 const sel = PAWNS.find(pw => pw.id === p.pawnId) ?? PAWNS[i];
+                const search = accountSearch[i] ?? '';
+                const searchResults = search.length >= 2
+                  ? allUsers.filter(u =>
+                      u.displayName.toLowerCase().includes(search.toLowerCase()) ||
+                      u.email.toLowerCase().includes(search.toLowerCase())
+                    ).slice(0, 5)
+                  : [];
+
                 return (
                   <div key={i} style={S.playerRow}>
                     <div style={S.playerNumBadge}>{i + 1}</div>
 
-                    <input
-                      type="text"
-                      placeholder={`Jogador ${i + 1}`}
-                      value={p.name}
-                      maxLength={20}
-                      onChange={e => updatePlayer(i, { name: e.target.value })}
-                      style={S.nameInput}
-                    />
+                    <div style={S.playerFields}>
+                      {/* Name + account link row */}
+                      <div style={S.nameAccountRow}>
+                        <input
+                          type="text"
+                          placeholder={`Jogador ${i + 1}`}
+                          value={p.name}
+                          maxLength={20}
+                          onChange={e => updatePlayer(i, { name: e.target.value, uid: null })}
+                          style={S.nameInput}
+                        />
 
-                    <div style={S.pawnRow}>
-                      {PAWNS.map(pawn => {
-                        const takenByOther = usedPawns.includes(pawn.id) && pawn.id !== p.pawnId;
-                        const isSelected = p.pawnId === pawn.id;
-                        return (
-                          <button
-                            key={pawn.id}
-                            title={pawn.name}
-                            disabled={takenByOther}
-                            onClick={() => updatePlayer(i, { pawnId: pawn.id })}
-                            style={{
-                              ...S.pawnBtn,
-                              ...(isSelected ? { ...S.pawnBtnActive, background: pawn.color } : {}),
-                              ...(takenByOther ? S.pawnBtnDisabled : {}),
-                            }}
-                          >
-                            {pawn.emoji}
-                          </button>
-                        );
-                      })}
-                    </div>
+                        {/* Account link badge / search */}
+                        {p.uid ? (
+                          <div style={S.linkedBadge}>
+                            <span>🔗 {allUsers.find(u => u.uid === p.uid)?.email ?? 'Conta'}</span>
+                            <button
+                              style={S.unlinkBtn}
+                              onClick={() => linkAccount(i, null)}
+                              title="Desvincular conta"
+                            >✕</button>
+                          </div>
+                        ) : (
+                          <div style={S.accountSearchWrapper}>
+                            <input
+                              type="text"
+                              placeholder="🔍 Vincular conta..."
+                              value={search}
+                              onChange={e => setAccountSearch(prev => ({ ...prev, [i]: e.target.value }))}
+                              style={S.accountSearchInput}
+                            />
+                            {searchResults.length > 0 && (
+                              <div style={S.dropdown}>
+                                {searchResults.map(u => (
+                                  <button
+                                    key={u.uid}
+                                    style={S.dropdownItem}
+                                    onClick={() => linkAccount(i, u.uid)}
+                                  >
+                                    <span style={S.dropdownName}>{u.displayName}</span>
+                                    <span style={S.dropdownEmail}>{u.email}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                    <div style={{ ...S.pawnLabel, color: sel.color }}>
-                      {sel.emoji} {sel.name}
+                      {/* Pawn row */}
+                      <div style={S.pawnRow}>
+                        {PAWNS.map(pawn => {
+                          const takenByOther = usedPawns.includes(pawn.id) && pawn.id !== p.pawnId;
+                          const isSelected = p.pawnId === pawn.id;
+                          return (
+                            <button
+                              key={pawn.id}
+                              title={pawn.name}
+                              disabled={takenByOther}
+                              onClick={() => updatePlayer(i, { pawnId: pawn.id })}
+                              style={{
+                                ...S.pawnBtn,
+                                ...(isSelected ? { ...S.pawnBtnActive, background: pawn.color } : {}),
+                                ...(takenByOther ? S.pawnBtnDisabled : {}),
+                              }}
+                            >
+                              {pawn.emoji}
+                            </button>
+                          );
+                        })}
+                        <span style={{ ...S.pawnLabel, color: sel.color }}>
+                          {sel.emoji} {sel.name}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -176,12 +259,30 @@ const S: Record<string, React.CSSProperties> = {
   header: {
     width: '100%',
     background: 'var(--gold-grad)',
-    padding: '28px 24px 24px',
+    padding: '20px 24px 20px',
     textAlign: 'center',
     boxShadow: '0 4px 0 var(--gold-dark), 0 6px 20px rgba(0,0,0,0.15)',
     position: 'sticky',
     top: 0,
     zIndex: 10,
+  },
+  headerTop: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  backBtn: {
+    padding: '6px 14px',
+    background: 'rgba(0,0,0,0.15)',
+    border: 'none',
+    borderRadius: 99,
+    fontFamily: 'var(--font-body)',
+    fontWeight: 800,
+    fontSize: 13,
+    color: 'var(--text)',
+    cursor: 'pointer',
+    width: 80,
   },
   headerInner: {
     display: 'flex',
@@ -189,10 +290,10 @@ const S: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     gap: 12,
   },
-  headerEmoji: { fontSize: 52, lineHeight: 1 },
+  headerEmoji: { fontSize: 44, lineHeight: 1 },
   headerTitle: {
     fontFamily: 'var(--font-title)',
-    fontSize: 56,
+    fontSize: 48,
     color: 'var(--text)',
     letterSpacing: '2px',
     textShadow: '2px 2px 0 rgba(255,255,255,0.4), -1px -1px 0 rgba(0,0,0,0.1)',
@@ -200,14 +301,14 @@ const S: Record<string, React.CSSProperties> = {
   },
   headerSub: {
     fontFamily: 'var(--font-body)',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 700,
     color: 'var(--text)',
     opacity: 0.75,
-    margin: '6px 0 4px',
+    margin: '4px 0 2px',
   },
   headerBanker: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'var(--text)',
     opacity: 0.65,
     margin: 0,
@@ -231,7 +332,7 @@ const S: Record<string, React.CSSProperties> = {
     boxShadow: 'var(--shadow-lg)',
     padding: '28px 32px',
     width: '100%',
-    maxWidth: 700,
+    maxWidth: 760,
   },
 
   section: { marginBottom: 24 },
@@ -242,9 +343,6 @@ const S: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
     letterSpacing: '1px',
     marginBottom: 12,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
   },
 
   countRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
@@ -274,9 +372,8 @@ const S: Record<string, React.CSSProperties> = {
 
   playerRow: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
-    flexWrap: 'wrap',
     padding: '12px 14px',
     background: 'var(--card-alt)',
     borderRadius: 'var(--radius-md)',
@@ -297,6 +394,22 @@ const S: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
     flexShrink: 0,
     boxShadow: '0 2px 0 var(--gold-dark)',
+    marginTop: 4,
+  },
+
+  playerFields: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    minWidth: 0,
+  },
+
+  nameAccountRow: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
 
   nameInput: {
@@ -311,10 +424,78 @@ const S: Record<string, React.CSSProperties> = {
     background: 'var(--white)',
     color: 'var(--text)',
     outline: 'none',
-    transition: 'border-color 0.15s',
   },
 
-  pawnRow: { display: 'flex', gap: 4, flexWrap: 'wrap' },
+  accountSearchWrapper: {
+    position: 'relative',
+    flex: '1 1 160px',
+    minWidth: 140,
+  },
+  accountSearchInput: {
+    width: '100%',
+    padding: '9px 14px',
+    borderRadius: 'var(--radius)',
+    border: '2px solid var(--border)',
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: 'var(--font-body)',
+    background: 'var(--white)',
+    color: 'var(--text)',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '110%',
+    left: 0,
+    right: 0,
+    background: 'var(--card)',
+    border: '2px solid var(--border-gold)',
+    borderRadius: 'var(--radius)',
+    boxShadow: 'var(--shadow-lg)',
+    zIndex: 200,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    width: '100%',
+    padding: '10px 14px',
+    background: 'none',
+    border: 'none',
+    borderBottom: '1px solid var(--border)',
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    textAlign: 'left',
+    fontFamily: 'var(--font-body)',
+  },
+  dropdownName: { fontSize: 14, fontWeight: 700, color: 'var(--text)' },
+  dropdownEmail: { fontSize: 11, color: 'var(--text-mid)', fontWeight: 600 },
+
+  linkedBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    background: 'var(--green)',
+    color: '#fff',
+    borderRadius: 99,
+    padding: '5px 12px',
+    fontSize: 12,
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  unlinkBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: 900,
+    fontSize: 14,
+    padding: 0,
+    lineHeight: 1,
+  },
+
+  pawnRow: { display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' },
 
   pawnBtn: {
     width: 36,
@@ -346,8 +527,8 @@ const S: Record<string, React.CSSProperties> = {
   pawnLabel: {
     fontSize: 12,
     fontWeight: 800,
-    flex: '1 1 100px',
     whiteSpace: 'nowrap',
+    marginLeft: 4,
   },
 
   toggleRow: {
@@ -378,11 +559,7 @@ const S: Record<string, React.CSSProperties> = {
     borderColor: 'var(--green-dark)',
     color: '#fff',
   },
-  toggleLabel: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: 'var(--text)',
-  },
+  toggleLabel: { fontSize: 15, fontWeight: 700, color: 'var(--text)' },
 
   alert: {
     background: '#fff3cd',
