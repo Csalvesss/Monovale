@@ -120,12 +120,11 @@ export function simulateMatch(params: SimulateMatchParams): SimulateMatchReturn 
     phases.push({ round: i + 1, attackerId: 'my-team', defenderPositions: opDefPositions, attackerNumber: myAttackNum, isGoal: myGoal });
     if (myGoal) {
       myGoals++;
-      // Pick scorer
       const attackers = mySquad.filter(p => ['ST', 'CF', 'LW', 'RW', 'CAM'].includes(p.position) && !p.injured);
       const scorer = attackers[Math.floor(rng() * Math.max(attackers.length, 1))];
-      narrative.push(`⚽ GOL! ${scorer?.name ?? 'Jogador desconhecido'} marca para o seu time! (${myGoals}x${opponentGoals})`);
+      narrative.push(`GOL! ${scorer?.name ?? 'Jogador'} marca para o seu time! placar ${myGoals}x${opponentGoals}`);
     } else {
-      narrative.push(`🧤 Defesa do adversário! Posição ${myAttackNum} estava bloqueada.`);
+      narrative.push(`Defesa do adversário bloqueou o ataque na posição ${myAttackNum}.`);
     }
 
     // OPPONENT ATTACK
@@ -137,9 +136,9 @@ export function simulateMatch(params: SimulateMatchParams): SimulateMatchReturn 
     phases.push({ round: i + 1, attackerId: 'opponent', defenderPositions: myDefPositions, attackerNumber: opAttackNum, isGoal: opponentGoal && oppSuccess });
     if (opponentGoal && oppSuccess) {
       opponentGoals++;
-      narrative.push(`😰 Gol do adversário! (${myGoals}x${opponentGoals})`);
+      narrative.push(`Gol do adversário! sofreu o gol placar ${myGoals}x${opponentGoals}`);
     } else {
-      narrative.push(`🛡️ Sua defesa bloqueou o ataque adversário!`);
+      narrative.push(`Sua defesa bloqueou o ataque adversário!`);
     }
   }
 
@@ -162,7 +161,7 @@ export function simulateMatch(params: SimulateMatchParams): SimulateMatchReturn 
   const xpEarned: Record<string, number> = {};
   mySquad.slice(0, 11).forEach(p => {
     if (p.injured) return;
-    let xp = 100; // play
+    let xp = 100;
     if (iWon) xp += 30;
     if (['ST', 'CF', 'LW', 'RW', 'CAM'].includes(p.position) && myGoals > 0 && rng() < 0.4) xp += 50;
     if (['GK', 'CB', 'LB', 'RB'].includes(p.position) && opponentGoals === 0) xp += 75;
@@ -171,14 +170,14 @@ export function simulateMatch(params: SimulateMatchParams): SimulateMatchReturn 
   });
 
   if (iWon) {
-    narrative.push(`🏆 VITÓRIA! ${myGoals}x${opponentGoals}. Patrocínio: +$${sponsorEarned}k`);
+    narrative.push(`VITORIA! Resultado final ${myGoals}x${opponentGoals}. Patrocínio: +$${sponsorEarned}k`);
   } else if (isDraw) {
-    narrative.push(`🤝 EMPATE! ${myGoals}x${opponentGoals}. Patrocínio: +$${sponsorEarned}k`);
+    narrative.push(`EMPATE! Resultado final ${myGoals}x${opponentGoals}. Patrocínio: +$${sponsorEarned}k`);
   } else {
-    narrative.push(`😢 DERROTA! ${myGoals}x${opponentGoals}. Patrocínio: +$${sponsorLossFee}k`);
+    narrative.push(`DERROTA. Resultado final ${myGoals}x${opponentGoals}. Patrocínio: +$${sponsorLossFee}k`);
   }
   if (isHome && ticketRevenue > 0) {
-    narrative.push(`🎫 Bilheteria: +$${ticketRevenue}k (${attendance.toLocaleString('pt-BR')} torcedores)`);
+    narrative.push(`Bilheteria: +$${ticketRevenue}k com ${attendance.toLocaleString('pt-BR')} torcedores`);
   }
 
   return {

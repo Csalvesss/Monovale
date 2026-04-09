@@ -6,7 +6,7 @@ import { getAvailablePlayers } from '../../data/players';
 import TeamBadge from '../ui/TeamBadge';
 import { cn } from '../../../../lib/utils';
 import type { LeagueId, Team, GameSave, Stadium, PlayerProfile } from '../../types';
-import { Users, User, ChevronLeft, Trophy, DollarSign, ArrowRight, Check } from 'lucide-react';
+import { Users, User, Globe, ChevronLeft, Trophy, DollarSign, ArrowRight, Check } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -126,7 +126,7 @@ type Step = 'mode' | 'p1' | 'p2' | 'confirm';
 interface Props { onBack: () => void; }
 
 export default function TeamSelectionScreen({ onBack }: Props) {
-  const { dispatch } = useMB();
+  const { dispatch, setScreen } = useMB();
 
   const [mode, setMode] = useState<Mode | null>(null);
   const [step, setStep] = useState<Step>('mode');
@@ -158,6 +158,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
       legendaryCardsOwned: [], legendaryChanceBonus: 0,
       pendingOffers: [], seasonHistory: [], totalRoundsPlayed: 0,
       mode: 'solo', currentTurn: 1, playerProfiles: null,
+      randomSeed: Math.floor(Math.random() * 1_000_000),
     };
     dispatch({ type: 'START_NEW_GAME', save });
   }
@@ -218,6 +219,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
       mode: 'local-multi',
       currentTurn: 1,
       playerProfiles: [p1Profile, p2Profile],
+      randomSeed: Math.floor(Math.random() * 1_000_000),
     };
     dispatch({ type: 'START_NEW_GAME', save });
   }
@@ -291,6 +293,20 @@ export default function TeamSelectionScreen({ onBack }: Props) {
               <div>
                 <p className="text-[15px] font-black text-slate-100">Jogar com Amigo</p>
                 <p className="text-xs text-slate-500 mt-0.5">2 jogadores, mesmo dispositivo</p>
+              </div>
+              <ArrowRight size={16} className="ml-auto text-slate-600" />
+            </button>
+
+            <button
+              onClick={() => setScreen('online-lobby')}
+              className="flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800 p-5 hover:border-emerald-500/50 hover:bg-emerald-600/5 transition-all text-left"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600/20 border border-emerald-600/30">
+                <Globe size={22} className="text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[15px] font-black text-slate-100">Jogar Online</p>
+                <p className="text-xs text-slate-500 mt-0.5">Liga com amigos em outros dispositivos</p>
               </div>
               <ArrowRight size={16} className="ml-auto text-slate-600" />
             </button>
