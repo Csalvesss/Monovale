@@ -31,7 +31,7 @@ export default function LoginScreen() {
       if (msg.includes('email-already-in-use')) setError('E-mail já cadastrado. Faça login.');
       else if (msg.includes('wrong-password') || msg.includes('invalid-credential')) setError('E-mail ou senha incorretos.');
       else if (msg.includes('user-not-found')) setError('Usuário não encontrado.');
-      else if (msg.includes('weak-password')) setError('Senha fraca — mínimo 6 caracteres.');
+      else if (msg.includes('weak-password')) setError('Senha fraca, mínimo 6 caracteres.');
       else setError(msg);
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export default function LoginScreen() {
           <h1 style={S.brandTitle}>Sua plataforma de jogos do Vale</h1>
           <p style={S.brandSub}>Jogue com amigos, crie salas online e acompanhe suas estatísticas. Uma experiência feita para o Vale do Paraíba.</p>
           <div style={S.brandFeatures}>
-            {['Monovale — Monopoly do Vale', 'Salas online multiplayer', 'Estatísticas e rankings', 'Mais jogos em breve'].map(f => (
+            {['Monovale: Monopoly do Vale', 'Salas online multiplayer', 'Estatísticas e rankings', 'Mais jogos em breve'].map(f => (
               <div key={f} style={S.feature}>
                 <span style={S.featureDot} />
                 {f}
@@ -201,7 +201,7 @@ const S: Record<string, React.CSSProperties> = {
   brand: {
     display: 'none' as const,
     flex: '0 0 420px',
-    background: 'linear-gradient(160deg, #065F46 0%, #047857 50%, #059669 100%)',
+    background: 'linear-gradient(160deg, #2D0A15 0%, #6B1230 50%, #B5294E 100%)',
     padding: '48px 40px',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -234,7 +234,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   brandFeatures: { display: 'flex', flexDirection: 'column', gap: 10 },
   feature: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' },
-  featureDot: { width: 8, height: 8, borderRadius: '50%', background: '#34D399', flexShrink: 0 },
+  featureDot: { width: 8, height: 8, borderRadius: '50%', background: '#F09BB5', flexShrink: 0 },
 
   /* Form right panel */
   formPanel: {

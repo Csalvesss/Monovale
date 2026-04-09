@@ -397,7 +397,7 @@ export function resolveCard(state: GameState): GameState {
           s = addLog(s, `🔨 ${player.name} pagou R$${total} em reparos.`, 'info');
         }
       } else {
-        s = addLog(s, `🔨 ${player.name} não tem construções — sem custo de reparo.`, 'info');
+        s = addLog(s, `🔨 ${player.name} não tem construções, sem custo de reparo.`, 'info');
       }
       break;
     }

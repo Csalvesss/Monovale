@@ -78,7 +78,7 @@ const SECTIONS = [
   {
     color: '#059669',
     title: '🎴 Evento do Vale',
-    text: 'No início de cada nova rodada, uma carta de Evento do Vale é revelada. São 100 eventos temáticos da região: enchentes, greves, tech booms, assaltos, carnaval e mais. O sistema lê o estado do jogo — eventos de propriedade só aparecem se alguém tiver imóveis; eventos de cidade específica só saem se aquela cidade tiver dono. Efeitos especiais: "Carnaval" dobra o próximo aluguel cobrado; "Greve Geral" cancela todos os aluguéis da rodada.',
+    text: 'No início de cada nova rodada, uma carta de Evento do Vale é revelada. São 100 eventos temáticos da região: enchentes, greves, tech booms, assaltos, carnaval e mais. O sistema lê o estado do jogo: eventos de propriedade só aparecem se alguém tiver imóveis; eventos de cidade específica só saem se aquela cidade tiver dono. Efeitos especiais: "Carnaval" dobra o próximo aluguel cobrado; "Greve Geral" cancela todos os aluguéis da rodada.',
   },
 ];
 
@@ -94,7 +94,7 @@ export default function HelpModal({ onClose }: Props) {
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <span style={S.headerTitle}>Como Jogar — Monovale</span>
+          <span style={S.headerTitle}>Como Jogar: Monovale</span>
           <button style={S.closeBtn} onClick={onClose} aria-label="Fechar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/>

@@ -61,7 +61,7 @@ export default function AuctionModal({ state, myUid, isRoomGame, onBid, onPass }
               <>
                 <span style={S.bidLabel}>Lance mais alto:</span>
                 <span style={S.bidValue}>
-                  {getPawn(highestBidder.pawnId).emoji} {highestBidder.name} — R${auction.highestBid}
+                  {getPawn(highestBidder.pawnId).emoji} {highestBidder.name}: R${auction.highestBid}
                 </span>
               </>
             ) : (
