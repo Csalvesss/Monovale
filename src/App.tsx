@@ -7,6 +7,10 @@ import ActionPanel from './components/ActionPanel';
 import AuctionModal from './components/AuctionModal';
 import TradeModal from './components/TradeModal';
 import EndScreen from './components/EndScreen';
+import LoginScreen from './components/LoginScreen';
+import HomePage from './components/HomePage';
+import { useAuth } from './contexts/AuthContext';
+import { createGameDoc, saveGameState, finishGame } from './services/gameService';
 import type { GameState, LobbyConfig, TradeState } from './types';
 import {
   initGame, rollDice, buyProperty, startAuction, placeBid, passBid,
@@ -17,7 +21,12 @@ import {
 
 const STORAGE_KEY = 'monovale_game_state';
 
+type Screen = 'home' | 'lobby' | 'game';
+
 export default function App() {
+  const { user, loading } = useAuth();
+
+  const [screen, setScreen] = useState<Screen>('home');
   const [gameState, setGameState] = useState<GameState | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -28,34 +37,107 @@ export default function App() {
     } catch { /* ignore */ }
     return null;
   });
-
   const [showConfirm, setShowConfirm] = useState(false);
+  const [finishedGameId, setFinishedGameId] = useState<string | null>(null);
 
+  // Restore screen if there is a saved in-progress game
   useEffect(() => {
-    if (gameState) localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    if (gameState?.phase === 'playing') setScreen('game');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist to localStorage + Firestore on every state change
+  useEffect(() => {
+    if (!gameState) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    if (gameState.gameId) {
+      saveGameState(gameState.gameId, gameState);
+    }
   }, [gameState]);
+
+  // Detect game ended → call finishGame once
+  useEffect(() => {
+    if (gameState?.phase === 'ended' && gameState.gameId && gameState.gameId !== finishedGameId) {
+      setFinishedGameId(gameState.gameId);
+      finishGame(gameState).catch(e => console.warn('finishGame error:', e));
+    }
+  }, [gameState?.phase, gameState?.gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = useCallback((fn: (s: GameState) => GameState) => {
     setGameState(prev => prev ? fn(prev) : prev);
   }, []);
 
-  function handleStart(config: LobbyConfig) {
-    setGameState(initGame(config));
+  async function handleStart(config: LobbyConfig) {
+    const players = config.players.map(p => ({
+      uid: p.uid ?? null,
+      displayName: p.name,
+      pawnId: p.pawnId,
+    }));
+    const hostUid = user?.uid ?? null;
+
+    let gameId: string | null = null;
+    try {
+      gameId = await createGameDoc(hostUid, players);
+    } catch (e) {
+      console.warn('Could not create game doc:', e);
+    }
+
+    const state = initGame(config, gameId);
+    setGameState(state);
+    setScreen('game');
   }
 
   function handleNewGame() {
     if (gameState?.phase === 'playing') setShowConfirm(true);
-    else { setGameState(null); localStorage.removeItem(STORAGE_KEY); }
+    else clearGame();
+  }
+
+  function clearGame() {
+    setGameState(null);
+    setFinishedGameId(null);
+    localStorage.removeItem(STORAGE_KEY);
+    setScreen('home');
   }
 
   function confirmNewGame() {
     setShowConfirm(false);
-    setGameState(null);
-    localStorage.removeItem(STORAGE_KEY);
+    clearGame();
   }
 
+  // ── Auth loading spinner ──
+  if (loading) {
+    return (
+      <div style={S.loadingPage}>
+        <div style={S.loadingCard}>
+          <div style={S.loadingEmoji}>🗺️</div>
+          <div style={S.loadingTitle}>MONOVALE</div>
+          <div style={S.loadingSpinner} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Not logged in ──
+  if (!user) return <LoginScreen />;
+
+  // ── Home / dashboard ──
+  if (screen === 'home') {
+    return <HomePage onStartGame={() => setScreen('lobby')} />;
+  }
+
+  // ── Lobby ──
+  if (screen === 'lobby') {
+    return (
+      <Lobby
+        onStart={handleStart}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
+  // ── Game ──
   if (!gameState || gameState.phase === 'lobby') {
-    return <Lobby onStart={handleStart} />;
+    setScreen('lobby');
+    return null;
   }
 
   return (
@@ -77,13 +159,10 @@ export default function App() {
 
       {/* ── Main layout ── */}
       <div style={S.layout}>
-
-        {/* Left panel */}
         <div style={S.leftPanel}>
           <PlayerPanel state={gameState} />
         </div>
 
-        {/* Center: board + actions */}
         <div style={S.center}>
           <div style={S.boardWrapper}>
             <Board state={gameState} />
@@ -107,7 +186,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right panel */}
         <div style={S.rightPanel}>
           <EventLog log={gameState.log} />
         </div>
@@ -134,11 +212,10 @@ export default function App() {
       {gameState.phase === 'ended' && (
         <EndScreen
           state={gameState}
-          onNewGame={() => { setGameState(null); localStorage.removeItem(STORAGE_KEY); }}
+          onNewGame={clearGame}
         />
       )}
 
-      {/* ── New game confirmation ── */}
       {showConfirm && (
         <div style={S.overlay}>
           <div style={S.confirmBox}>
@@ -157,6 +234,42 @@ export default function App() {
 }
 
 const S: Record<string, React.CSSProperties> = {
+  /* Loading */
+  loadingPage: {
+    minHeight: '100vh',
+    background: 'var(--bg)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: 'var(--font-body)',
+  },
+  loadingCard: {
+    background: 'var(--card)',
+    borderRadius: 'var(--radius-xl)',
+    border: '3px solid var(--border-gold)',
+    boxShadow: 'var(--shadow-lg)',
+    padding: '40px 56px',
+    textAlign: 'center',
+  },
+  loadingEmoji: { fontSize: 56, marginBottom: 8, lineHeight: 1 },
+  loadingTitle: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 36,
+    color: 'var(--text)',
+    letterSpacing: '2px',
+    marginBottom: 20,
+  },
+  loadingSpinner: {
+    width: 36,
+    height: 36,
+    border: '4px solid var(--border)',
+    borderTop: '4px solid var(--gold)',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
+    margin: '0 auto',
+  },
+
+  /* Game layout */
   root: {
     height: '100vh',
     display: 'flex',
@@ -165,8 +278,6 @@ const S: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-body)',
     overflow: 'hidden',
   },
-
-  /* ── Top bar ── */
   topBar: {
     display: 'flex',
     alignItems: 'center',
@@ -178,11 +289,7 @@ const S: Record<string, React.CSSProperties> = {
     flexShrink: 0,
     zIndex: 10,
   },
-  topLogo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
+  topLogo: { display: 'flex', alignItems: 'center', gap: 10 },
   topTitle: {
     fontFamily: 'var(--font-title)',
     fontSize: 28,
@@ -191,24 +298,9 @@ const S: Record<string, React.CSSProperties> = {
     textShadow: '1px 1px 0 rgba(255,255,255,0.4)',
     lineHeight: 1,
   },
-  topSub: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: 'var(--text)',
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  topRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-  bankerTag: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: 'var(--text)',
-    opacity: 0.7,
-  },
+  topSub: { fontSize: 12, fontWeight: 700, color: 'var(--text)', opacity: 0.6, marginTop: 2 },
+  topRight: { display: 'flex', alignItems: 'center', gap: 12 },
+  bankerTag: { fontSize: 13, fontWeight: 700, color: 'var(--text)', opacity: 0.7 },
   newGameBtn: {
     padding: '7px 16px',
     background: 'var(--red-grad)',
@@ -223,8 +315,6 @@ const S: Record<string, React.CSSProperties> = {
     letterSpacing: '0.3px',
     transition: 'transform 0.1s, box-shadow 0.1s',
   },
-
-  /* ── Main layout ── */
   layout: {
     flex: 1,
     display: 'flex',
@@ -233,7 +323,6 @@ const S: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     minHeight: 0,
   },
-
   leftPanel: {
     width: 210,
     flexShrink: 0,
@@ -241,7 +330,6 @@ const S: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
   },
-
   center: {
     flex: 1,
     display: 'flex',
@@ -251,17 +339,8 @@ const S: Record<string, React.CSSProperties> = {
     overflowY: 'auto',
     minWidth: 0,
   },
-
-  boardWrapper: {
-    flexShrink: 0,
-  },
-
-  actionWrapper: {
-    width: '100%',
-    maxWidth: 660,
-    paddingBottom: 8,
-  },
-
+  boardWrapper: { flexShrink: 0 },
+  actionWrapper: { width: '100%', maxWidth: 660, paddingBottom: 8 },
   rightPanel: {
     width: 260,
     flexShrink: 0,
@@ -270,7 +349,7 @@ const S: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
   },
 
-  /* ── Overlay / Confirm ── */
+  /* Overlay / Confirm */
   overlay: {
     position: 'fixed',
     inset: 0,
@@ -299,12 +378,7 @@ const S: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
     marginBottom: 8,
   },
-  confirmText: {
-    fontSize: 14,
-    color: 'var(--text-mid)',
-    fontWeight: 600,
-    margin: '0 0 20px',
-  },
+  confirmText: { fontSize: 14, color: 'var(--text-mid)', fontWeight: 600, margin: '0 0 20px' },
   confirmBtns: { display: 'flex', gap: 10 },
   confirmBtnYes: {
     flex: 1,
