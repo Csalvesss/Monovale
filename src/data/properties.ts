@@ -145,7 +145,7 @@ export const BOARD_SPACES: BoardSpace[] = [
   },
   {
     position: 12,
-    name: 'Dutra Energia',
+    name: 'EDP',
     type: 'utility',
     group: 'utility',
     price: 150,
@@ -281,7 +281,7 @@ export const BOARD_SPACES: BoardSpace[] = [
   },
   {
     position: 28,
-    name: 'SAAE Vale',
+    name: 'Sabesp',
     type: 'utility',
     group: 'utility',
     price: 150,
