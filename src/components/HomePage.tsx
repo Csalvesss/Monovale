@@ -77,7 +77,7 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom, onBack
             </svg>
             <div>
               <h1 style={S.heroTitle}>Monovale</h1>
-              <p style={S.heroSub}>Monopoly do Vale do Paraíba — Compre, construa e domine as cidades do Vale. O Banco do Sr. Marinho está esperando.</p>
+              <p style={S.heroSub}>Monopoly do Vale do Paraíba. Compre, construa e domine as cidades do Vale. O Banco do Sr. Marinho está esperando.</p>
               <div style={S.heroTags}>
                 {['Estratégia', 'Multijogador', 'Até 8 jogadores', 'Econômico'].map(t => (
                   <span key={t} style={S.heroTag}>{t}</span>

@@ -80,10 +80,7 @@ export default function GameHub({ onSelectMonovale }: Props) {
         <div style={S.headerLeft}>
           <div style={S.platformLogo}>
             <span style={S.guavaEmoji}>🍈</span>
-            <div>
-              <div style={S.platformName}>Guava Games</div>
-              <div style={S.platformSub}>Vale do Paraíba</div>
-            </div>
+            <div style={S.platformName}>Guava Games</div>
           </div>
         </div>
         <div style={S.headerRight}>
@@ -204,7 +201,7 @@ export default function GameHub({ onSelectMonovale }: Props) {
             <div style={S.statsGrid}>
               <StatPill icon={<Gamepad2 size={14}/>} label="Partidas" value={profile.stats.gamesPlayed} color="#3B82F6"/>
               <StatPill icon={<Trophy size={14}/>} label="Vitórias" value={profile.stats.gamesWon} color="#D97706"/>
-              <StatPill icon={<TrendingUp size={14}/>} label="Win Rate" value={`${winRate}%`} color="#059669"/>
+              <StatPill icon={<TrendingUp size={14}/>} label="Win Rate" value={`${winRate}%`} color="#B5294E"/>
               <StatPill icon={<Skull size={14}/>} label="Falências" value={profile.stats.bankruptcies} color="#DC2626"/>
               <StatPill icon={<DollarSign size={14}/>} label="Patrimônio méd." value={`M$${profile.stats.gamesPlayed > 0 ? Math.round(profile.stats.totalNetWorth / profile.stats.gamesPlayed).toLocaleString('pt-BR') : 0}`} color="#7C3AED"/>
             </div>
@@ -266,7 +263,7 @@ const S: Record<string, React.CSSProperties> = {
 
   header: {
     height: 60, flexShrink: 0,
-    background: 'linear-gradient(90deg, #052e16, #065F46)',
+    background: 'linear-gradient(90deg, #2D0A15, #8B1A33)',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0 20px',
     boxShadow: '0 1px 0 rgba(255,255,255,0.06)',
@@ -276,7 +273,6 @@ const S: Record<string, React.CSSProperties> = {
   platformLogo: { display: 'flex', alignItems: 'center', gap: 10 },
   guavaEmoji: { fontSize: 26, lineHeight: 1 },
   platformName: { fontFamily: 'var(--font-title)', fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.2px', lineHeight: 1.1 },
-  platformSub: { fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.5px' },
 
   headerRight: { display: 'flex', alignItems: 'center', gap: 8 },
   userChip: {
@@ -389,7 +385,7 @@ const S: Record<string, React.CSSProperties> = {
   playBtn: {
     marginTop: 8,
     padding: '10px',
-    background: 'var(--green-grad)',
+    background: 'linear-gradient(135deg, #B5294E, #8B1A33)',
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius)',
@@ -397,7 +393,7 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 13, fontWeight: 800,
     letterSpacing: '1px',
     cursor: 'pointer',
-    boxShadow: '0 3px 10px rgba(5,150,105,0.3)',
+    boxShadow: '0 3px 10px rgba(139,26,51,0.35)',
   },
 
   profileRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)' },
