@@ -60,6 +60,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const profileSnap = await getDoc(doc(db, 'users', fbUser.uid));
           if (profileSnap.exists()) {
             setProfile(profileSnap.data() as UserProfile);
+          } else {
+            // Profile doc missing — auto-create from Firebase Auth data
+            const fallback: UserProfile = {
+              uid: fbUser.uid,
+              displayName: fbUser.displayName ?? fbUser.email?.split('@')[0] ?? 'Jogador',
+              email: fbUser.email ?? '',
+              pawnId: 'car',
+              stats: { gamesPlayed: 0, gamesWon: 0, totalNetWorth: 0, bankruptcies: 0 },
+              createdAt: Date.now(),
+            };
+            await setDoc(doc(db, 'users', fbUser.uid), fallback);
+            setProfile(fallback);
           }
           await refreshAllUsers();
         } catch (e) {
