@@ -22,11 +22,11 @@ export const POSITION_VARIANT: Record<string, 'gk' | 'def' | 'mid' | 'atk'> = {
 };
 
 function MoodIcon({ mood }: { mood: string }) {
-  const props = { size: 12 };
-  if (mood === 'motivated') return <Flame {...props} className="text-emerald-400" />;
+  const props = { size: 12, strokeWidth: 1.5 };
+  if (mood === 'motivated') return <Flame {...props} style={{ color: 'var(--ldb-pitch-bright)' }} />;
   if (mood === 'happy')     return <Smile {...props} className="text-sky-400" />;
   if (mood === 'unhappy')   return <Frown {...props} className="text-red-400" />;
-  return <Meh {...props} className="text-amber-400" />;
+  return <Meh {...props} style={{ color: 'var(--ldb-text-gold)' }} />;
 }
 
 function MoodBadge({ mood }: { mood: string }) {
@@ -76,18 +76,15 @@ function CompactRow({ player, onClick, selected, showPrice, price, actionLabel, 
     <div
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 rounded-xl border p-3 transition-all duration-150',
-        isLegendary
-          ? 'border-amber-600/50 bg-gradient-to-r from-amber-950/50 to-slate-800'
-          : 'border-slate-700 bg-slate-800 hover:bg-slate-750',
-        onClick && 'cursor-pointer hover:border-slate-600',
-        selected && 'outline outline-2 outline-blue-500',
+        'ldb-player-row',
+        isLegendary && 'ldb-player-row--legendary',
+        selected && 'outline outline-2 outline-[var(--ldb-pitch-bright)]',
       )}
     >
       {/* Avatar */}
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-black"
-        style={{ background: posColor + '22', border: `1.5px solid ${posColor}44`, color: posColor }}
+        style={{ background: posColor + '22', border: `1.5px solid ${posColor}55`, color: posColor }}
       >
         {initials}
       </div>
@@ -95,11 +92,11 @@ function CompactRow({ player, onClick, selected, showPrice, price, actionLabel, 
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="truncate text-[13px] font-bold text-slate-100">
-            {isLegendary && <span className="text-amber-400 mr-1">★</span>}
+          <span className="truncate text-[13px] font-bold" style={{ color: 'var(--ldb-text)' }}>
+            {isLegendary && <span style={{ color: 'var(--ldb-text-gold)' }} className="mr-1">★</span>}
             {player.name}
           </span>
-          {player.injured && <AlertTriangle size={11} className="text-red-400 shrink-0" />}
+          {player.injured && <AlertTriangle size={11} strokeWidth={1.5} className="text-red-400 shrink-0" />}
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={posVariant} className="text-[9px] px-1.5 py-0">{player.position}</Badge>
@@ -110,7 +107,7 @@ function CompactRow({ player, onClick, selected, showPrice, price, actionLabel, 
 
       {/* Price */}
       {showPrice && price !== undefined && (
-        <span className="shrink-0 text-sm font-bold text-emerald-400">
+        <span className="shrink-0 text-sm font-bold ldb-money">
           ${new Intl.NumberFormat('pt-BR').format(price)}k
         </span>
       )}
@@ -123,9 +120,10 @@ function CompactRow({ player, onClick, selected, showPrice, price, actionLabel, 
           className={cn(
             'shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors',
             actionDisabled
-              ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-500'
+              ? 'cursor-not-allowed'
+              : 'ldb-btn-primary'
           )}
+          style={actionDisabled ? { background: 'rgba(255,255,255,0.06)', color: 'var(--ldb-text-muted)' } : {}}
         >
           {actionLabel}
         </button>
@@ -148,25 +146,25 @@ function FullCard({ player, onClick, selected, showPrice, price, actionLabel, on
     : [['PAS', attrs.passing], ['DRI', attrs.dribbling], ['FIN', attrs.shooting], ['VEL', attrs.pace], ['DEF', attrs.defending]];
 
   function attrColor(v: number) {
-    if (v >= 85) return '#4ade80';
-    if (v >= 70) return '#fbbf24';
-    return '#94a3b8';
+    if (v >= 85) return '#00FF87';
+    if (v >= 70) return '#D4AF37';
+    return '#4A6070';
   }
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        'relative overflow-hidden rounded-xl border p-4 transition-all duration-150',
-        isLegendary
-          ? 'border-amber-600/50 bg-gradient-to-br from-amber-950/60 to-slate-800'
-          : 'border-slate-700 bg-slate-800',
-        onClick && 'cursor-pointer hover:border-slate-600',
-        selected && 'outline outline-2 outline-blue-500',
+        'relative overflow-hidden p-4',
+        isLegendary ? 'ldb-card-gold' : 'ldb-card',
+        selected && 'outline outline-2 outline-[var(--ldb-pitch-bright)]',
       )}
     >
       {isLegendary && (
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.15),transparent_70%)] pointer-events-none" />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.12), transparent 70%)' }}
+        />
       )}
 
       {/* Header */}
@@ -174,20 +172,22 @@ function FullCard({ player, onClick, selected, showPrice, price, actionLabel, on
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black"
           style={{
-            background: isLegendary ? 'linear-gradient(135deg, #d97706, #92400e)' : posColor + '22',
-            border: `2px solid ${isLegendary ? '#d97706' : posColor + '44'}`,
-            color: isLegendary ? '#fff' : posColor,
+            background: isLegendary
+              ? 'linear-gradient(135deg, var(--ldb-gold-mid), var(--ldb-gold-deep))'
+              : posColor + '22',
+            border: `2px solid ${isLegendary ? 'var(--ldb-gold-mid)' : posColor + '55'}`,
+            color: isLegendary ? 'var(--ldb-void)' : posColor,
           }}
         >
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px] font-black text-slate-100">{player.name}</span>
+            <span className="text-[15px] font-black" style={{ color: 'var(--ldb-text)' }}>{player.name}</span>
             {isLegendary && <Badge variant="legendary">LENDÁRIO</Badge>}
-            {player.injured && <AlertTriangle size={13} className="text-red-400" />}
+            {player.injured && <AlertTriangle size={13} strokeWidth={1.5} className="text-red-400" />}
           </div>
-          <div className="text-xs text-slate-400 mt-0.5">{player.fullName}</div>
+          <div className="text-xs mt-0.5" style={{ color: 'var(--ldb-text-muted)' }}>{player.fullName}</div>
           <div className="flex items-center gap-2 mt-1.5">
             <Badge variant={posVariant}>{player.position}</Badge>
             <RatingBadge rating={player.stars} size={11} />
@@ -197,30 +197,36 @@ function FullCard({ player, onClick, selected, showPrice, price, actionLabel, on
       </div>
 
       {/* Attributes row */}
-      <div className="flex justify-around border-t border-b border-slate-700 py-2.5 my-2">
+      <div
+        className="flex justify-around py-2.5 my-2"
+        style={{ borderTop: '1px solid var(--ldb-border)', borderBottom: '1px solid var(--ldb-border)' }}
+      >
         {(mainAttrs as [string, number][]).map(([lbl, val]) => (
           <div key={lbl} className="flex flex-col items-center gap-0.5">
             <span className="text-[13px] font-black" style={{ color: attrColor(val) }}>{val}</span>
-            <span className="text-[8px] font-bold uppercase tracking-wide text-slate-500">{lbl}</span>
+            <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: 'var(--ldb-text-muted)' }}>{lbl}</span>
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+      <div className="flex items-center justify-between text-xs mt-2" style={{ color: 'var(--ldb-text-muted)' }}>
         <span>{player.nationality} · {player.age} anos</span>
         <span>Nv.{player.level} · {player.xp} XP</span>
       </div>
 
       {/* Price & action */}
       {(showPrice || actionLabel) && (
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
+        <div
+          className="flex items-center justify-between mt-3 pt-3"
+          style={{ borderTop: '1px solid var(--ldb-border)' }}
+        >
           {showPrice && (
             <div>
-              <div className="text-sm font-black text-amber-400">
+              <div className="text-sm font-black ldb-money">
                 ${new Intl.NumberFormat('pt-BR').format(price ?? player.marketValue)}k
               </div>
-              <div className="text-[10px] text-slate-500">${player.wage}k/sem</div>
+              <div className="text-[10px]" style={{ color: 'var(--ldb-text-muted)' }}>${player.wage}k/sem</div>
             </div>
           )}
           {actionLabel && onAction && (
@@ -229,10 +235,9 @@ function FullCard({ player, onClick, selected, showPrice, price, actionLabel, on
               disabled={actionDisabled}
               className={cn(
                 'rounded-lg px-4 py-2 text-xs font-bold transition-colors',
-                actionDisabled
-                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-500'
+                actionDisabled ? 'cursor-not-allowed' : 'ldb-btn-primary'
               )}
+              style={actionDisabled ? { background: 'rgba(255,255,255,0.06)', color: 'var(--ldb-text-muted)' } : {}}
             >
               {actionLabel}
             </button>
