@@ -53,6 +53,23 @@ export function saveGameState(gameId: string, state: GameState) {
   }, 4000);
 }
 
+// ─── Save current game state (immediate, for real-time rooms) ────────────────
+
+export async function saveGameStateNow(gameId: string, state: GameState): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'games', gameId), {
+      stateJson: JSON.stringify(state),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('Could not save game state:', e);
+  }
+}
+
+export function cancelPendingGameSave() {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+}
+
 // ─── Load a saved game ───────────────────────────────────────────────────────
 
 export async function loadGameDoc(gameId: string): Promise<GameState | null> {
