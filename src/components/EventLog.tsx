@@ -5,14 +5,14 @@ interface Props {
   log: LogEntry[];
 }
 
-const TYPE_CONFIG: Record<LogEntry['type'], { icon: string; accent: string; bg: string }> = {
-  info:     { icon: '📋', accent: 'var(--text-light)', bg: 'var(--card-alt)' },
-  bank:     { icon: '🏦', accent: 'var(--gold-dark)',  bg: '#fef9e7' },
-  trade:    { icon: '🤝', accent: 'var(--blue)',       bg: '#eff6ff' },
-  auction:  { icon: '🔨', accent: '#ea580c',           bg: '#fff7ed' },
-  jail:     { icon: '🚔', accent: 'var(--red)',        bg: '#fef2f2' },
-  card:     { icon: '🎟️', accent: 'var(--purple)',     bg: '#faf5ff' },
-  bankrupt: { icon: '💀', accent: 'var(--red-dark)',   bg: '#fee2e2' },
+const TYPE_CONFIG: Record<LogEntry['type'], { accent: string; bg: string }> = {
+  info:     { accent: '#94a3b8', bg: 'var(--card-alt)' },
+  bank:     { accent: '#d97706', bg: '#fffbeb' },
+  trade:    { accent: '#3b82f6', bg: '#eff6ff' },
+  auction:  { accent: '#ea580c', bg: '#fff7ed' },
+  jail:     { accent: '#dc2626', bg: '#fef2f2' },
+  card:     { accent: '#7c3aed', bg: '#faf5ff' },
+  bankrupt: { accent: '#991b1b', bg: '#fee2e2' },
 };
 
 export default function EventLog({ log }: Props) {
@@ -25,7 +25,13 @@ export default function EventLog({ log }: Props) {
   return (
     <div style={S.panel}>
       <div style={S.header}>
-        <span style={S.headerIcon}>📋</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
         <span style={S.headerTitle}>REGISTRO</span>
         <span style={S.bankerNote}>Sr. Marinho</span>
       </div>
@@ -36,7 +42,6 @@ export default function EventLog({ log }: Props) {
           const cfg = TYPE_CONFIG[entry.type] ?? TYPE_CONFIG.info;
           return (
             <div key={entry.id} style={{ ...S.entry, background: cfg.bg, borderLeftColor: cfg.accent }}>
-              <span style={S.entryIcon}>{cfg.icon}</span>
               <span style={{ ...S.entryText, color: 'var(--text)' }}>{entry.text}</span>
             </div>
           );
@@ -55,7 +60,7 @@ const S: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     background: 'var(--card)',
     borderRadius: 'var(--radius-md)',
-    border: '2px solid var(--border-gold)',
+    border: '1px solid var(--border)',
     boxShadow: 'var(--shadow-md)',
     overflow: 'hidden',
     height: '100%',
@@ -65,23 +70,22 @@ const S: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    padding: '12px 14px',
-    background: 'var(--gold-grad)',
+    padding: '11px 14px',
+    background: 'linear-gradient(90deg, #065F46, #059669)',
     flexShrink: 0,
   },
-  headerIcon: { fontSize: 16 },
   headerTitle: {
     fontFamily: 'var(--font-title)',
-    fontSize: 17,
-    color: 'var(--text)',
-    letterSpacing: '1px',
+    fontSize: 14,
+    color: '#fff',
+    letterSpacing: '1.5px',
+    fontWeight: 700,
     flex: 1,
   },
   bankerNote: {
     fontSize: 10,
-    fontWeight: 700,
-    color: 'var(--text)',
-    opacity: 0.65,
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.75)',
   },
 
   logList: {
@@ -90,23 +94,22 @@ const S: Record<string, React.CSSProperties> = {
     padding: '8px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 5,
+    gap: 4,
   },
 
   entry: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: 7,
-    padding: '8px 10px',
-    borderRadius: 10,
+    gap: 0,
+    padding: '7px 10px',
+    borderRadius: 8,
     borderLeft: '3px solid transparent',
-    border: '1px solid rgba(0,0,0,0.06)',
+    border: '1px solid rgba(0,0,0,0.05)',
   },
-  entryIcon: { fontSize: 13, flexShrink: 0, marginTop: 1 },
   entryText: {
     fontSize: 11.5,
     lineHeight: 1.45,
-    fontWeight: 600,
+    fontWeight: 500,
   },
   empty: {
     textAlign: 'center',

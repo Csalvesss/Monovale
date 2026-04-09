@@ -4,7 +4,35 @@ interface Props {
   dice: [number, number] | null;
 }
 
-const FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+const DOT_POS: Record<number, [number, number][]> = {
+  1: [[5,5]],
+  2: [[3,3],[7,7]],
+  3: [[3,3],[5,5],[7,7]],
+  4: [[3,3],[7,3],[3,7],[7,7]],
+  5: [[3,3],[7,3],[5,5],[3,7],[7,7]],
+  6: [[3,2],[7,2],[3,5],[7,5],[3,8],[7,8]],
+};
+
+function Die({ value, animating }: { value: number; animating: boolean }) {
+  const dots = DOT_POS[value] ?? DOT_POS[1];
+  return (
+    <svg
+      width="46"
+      height="46"
+      viewBox="0 0 10 10"
+      style={{
+        borderRadius: 3,
+        transition: animating ? 'none' : 'transform 0.15s ease',
+        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))',
+      }}
+    >
+      <rect x="0.3" y="0.3" width="9.4" height="9.4" rx="1.6" fill="white" stroke="#d1d5db" strokeWidth="0.4" />
+      {dots.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="0.85" fill="#1f2937" />
+      ))}
+    </svg>
+  );
+}
 
 export default function DiceRoller({ dice }: Props) {
   const [display, setDisplay] = useState<[number, number]>(dice ?? [1, 1]);
@@ -15,7 +43,10 @@ export default function DiceRoller({ dice }: Props) {
       setAnimating(true);
       let ticks = 0;
       const interval = setInterval(() => {
-        setDisplay([Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6)]);
+        setDisplay([
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1,
+        ]);
         ticks++;
         if (ticks >= 8) {
           clearInterval(interval);
@@ -33,17 +64,13 @@ export default function DiceRoller({ dice }: Props) {
   return (
     <div style={S.wrap}>
       <div style={S.diceRow}>
-        <div style={{ ...S.die, animation: animating ? 'spin 0.08s linear infinite' : 'none' }}>
-          {FACES[display[0]] ?? '⚀'}
-        </div>
-        <div style={{ ...S.die, animation: animating ? 'spin 0.08s linear infinite' : 'none', animationDelay: '0.04s' }}>
-          {FACES[display[1]] ?? '⚀'}
-        </div>
+        <Die value={display[0]} animating={animating} />
+        <Die value={display[1]} animating={animating} />
       </div>
       {total && (
         <div style={S.info}>
           <span style={S.total}>{total}</span>
-          {isDouble && <span style={S.doublePill}>PAR! 🎲</span>}
+          {isDouble && <span style={S.doublePill}>PAR!</span>}
         </div>
       )}
     </div>
@@ -53,25 +80,13 @@ export default function DiceRoller({ dice }: Props) {
 const S: Record<string, React.CSSProperties> = {
   wrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
   diceRow: { display: 'flex', gap: 6 },
-  die: {
-    width: 46,
-    height: 46,
-    background: 'white',
-    borderRadius: 12,
-    border: '2px solid var(--border)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 28,
-    boxShadow: '0 4px 0 var(--border), 0 6px 12px rgba(0,0,0,0.1)',
-    userSelect: 'none',
-  },
   info: { display: 'flex', alignItems: 'center', gap: 6 },
   total: {
     fontFamily: 'var(--font-title)',
     fontSize: 16,
-    color: 'var(--gold-dark)',
+    color: 'var(--text-mid)',
     letterSpacing: '0.5px',
+    fontWeight: 700,
   },
   doublePill: {
     fontSize: 10,

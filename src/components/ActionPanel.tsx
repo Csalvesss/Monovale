@@ -40,7 +40,6 @@ export default function ActionPanel(props: Props) {
     .filter(([, ps]) => ps.ownerId === player.id)
     .map(([pos]) => Number(pos));
 
-  // Trade is only useful if at least one other player has properties to offer
   const otherPlayersWithProps = state.players.filter(p =>
     p.id !== player.id &&
     !p.bankrupt &&
@@ -51,7 +50,7 @@ export default function ActionPanel(props: Props) {
   return (
     <div style={S.panel}>
       {/* ── Player strip ── */}
-      <div style={{ ...S.strip, background: `linear-gradient(135deg, ${pawn.color}22, ${pawn.color}44)`, borderColor: pawn.color + '55' }}>
+      <div style={{ ...S.strip, borderLeftColor: pawn.color }}>
         <div style={{ ...S.pawnCircle, background: pawn.color }}>
           {pawn.emoji}
         </div>
@@ -60,14 +59,13 @@ export default function ActionPanel(props: Props) {
           <span style={{ ...S.money, color: player.money < 200 ? 'var(--red)' : 'var(--green-dark)' }}>
             R${player.money.toLocaleString('pt-BR')}
           </span>
-          <span style={S.position}>📍 {currentSpace.name}</span>
+          <span style={S.position}>{currentSpace.name}</span>
         </div>
 
-        {/* Dice & status */}
         <div style={S.diceArea}>
           <DiceRoller dice={state.dice} />
           {isJail && (
-            <div style={S.jailIndicator}>🚔 Turno {player.jailTurns}/3</div>
+            <div style={S.jailIndicator}>Preso · Turno {player.jailTurns}/3</div>
           )}
         </div>
       </div>
@@ -78,17 +76,17 @@ export default function ActionPanel(props: Props) {
         {/* Jail options */}
         {isJail && canRoll && (
           <div style={S.jailBox}>
-            <div style={S.jailTitle}>⚠️ Opções no DETRAN</div>
+            <div style={S.jailTitle}>Opções no DETRAN</div>
             <div style={S.btnGroup}>
               <Btn
-                label={`💸 Pagar fiança R$50`}
+                label={`Pagar fiança R$50`}
                 color="yellow"
                 disabled={player.money < 50}
                 onClick={props.onPayJail}
               />
               {player.getOutOfJailCards > 0 && (
                 <Btn
-                  label={`🎫 Usar cartão (${player.getOutOfJailCards})`}
+                  label={`Usar cartão (${player.getOutOfJailCards})`}
                   color="green"
                   onClick={props.onUseJailCard}
                 />
@@ -99,13 +97,13 @@ export default function ActionPanel(props: Props) {
 
         {/* Roll */}
         {canRoll && (
-          <Btn label="🎲 ROLAR OS DADOS" color="green" size="lg" onClick={props.onRoll} />
+          <Btn label="Rolar os dados" color="green" size="lg" onClick={props.onRoll} />
         )}
 
         {/* Buy decision */}
         {canBuy && state.pendingPropertyPosition !== null && (
           <div style={S.buyBox}>
-            <div style={S.buyTitle}>🏠 Comprar esta propriedade?</div>
+            <div style={S.buyTitle}>Comprar esta propriedade?</div>
             <PropertyCard
               position={state.pendingPropertyPosition}
               state={state}
@@ -121,31 +119,31 @@ export default function ActionPanel(props: Props) {
         {awaitingCard && state.pendingCard && (
           <div style={S.cardBox}>
             <div style={S.cardHeader}>
-              {state.pendingCard.deck === 'chance' ? '🎟️ Bilhete da Fortuna' : '📬 Voz do Vale'}
+              {state.pendingCard.deck === 'chance' ? 'Bilhete da Fortuna' : 'Voz do Vale'}
             </div>
             <p style={S.cardText}>{state.pendingCard.text}</p>
-            <Btn label="✅ Confirmar" color="green" onClick={props.onResolveCard} />
+            <Btn label="Confirmar" color="green" onClick={props.onResolveCard} />
           </div>
         )}
 
         {/* End turn */}
         {canEnd && (
-          <Btn label="➡️ ENCERRAR TURNO" color="blue" size="lg" onClick={props.onEndTurn} />
+          <Btn label="Encerrar turno" color="blue" size="lg" onClick={props.onEndTurn} />
         )}
 
-        {/* Manage + Trade (horizontal row) */}
+        {/* Manage + Trade */}
         {!canBuy && !awaitingCard && state.phase === 'playing' && (
           <div style={S.btnGroup}>
             {ownedPositions.length > 0 && (
               <Btn
-                label={`🏘️ Gerenciar${showManage ? ' ▲' : ' ▼'}`}
+                label={`Gerenciar${showManage ? ' ▲' : ' ▼'}`}
                 color="gold"
                 onClick={() => setShowManage(!showManage)}
               />
             )}
             {canTrade && (
               <Btn
-                label="🤝 Negociar"
+                label="Negociar"
                 color="purple"
                 onClick={() => props.onProposeTrade(-1)}
               />
@@ -171,7 +169,7 @@ export default function ActionPanel(props: Props) {
   );
 }
 
-// ─── Btn helper ──────────────────────────────────────────────────────────────
+// ─── Btn ─────────────────────────────────────────────────────────────────────
 
 function Btn({ label, color, size = 'md', disabled, onClick }: {
   label: string;
@@ -180,16 +178,16 @@ function Btn({ label, color, size = 'md', disabled, onClick }: {
   disabled?: boolean;
   onClick?: () => void;
 }) {
-  const colors: Record<string, { bg: string; shadow: string; text: string }> = {
-    green:  { bg: 'var(--green-grad)',  shadow: 'var(--green-dark)', text: '#fff' },
-    blue:   { bg: 'linear-gradient(135deg,#60a5fa,#3b82f6)', shadow: '#1d4ed8', text: '#fff' },
-    gold:   { bg: 'var(--gold-grad)',   shadow: 'var(--gold-dark)',  text: 'var(--text)' },
-    red:    { bg: 'var(--red-grad)',    shadow: 'var(--red-dark)',   text: '#fff' },
-    yellow: { bg: 'var(--yellow-grad)', shadow: 'var(--yellow-dark)', text: 'var(--text)' },
-    purple: { bg: 'linear-gradient(135deg,#c084fc,#a855f7)', shadow: '#7e22ce', text: '#fff' },
+  const colors: Record<string, { bg: string; text: string; border: string }> = {
+    green:  { bg: 'var(--green)',  text: '#fff', border: 'var(--green-dark)' },
+    blue:   { bg: '#3b82f6',       text: '#fff', border: '#2563eb' },
+    gold:   { bg: '#f59e0b',       text: '#fff', border: '#d97706' },
+    red:    { bg: 'var(--red)',    text: '#fff', border: 'var(--red-dark)' },
+    yellow: { bg: '#fbbf24',       text: '#1f2937', border: '#d97706' },
+    purple: { bg: '#8b5cf6',       text: '#fff', border: '#7c3aed' },
   };
   const c = disabled
-    ? { bg: 'linear-gradient(135deg,#d1d5db,#9ca3af)', shadow: '#6b7280', text: '#fff' }
+    ? { bg: 'var(--card-alt)', text: 'var(--text-light)', border: 'var(--border)' }
     : colors[color];
 
   return (
@@ -198,18 +196,19 @@ function Btn({ label, color, size = 'md', disabled, onClick }: {
       disabled={disabled}
       style={{
         flex: 1,
-        padding: size === 'lg' ? '14px 18px' : '10px 14px',
+        padding: size === 'lg' ? '13px 18px' : '9px 14px',
         background: c.bg,
         color: c.text,
-        border: 'none',
+        border: `1px solid ${c.border}`,
         borderRadius: 'var(--radius)',
-        fontFamily: 'var(--font-title)',
-        fontSize: size === 'lg' ? 20 : 15,
-        letterSpacing: '0.5px',
+        fontFamily: 'var(--font-body)',
+        fontSize: size === 'lg' ? 15 : 13,
+        fontWeight: 600,
+        letterSpacing: '0.2px',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        boxShadow: `0 4px 0 ${c.shadow}`,
-        transition: 'transform 0.1s, box-shadow 0.1s',
+        transition: 'opacity 0.15s, filter 0.15s',
         width: size === 'lg' ? '100%' : undefined,
+        boxShadow: 'none',
       }}
     >
       {label}
@@ -257,43 +256,43 @@ function ManageProperties({
               onClick={() => onSelectProp(isSelected ? null : pos)}
               style={{
                 ...M.row,
-                borderLeft: `4px solid ${color}`,
-                background: isSelected ? `${color}18` : 'var(--card-alt)',
+                borderLeft: `3px solid ${color}`,
+                background: isSelected ? `${color}12` : 'transparent',
               }}
             >
               <span style={M.rowName}>{space.name}</span>
-              {ps.hotel && <span>🏨</span>}
-              {ps.houses > 0 && <span style={{ fontSize: 10 }}>{'🏠'.repeat(ps.houses)}</span>}
-              {ps.mortgaged && <span style={M.hipTag}>HIPOT.</span>}
-              <span style={{ color: 'var(--text-light)', fontSize: 12 }}>{isSelected ? '▲' : '▼'}</span>
+              {ps.hotel && <span style={M.buildTag}>Hotel</span>}
+              {ps.houses > 0 && <span style={M.buildTag}>{ps.houses} casa{ps.houses > 1 ? 's' : ''}</span>}
+              {ps.mortgaged && <span style={M.hipTag}>Hipotecada</span>}
+              <span style={{ color: 'var(--text-light)', fontSize: 11 }}>{isSelected ? '▲' : '▼'}</span>
             </div>
 
             {isSelected && (
               <div style={M.actions}>
                 {canBuild && (
                   <MiniBtn
-                    label={`🏗️ Construir R$${space.housePrice}`}
+                    label={`Construir R$${space.housePrice}`}
                     bg="var(--green)"
                     onClick={() => onBuildHouse(pos)}
                   />
                 )}
                 {canSell && (
                   <MiniBtn
-                    label={`🏚️ Vender R$${Math.floor((space.housePrice ?? 0) / 2)}`}
-                    bg="var(--yellow-dark)"
+                    label={`Vender R$${Math.floor((space.housePrice ?? 0) / 2)}`}
+                    bg="#d97706"
                     onClick={() => onSellHouse(pos)}
                   />
                 )}
                 {canMortgage && (
                   <MiniBtn
-                    label={`📝 Hipotecar R$${Math.floor((space.price ?? 0) / 2)}`}
+                    label={`Hipotecar R$${Math.floor((space.price ?? 0) / 2)}`}
                     bg="#ea580c"
                     onClick={() => onMortgage(pos)}
                   />
                 )}
                 {canUnmort && (
                   <MiniBtn
-                    label={`🔓 Resgatar R$${Math.floor((space.price ?? 0) * 0.55)}`}
+                    label={`Resgatar R$${Math.floor((space.price ?? 0) * 0.55)}`}
                     bg="var(--green-dark)"
                     onClick={() => onUnmortgage(pos)}
                   />
@@ -317,13 +316,13 @@ function MiniBtn({ label, bg, onClick }: { label: string; bg: string; onClick: (
     <button
       onClick={onClick}
       style={{
-        padding: '6px 10px',
+        padding: '5px 10px',
         background: bg,
         color: '#fff',
         border: 'none',
-        borderRadius: 8,
+        borderRadius: 6,
         fontSize: 11,
-        fontWeight: 700,
+        fontWeight: 600,
         cursor: 'pointer',
         fontFamily: 'var(--font-body)',
       }}
@@ -337,8 +336,8 @@ const S: Record<string, React.CSSProperties> = {
   panel: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-md)',
-    border: '2px solid var(--border-gold)',
-    boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow)',
     overflow: 'hidden',
   },
   strip: {
@@ -346,20 +345,22 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 12,
     padding: '12px 16px',
-    borderBottom: '2px solid',
+    borderBottom: '1px solid var(--border)',
+    borderLeft: '4px solid transparent',
     flexWrap: 'wrap',
+    background: 'var(--card-alt)',
   },
   pawnCircle: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 26,
+    fontSize: 24,
     flexShrink: 0,
-    border: '3px solid rgba(255,255,255,0.5)',
-    boxShadow: '0 3px 8px rgba(0,0,0,0.2)',
+    border: '2px solid rgba(255,255,255,0.6)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
   },
   playerInfo: {
     flex: 1,
@@ -370,19 +371,19 @@ const S: Record<string, React.CSSProperties> = {
   },
   playerName: {
     fontFamily: 'var(--font-title)',
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: 700,
     color: 'var(--text)',
-    letterSpacing: '0.3px',
   },
   money: {
     fontFamily: 'var(--font-title)',
-    fontSize: 20,
-    fontWeight: 900,
+    fontSize: 18,
+    fontWeight: 800,
   },
   position: {
     fontSize: 11,
     color: 'var(--text-mid)',
-    fontWeight: 600,
+    fontWeight: 500,
   },
   diceArea: {
     display: 'flex',
@@ -392,8 +393,8 @@ const S: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   jailIndicator: {
-    fontSize: 11,
-    fontWeight: 700,
+    fontSize: 10,
+    fontWeight: 600,
     color: 'var(--red)',
     background: '#fef2f2',
     padding: '2px 8px',
@@ -413,46 +414,48 @@ const S: Record<string, React.CSSProperties> = {
   jailBox: {
     background: '#fef2f2',
     borderRadius: 'var(--radius)',
-    border: '2px solid #fecaca',
+    border: '1px solid #fecaca',
     padding: '10px 12px',
   },
   jailTitle: {
-    fontSize: 13,
-    fontWeight: 800,
+    fontSize: 12,
+    fontWeight: 700,
     color: 'var(--red)',
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
 
   btnGroup: { display: 'flex', gap: 8, flexWrap: 'wrap' },
 
   buyBox: { display: 'flex', flexDirection: 'column', gap: 8 },
   buyTitle: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 16,
-    color: 'var(--text)',
-    letterSpacing: '0.5px',
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--text-mid)',
   },
 
   cardBox: {
     background: '#faf5ff',
     borderRadius: 'var(--radius)',
-    border: '2px solid #e9d5ff',
+    border: '1px solid #e9d5ff',
     padding: '12px 14px',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
   },
   cardHeader: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 16,
+    fontSize: 13,
+    fontWeight: 700,
     color: '#7e22ce',
+    textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
   cardText: {
     fontSize: 13,
     color: '#4c1d95',
     lineHeight: 1.5,
-    fontWeight: 600,
+    fontWeight: 500,
     margin: 0,
   },
 };
@@ -461,7 +464,7 @@ const M: Record<string, React.CSSProperties> = {
   wrap: {
     background: 'var(--card-alt)',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
+    border: '1px solid var(--border)',
     overflow: 'hidden',
     maxHeight: 220,
     overflowY: 'auto',
@@ -470,32 +473,40 @@ const M: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '7px 10px',
+    padding: '8px 12px',
     cursor: 'pointer',
     borderBottom: '1px solid var(--border)',
-    background: 'var(--card-alt)',
     transition: 'background 0.1s',
   },
   rowName: {
     flex: 1,
-    fontSize: 11,
-    fontWeight: 700,
+    fontSize: 12,
+    fontWeight: 600,
     color: 'var(--text)',
   },
+  buildTag: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: 'var(--green-dark)',
+    background: '#dcfce7',
+    padding: '1px 6px',
+    borderRadius: 99,
+    border: '1px solid #bbf7d0',
+  },
   hipTag: {
-    fontSize: 8,
-    fontWeight: 900,
+    fontSize: 9,
+    fontWeight: 600,
     color: 'var(--text-light)',
     background: 'var(--border)',
-    padding: '1px 4px',
-    borderRadius: 4,
+    padding: '1px 6px',
+    borderRadius: 99,
   },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
     gap: 5,
-    padding: '8px 10px',
-    background: '#f5f0e0',
+    padding: '8px 12px',
+    background: 'var(--card)',
     borderBottom: '1px solid var(--border)',
   },
 };

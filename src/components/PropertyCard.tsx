@@ -107,10 +107,10 @@ export default function PropertyCard({ position, state, onBuy, onDecline, showAc
               ...(!canAfford ? S.btnDisabled : {}),
             }}
           >
-            🏠 Comprar — R${space.price}
+            Comprar R${space.price}
           </button>
           <button onClick={onDecline} style={S.btnAuction}>
-            🔨 Leiloar
+            Leiloar
           </button>
         </div>
       )}
@@ -220,30 +220,33 @@ const S: Record<string, React.CSSProperties> = {
   btnBuy: {
     flex: 1,
     padding: '9px',
-    background: 'var(--green-grad)',
+    background: 'var(--green)',
     color: '#fff',
-    border: 'none',
+    border: '1px solid var(--green-dark)',
     borderRadius: 'var(--radius)',
-    fontFamily: 'var(--font-title)',
+    fontFamily: 'var(--font-body)',
     fontSize: 13,
+    fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 3px 0 var(--green-dark)',
+    boxShadow: 'none',
   },
   btnAuction: {
     flex: 1,
     padding: '9px',
-    background: 'var(--gold-grad)',
+    background: '#f3f4f6',
     color: 'var(--text)',
-    border: 'none',
+    border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
-    fontFamily: 'var(--font-title)',
+    fontFamily: 'var(--font-body)',
     fontSize: 13,
+    fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 3px 0 var(--gold-dark)',
+    boxShadow: 'none',
   },
   btnDisabled: {
-    background: 'linear-gradient(135deg,#d1d5db,#9ca3af)',
-    boxShadow: '0 3px 0 #6b7280',
+    background: '#e5e7eb',
+    border: '1px solid #d1d5db',
+    color: '#9ca3af',
     cursor: 'not-allowed',
   },
 };
