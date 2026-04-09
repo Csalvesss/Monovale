@@ -12,6 +12,7 @@ import EventModal from './components/EventModal';
 import EndScreen from './components/EndScreen';
 import LoginScreen from './components/LoginScreen';
 import HomePage from './components/HomePage';
+import GameHub from './components/GameHub';
 import JoinRoom from './components/JoinRoom';
 import RoomLobby from './components/RoomLobby';
 import { useAuth } from './contexts/AuthContext';
@@ -30,7 +31,7 @@ import {
 const STORAGE_KEY = 'monovale_game_state';
 const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
-type Screen = 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
+type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
 type MobileTab = 'board' | 'players' | 'log';
 
 function useWindowWidth() {
@@ -85,7 +86,7 @@ export default function App() {
   const mobileScale  = Math.min(1, (winW - 16) / BOARD_PX);
   const tabletScale  = Math.min(1, (winW - 276) / BOARD_PX);
 
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreen] = useState<Screen>('hub');
   const [mobileTab, setMobileTab] = useState<MobileTab>('board');
   const [roomCode, setRoomCode] = useState<string | null>(null);
 
@@ -235,7 +236,7 @@ export default function App() {
     setFinishedGameId(null);
     setRoomCode(null);
     localStorage.removeItem(STORAGE_KEY);
-    setScreen('home');
+    setScreen('hub');
   }
 
   // ── Can the current user act? ──
@@ -284,11 +285,16 @@ export default function App() {
     );
   }
 
+  if (screen === 'hub') return (
+    <GameHub onSelectMonovale={() => setScreen('home')} />
+  );
+
   if (screen === 'home') return (
     <HomePage
       onStartGame={() => setScreen('lobby')}
       onCreateRoom={handleCreateRoom}
       onJoinRoom={() => setScreen('join-room')}
+      onBack={() => setScreen('hub')}
     />
   );
 
