@@ -800,10 +800,10 @@ export const EVENT_CARDS: EventCard[] = [
   },
   {
     id: "ev100",
-    title: "Boom Cultural em Cunha",
-    description: "Cerâmica artesanal vira moda nacional! Dono recebe R$80.",
-    icon: "🏺",
+    title: "Festival das Rosas em Roseira",
+    description: "Turismo floral lota o município! Dono recebe R$80.",
+    icon: "🌹",
     condition: "someone_owns_property",
-    action: { type: "specific_owner_collects", position: 14, spaceName: "Cunha", amount: 80 },
+    action: { type: "specific_owner_collects", position: 14, spaceName: "Roseira", amount: 80 },
   },
 ];
