@@ -74,6 +74,7 @@ export interface Team {
   leagueId: LeagueId;
   country: string;
   badge: string;
+  logoUrl?: string;      // URL do escudo real (CDN)
   primaryColor: string;
   secondaryColor: string;
   reputation: number;    // 1–100

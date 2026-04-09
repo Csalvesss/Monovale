@@ -1,6 +1,7 @@
 import React from 'react';
 import { useMB } from '../../store/gameStore';
 import { getTeam } from '../../data/teams';
+import TeamBadge from '../ui/TeamBadge';
 import type { FinancialRecord, MatchFixture, NewsPost } from '../../types';
 import { LEGENDARY_BASE_CHANCE, LEGENDARY_MAX_CHANCE } from '../../constants';
 
@@ -234,13 +235,8 @@ export default function HomeScreen() {
         alignItems: 'center',
         gap: 14,
       }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 14, flexShrink: 0,
-          background: (myTeam?.primaryColor ?? '#2563eb') + '33',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 30, border: `2px solid ${myTeam?.primaryColor ?? '#2563eb'}44`,
-        }}>
-          {myTeam?.badge ?? '⚽'}
+        <div style={{ width: 56, height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {myTeam ? <TeamBadge team={myTeam} size={52} /> : <span style={{ fontSize: 30 }}>⚽</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#f1f5f9', lineHeight: 1.1 }}>
@@ -300,9 +296,9 @@ export default function HomeScreen() {
           <SectionTitle>Próxima Partida</SectionTitle>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
             {/* My team */}
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 28 }}>{myTeam?.badge ?? '⚽'}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9', marginTop: 4 }}>
+            <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              {myTeam ? <TeamBadge team={myTeam} size={40} /> : <span style={{ fontSize: 28 }}>⚽</span>}
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9' }}>
                 {myTeam?.shortName ?? 'MEU'}
               </div>
               <div style={{ fontSize: 9, color: '#60a5fa', fontWeight: 600 }}>
@@ -317,9 +313,9 @@ export default function HomeScreen() {
             </div>
 
             {/* Opponent */}
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 28 }}>{nextOpponent.badge}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9', marginTop: 4 }}>
+            <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <TeamBadge team={nextOpponent} size={40} />
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9' }}>
                 {nextOpponent.shortName}
               </div>
               <div style={{ fontSize: 9, color: '#94a3b8' }}>
