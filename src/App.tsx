@@ -75,7 +75,7 @@ const TB: Record<string, React.CSSProperties> = {
 };
 
 export default function App() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, logout } = useAuth();
   const winW = useWindowWidth();
   const isMobile = winW < 768;
   const isTablet = winW >= 768 && winW < 1100;
@@ -236,6 +236,28 @@ export default function App() {
   }
 
   if (!user) return <LoginScreen />;
+
+  // User logged in but profile failed to load (Firestore rules issue)
+  if (!profile) {
+    return (
+      <div style={S.loadingPage}>
+        <div style={S.loadingCard}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+          <div style={S.loadingTitle}>Erro ao carregar perfil</div>
+          <p style={{ color: 'var(--text-mid)', fontWeight: 600, fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
+            Verifique as Regras do Firestore<br />
+            ou tente fazer logout e entrar novamente.
+          </p>
+          <button
+            onClick={() => { logout(); }}
+            style={{ padding: '12px 24px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 99, cursor: 'pointer', fontWeight: 800, fontSize: 14, boxShadow: '0 4px 0 var(--red-dark)', fontFamily: 'var(--font-body)' }}
+          >
+            Fazer Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (screen === 'home') return (
     <HomePage
