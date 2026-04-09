@@ -9,9 +9,9 @@ interface Props {
 }
 
 // Grid dimensions
-const CORNER = 82;
-const CELL_W = 52;
-const CELL_H = 82;
+const CORNER = 100;
+const CELL_W = 64;
+const CELL_H = 100;
 const BOARD_SIZE = CORNER * 2 + CELL_W * 9;
 
 export default function Board({ state, onSpaceClick }: Props) {
