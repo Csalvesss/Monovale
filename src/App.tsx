@@ -29,6 +29,7 @@ import {
 } from './logic/gameEngine';
 
 const STORAGE_KEY = 'monovale_game_state';
+const ROOM_KEY    = 'monovale_room_code';
 const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
 type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
@@ -88,7 +89,7 @@ export default function App() {
 
   const [screen, setScreen] = useState<Screen>('hub');
   const [mobileTab, setMobileTab] = useState<MobileTab>('board');
-  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(() => localStorage.getItem(ROOM_KEY));
 
   // ── Game state ──
   const [gameState, setGameState] = useState<GameState | null>(() => {
@@ -100,8 +101,7 @@ export default function App() {
         if (
           parsed.phase === 'playing' &&
           Array.isArray(parsed.players) &&
-          Array.isArray(parsed.spaces) &&
-          Array.isArray(parsed.dice)
+          Array.isArray(parsed.spaces)
         ) {
           // Backfill new fields for saves from before Evento do Vale
           if (parsed.pendingEvent === undefined) parsed.pendingEvent = null;
@@ -130,8 +130,20 @@ export default function App() {
 
   // Restore in-progress game on mount
   useEffect(() => {
-    if (gameState?.phase === 'playing') setScreen('game');
+    if (gameState?.phase === 'playing') {
+      setScreen('game');
+      // If this was a room game, reconnect the Firestore listener
+      if (roomCode && gameState.gameId) {
+        startGameListener(gameState.gameId);
+      }
+    }
   }, []); // eslint-disable-line
+
+  // Persist roomCode to localStorage
+  useEffect(() => {
+    if (roomCode) localStorage.setItem(ROOM_KEY, roomCode);
+    else localStorage.removeItem(ROOM_KEY);
+  }, [roomCode]);
 
   // Persist locally + to Firestore
   useEffect(() => {
