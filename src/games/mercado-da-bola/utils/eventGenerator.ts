@@ -167,8 +167,8 @@ export function generateInitialFeed(myTeamName: string): NewsPost[] {
   for (let i = 0; i < 6; i++) feed.push(generateWorldNews());
   feed.push({
     id: newsId(), type: 'general', platform: 'instagram',
-    author: '@mercadodabola.oficial',
-    content: `⚽ Bem-vindo ao ${myTeamName}! A temporada começa agora. Boa sorte, treinador! 🏆 #MercadoDaBola`,
+    author: '@lendadabola.oficial',
+    content: `⚽ Bem-vindo ao ${myTeamName}! A temporada começa agora. Boa sorte, treinador! 🏆 #LendaDaBola`,
     imageEmoji: '🎮',
     likes: randInt(1000, 5000), comments: randInt(100, 500), timestamp: Date.now() - 1000, isMyTeam: true,
   });

@@ -32,7 +32,7 @@ const GAMES: GameCard[] = [
   },
   {
     id: 'mercado-da-bola',
-    name: 'Mercado da Bola',
+    name: 'Lenda da Bola',
     tagline: 'Manager de futebol',
     description: 'Gerencie seu clube, contrate estrelas, dispute o campeonato e encontre cartas lendárias!',
     tags: ['Futebol', 'Estratégia', 'Gerenciamento'],
@@ -157,7 +157,7 @@ export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola }: Pro
                     ) : game.id === 'mercado-da-bola' ? (
                       <div style={S.bannerInner}>
                         <span style={{ fontSize: 48 }}>⚽</span>
-                        <span style={S.bannerGameName}>Mercado da Bola</span>
+                        <span style={S.bannerGameName}>Lenda da Bola</span>
                       </div>
                     ) : (
                       <div style={S.bannerInner}>

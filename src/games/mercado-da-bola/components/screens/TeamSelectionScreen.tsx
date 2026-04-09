@@ -104,7 +104,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
           fontFamily: 'var(--font-body)', fontWeight: 700,
         }}>← Sair</button>
         <div style={{ fontSize: 48, marginBottom: 8 }}>⚽</div>
-        <div style={{ fontFamily: 'var(--font-title)', fontSize: 28, fontWeight: 900, color: '#fff' }}>Mercado da Bola</div>
+        <div style={{ fontFamily: 'var(--font-title)', fontSize: 28, fontWeight: 900, color: '#fff' }}>Lenda da Bola</div>
         <div style={{ fontSize: 14, color: '#a7f3d0', marginTop: 4 }}>Escolha seu clube e comece a jornada</div>
       </div>
 
