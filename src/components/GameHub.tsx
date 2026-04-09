@@ -8,6 +8,8 @@ import type { GameResult } from '../types';
 interface Props {
   onSelectMonovale: () => void;
   onSelectMercadoDaBola: () => void;
+  hasSavedGame?: boolean;
+  onResumeGame?: () => void;
 }
 
 interface GameCard {
@@ -50,7 +52,7 @@ const GAMES: GameCard[] = [
   },
 ];
 
-export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola }: Props) {
+export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola, hasSavedGame, onResumeGame }: Props) {
   const { profile, logout, updatePawn } = useAuth();
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [editingPawn, setEditingPawn] = useState(false);
@@ -127,6 +129,20 @@ export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola }: Pro
 
       <div style={S.body}>
         <div style={S.main}>
+
+          {/* ── Resume saved game ── */}
+          {hasSavedGame && onResumeGame && (
+            <div style={S.resumeBanner}>
+              <div style={S.resumeLeft}>
+                <span style={{ fontSize: 28 }}>🏔️</span>
+                <div>
+                  <div style={S.resumeTitle}>Partida em andamento</div>
+                  <div style={S.resumeSub}>Você tem uma partida salva de Monovale</div>
+                </div>
+              </div>
+              <button style={S.resumeBtn} onClick={onResumeGame}>▶ Retomar</button>
+            </div>
+          )}
 
           {/* ── Games library ── */}
           <section style={S.section}>
@@ -432,4 +448,23 @@ const S: Record<string, React.CSSProperties> = {
   recentPlayers: { fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 1 },
   recentDate: { fontSize: 11, color: 'var(--text-light)', fontWeight: 500 },
   rankBadge: { padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, flexShrink: 0 },
+
+  resumeBanner: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: 12, padding: '16px 20px',
+    background: 'linear-gradient(90deg, #065F46, #059669)',
+    borderRadius: 'var(--radius-xl)',
+    boxShadow: '0 4px 12px rgba(5,150,105,0.3)',
+  },
+  resumeLeft: { display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 },
+  resumeTitle: { fontFamily: 'var(--font-title)', fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 },
+  resumeSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 500 },
+  resumeBtn: {
+    flexShrink: 0, padding: '10px 20px',
+    background: '#fff', color: '#065F46',
+    border: 'none', borderRadius: 'var(--radius)',
+    fontSize: 13, fontWeight: 800,
+    cursor: 'pointer', fontFamily: 'var(--font-body)',
+    boxShadow: '0 2px 0 rgba(0,0,0,0.1)',
+  },
 };

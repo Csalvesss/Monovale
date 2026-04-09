@@ -252,6 +252,17 @@ export default function App() {
     setScreen('hub');
   }
 
+  function exitToMenu() {
+    // Game is already auto-saved to localStorage — just navigate away without clearing it
+    gameListenerRef.current?.();
+    gameListenerRef.current = null;
+    roomListenerRef.current?.();
+    roomListenerRef.current = null;
+    setRoomCode(null);
+    setShowConfirm(false);
+    setScreen('hub');
+  }
+
   // ── Can the current user act? ──
   const canAct = !isRoomGame ||
     (gameState?.players[gameState.currentPlayerIndex]?.uid === profile?.uid);
@@ -303,7 +314,12 @@ export default function App() {
   );
 
   if (screen === 'hub') return (
-    <GameHub onSelectMonovale={() => setScreen('home')} onSelectMercadoDaBola={() => setScreen('mercado-da-bola')} />
+    <GameHub
+      onSelectMonovale={() => setScreen('home')}
+      onSelectMercadoDaBola={() => setScreen('mercado-da-bola')}
+      hasSavedGame={!!gameState && gameState.phase === 'playing'}
+      onResumeGame={() => setScreen('game')}
+    />
   );
 
   if (screen === 'home') return (
@@ -384,11 +400,12 @@ export default function App() {
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <div style={S.confirmTitle}>Nova Partida?</div>
-            <p style={S.confirmText}>O progresso atual será perdido.</p>
+            <div style={S.confirmTitle}>Pausar ou Sair?</div>
+            <p style={S.confirmText}>O que deseja fazer?</p>
             <div style={S.confirmBtns}>
-              <button onClick={() => { setShowConfirm(false); clearGame(); }} style={S.confirmBtnYes}>Sim</button>
-              <button onClick={() => setShowConfirm(false)} style={S.confirmBtnNo}>Cancelar</button>
+              <button onClick={exitToMenu} style={S.confirmBtnMenu}>💾 Salvar e Ir ao Menu</button>
+              <button onClick={() => { setShowConfirm(false); clearGame(); }} style={S.confirmBtnYes}>🔄 Nova Partida</button>
+              <button onClick={() => setShowConfirm(false)} style={S.confirmBtnNo}>Continuar Jogando</button>
             </div>
           </div>
         </div>
@@ -526,10 +543,11 @@ const S: Record<string, React.CSSProperties> = {
   waitingBanner: { padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600, color: 'var(--text-mid)', textAlign: 'center', marginBottom: 8 },
 
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, backdropFilter: 'blur(6px)', padding: 16 },
-  confirmBox: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '32px 28px', maxWidth: 340, width: '100%', textAlign: 'center', animation: 'pop-in 0.25s ease' },
-  confirmTitle: { fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 8 },
-  confirmText: { fontSize: 14, color: 'var(--text-mid)', fontWeight: 500, margin: '0 0 20px' },
-  confirmBtns: { display: 'flex', gap: 10 },
-  confirmBtnYes: { flex: 1, padding: '13px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
-  confirmBtnNo: { flex: 1, padding: '13px', background: 'var(--card-alt)', color: 'var(--text)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBox: { background: '#FFFFFF', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '32px 28px', maxWidth: 340, width: '100%', textAlign: 'center', animation: 'pop-in 0.25s ease' },
+  confirmTitle: { fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: '#0F172A', marginBottom: 8 },
+  confirmText: { fontSize: 14, color: '#475569', fontWeight: 500, margin: '0 0 20px' },
+  confirmBtns: { display: 'flex', flexDirection: 'column', gap: 10 },
+  confirmBtnMenu: { width: '100%', padding: '13px', background: 'var(--green-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBtnYes: { width: '100%', padding: '13px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBtnNo: { width: '100%', padding: '11px', background: '#F8FAFC', color: '#475569', border: '1.5px solid rgba(15,23,42,0.09)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' },
 };
