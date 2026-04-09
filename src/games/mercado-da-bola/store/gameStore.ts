@@ -758,13 +758,6 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
   const trainPlayer = useCallback((playerId: string, cost: number) => dispatch({ type: 'TRAIN_PLAYER', playerId, cost }), []);
   const upgradeStadium = useCallback((u: StadiumUpgrade) => dispatch({ type: 'UPGRADE_STADIUM', upgrade: u }), []);
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
-  | { type: 'SWITCH_TURN' }
-  | { type: 'SET_MANAGER_PROFILE'; profile: ManagerProfile; save: GameSave }
-  | { type: 'READ_MESSAGE'; messageId: string }
-  | { type: 'RESPOND_MESSAGE'; messageId: string; responseIndex: number }
-  | { type: 'DISMISS_ROUND_RESULTS' }
-  | { type: 'ACCEPT_OFFER'; offerId: string }
-  | { type: 'REJECT_OFFER'; offerId: string };
   const playMatch = useCallback((fixtureIndex: number) => {
     if (!state.save) return;
     const fixture = state.save.fixtures[fixtureIndex];
