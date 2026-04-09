@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { MBProvider, useMB, loadSave } from './store/gameStore';
 import GameLayout from './components/layout/GameLayout';
 import TeamSelectionScreen from './components/screens/TeamSelectionScreen';
+import OnboardingScreen from './components/screens/OnboardingScreen';
 import HomeScreen from './components/screens/HomeScreen';
 import SquadScreen from './components/screens/SquadScreen';
 import MarketScreen from './components/screens/MarketScreen';
@@ -13,6 +14,8 @@ import StadiumScreen from './components/screens/StadiumScreen';
 import PlayerDetailScreen from './components/screens/PlayerDetailScreen';
 import TurnHandoffScreen from './components/screens/TurnHandoffScreen';
 import OnlineLobbyScreen from './components/screens/OnlineLobbyScreen';
+import OnboardingScreen from './components/screens/OnboardingScreen';
+import InboxScreen from './components/screens/InboxScreen';
 
 interface Props {
   onBack: () => void;
@@ -47,6 +50,11 @@ function GameRouter({ onBack }: Props) {
     return <TurnHandoffScreen />;
   }
 
+  // Onboarding (first time, no manager profile)
+  if (screen === 'onboarding') {
+    return <OnboardingScreen onBack={onBack} />;
+  }
+
   const screenComponent = (() => {
     switch (screen) {
       case 'home':          return <HomeScreen />;
@@ -58,6 +66,7 @@ function GameRouter({ onBack }: Props) {
       case 'social':        return <SocialScreen />;
       case 'stadium':       return <StadiumScreen />;
       case 'player-detail': return <PlayerDetailScreen />;
+      case 'inbox':         return <InboxScreen />;
       default:              return <HomeScreen />;
     }
   })();

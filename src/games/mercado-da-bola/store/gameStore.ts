@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { syncProgress } from '../services/lendaService';
-import type { GameSave, Player, MBScreen, MatchFixture, MatchResult, TransferOffer, StadiumUpgrade, PlayerProfile } from '../types';
+import type { GameSave, Player, MBScreen, MatchFixture, MatchResult, TransferOffer, StadiumUpgrade, PlayerProfile, PlayerMessage, ManagerProfile, RoundResultSummary } from '../types';
 import { ALL_TEAMS, getTeam } from '../data/teams';
 import { ALL_SPONSORS, getSponsor } from '../data/sponsors';
 import { LEGENDARY_PLAYERS, getLegendaryById } from '../data/legendary-players';
@@ -26,6 +26,7 @@ interface MBState {
   lastMatchResult: ReturnType<typeof simulateMatch> | null;
   selectedPlayerId: string | null;
   notification: { message: string; type: 'success' | 'error' | 'info' | 'legendary' } | null;
+  showRoundResults: boolean;
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -45,24 +46,37 @@ type Action =
   | { type: 'DISMISS_NOTIFICATION' }
   | { type: 'SHOW_NOTIFICATION'; message: string; notifType: 'success' | 'error' | 'info' | 'legendary' }
   | { type: 'UPDATE_SAVE'; save: GameSave }
-  | { type: 'SWITCH_TURN' };
-
+  | { type: 'SWITCH_TURN' }
+  | { type: 'SET_MANAGER_PROFILE'; profile: ManagerProfile; save: GameSave }
+  | { type: 'READ_MESSAGE'; messageId: string }
+  | { type: 'RESPOND_MESSAGE'; messageId: string; responseIndex: number }
+  | { type: 'DISMISS_ROUND_RESULTS' }
+  | { type: 'ACCEPT_OFFER'; offerId: string }
+  | { type: 'REJECT_OFFER'; offerId: string };
 // ─── Reducer ─────────────────────────────────────────────────────────────────
 
 function reducer(state: MBState, action: Action): MBState {
   switch (action.type) {
     case 'LOAD_SAVE':
-    case 'START_NEW_GAME': {
-      // Backfill multiplayer fields for old saves that lack them
+    case 'LOAD_SAVE': {
       const migratedSave: GameSave = {
         mode: 'solo',
         currentTurn: 1,
         playerProfiles: null,
         randomSeed: Math.floor(Math.random() * 1_000_000),
+        playerMessages: [],
+        unreadMessages: 0,
         ...action.save,
       };
-      return { ...state, save: migratedSave, screen: action.type === 'START_NEW_GAME' && migratedSave.mode === 'local-multi' ? 'turn-handoff' : 'home' };
+      return { ...state, save: migratedSave, screen: 'home' };
     }
+    case 'START_NEW_GAME':
+      // If no manager profile yet, go to onboarding; otherwise go home
+      return {
+        ...state,
+        save: action.save,
+        screen: action.save.managerProfile ? 'home' : 'onboarding',
+      };
 
     case 'SET_SCREEN':
       return {
@@ -82,6 +96,7 @@ function reducer(state: MBState, action: Action): MBState {
         ...state,
         lastMatchResult: action.result,
         matchPhase: 'result',
+        showRoundResults: true,
         save: applyMatchResult(state.save, action.result, action.fixtureIndex),
       };
 
@@ -201,61 +216,13 @@ function reducer(state: MBState, action: Action): MBState {
       persistSave(action.save);
       return { ...state, save: action.save };
 
-    case 'SWITCH_TURN': {
-      if (!state.save || !state.save.playerProfiles) return state;
-      const { save } = state;
-      const currentTurn = save.currentTurn;
-      const nextTurn: 1 | 2 = currentTurn === 1 ? 2 : 1;
-
-      // Archive current player's live data into their profile slot
-      const updatedProfiles: [PlayerProfile, PlayerProfile] = [
-        { ...save.playerProfiles[0] },
-        { ...save.playerProfiles[1] },
-      ];
-      updatedProfiles[currentTurn - 1] = {
-        name: save.playerProfiles[currentTurn - 1].name,
-        teamId: save.myTeamId,
-        squad: save.mySquad,
-        budget: save.budget,
-        stadium: save.stadium,
-        sponsorId: save.sponsorId,
-        sponsorPoints: save.sponsorPoints,
-        legendaryCardsOwned: save.legendaryCardsOwned,
-        legendaryChanceBonus: save.legendaryChanceBonus,
-        pendingOffers: save.pendingOffers,
-        finances: save.finances,
-        fixtures: save.fixtures,
-        currentRound: save.currentRound,
-        currentSeason: save.currentSeason,
-        seasonHistory: save.seasonHistory,
-        totalRoundsPlayed: save.totalRoundsPlayed,
-      };
-
-      const next = updatedProfiles[nextTurn - 1];
-      const newSave: GameSave = {
-        ...save,
-        currentTurn: nextTurn,
-        playerProfiles: updatedProfiles,
-        myTeamId: next.teamId,
-        mySquad: next.squad,
-        budget: next.budget,
-        stadium: next.stadium,
-        sponsorId: next.sponsorId,
-        sponsorPoints: next.sponsorPoints,
-        legendaryCardsOwned: next.legendaryCardsOwned,
-        legendaryChanceBonus: next.legendaryChanceBonus,
-        pendingOffers: next.pendingOffers,
-        finances: next.finances,
-        fixtures: next.fixtures,
-        currentRound: next.currentRound,
-        currentSeason: next.currentSeason,
-        seasonHistory: next.seasonHistory,
-        totalRoundsPlayed: next.totalRoundsPlayed,
-      };
-
-      persistSave(newSave);
-      return { ...state, save: newSave, screen: 'turn-handoff', lastMatchResult: null, matchPhase: null };
-    }
+  | { type: 'SWITCH_TURN' }
+  | { type: 'SET_MANAGER_PROFILE'; profile: ManagerProfile; save: GameSave }
+  | { type: 'READ_MESSAGE'; messageId: string }
+  | { type: 'RESPOND_MESSAGE'; messageId: string; responseIndex: number }
+  | { type: 'DISMISS_ROUND_RESULTS' }
+  | { type: 'ACCEPT_OFFER'; offerId: string }
+  | { type: 'REJECT_OFFER'; offerId: string };
 
     default:
       return state;
@@ -288,10 +255,12 @@ function applyMatchResult(save: GameSave, matchData: ReturnType<typeof simulateM
   const fixture = save.fixtures[fixtureIndex];
   if (!fixture) return save;
 
-  // Update fixture
-  const updatedFixtures = save.fixtures.map((f, i) => i === fixtureIndex ? { ...f, result, played: true } : f);
+  const playerRound = fixture.round;
 
-  // Update standings
+  // Update player's fixture
+  let updatedFixtures = save.fixtures.map((f, i) => i === fixtureIndex ? { ...f, result, played: true } : f);
+
+  // Update standings for player's match
   const myTeamId = save.myTeamId;
   const isHome = fixture.homeTeamId === myTeamId;
   const myGoals = isHome ? result.homeGoals : result.awayGoals;
@@ -300,7 +269,7 @@ function applyMatchResult(save: GameSave, matchData: ReturnType<typeof simulateM
   const isDraw = myGoals === opGoals;
   const opponentId = isHome ? fixture.awayTeamId : fixture.homeTeamId;
 
-  const updatedStandings = save.standings.map(s => {
+  let updatedStandings = save.standings.map(s => {
     if (s.teamId === myTeamId) {
       return {
         ...s,
@@ -328,6 +297,89 @@ function applyMatchResult(save: GameSave, matchData: ReturnType<typeof simulateM
     }
     return s;
   });
+
+  // ── CPU vs CPU: simulate all other fixtures in this round ──
+  const cpuRoundResults: RoundResultSummary['fixtures'] = [{
+    homeTeamId: fixture.homeTeamId,
+    awayTeamId: fixture.awayTeamId,
+    homeGoals: result.homeGoals,
+    awayGoals: result.awayGoals,
+  }];
+
+  const otherRoundFixtures = save.fixtures.filter(
+    (f, i) => i !== fixtureIndex && f.round === playerRound && !f.played
+  );
+
+  for (const cpuFixture of otherRoundFixtures) {
+    const teamA = getTeam(cpuFixture.homeTeamId);
+    const teamB = getTeam(cpuFixture.awayTeamId);
+    const ratingA = teamA ? Math.round(teamA.reputation * 0.85) : 60;
+    const ratingB = teamB ? Math.round(teamB.reputation * 0.85) : 60;
+    const seed = playerRound * 9973 +
+      (cpuFixture.homeTeamId.charCodeAt(0) * 31) +
+      (cpuFixture.awayTeamId.charCodeAt(0) * 17);
+    const { goalsA, goalsB } = quickSimulate(ratingA, ratingB, seed);
+
+    const cpuMatchResult: MatchResult = {
+      homeGoals: goalsA,
+      awayGoals: goalsB,
+      winner: goalsA > goalsB ? 'home' : goalsA < goalsB ? 'away' : 'draw',
+      sponsorEarned: 0,
+      xpEarned: {},
+      ticketRevenue: 0,
+    };
+
+    // Mark fixture as played
+    updatedFixtures = updatedFixtures.map(f =>
+      f.homeTeamId === cpuFixture.homeTeamId &&
+      f.awayTeamId === cpuFixture.awayTeamId &&
+      f.round === cpuFixture.round
+        ? { ...f, result: cpuMatchResult, played: true }
+        : f
+    );
+
+    cpuRoundResults.push({
+      homeTeamId: cpuFixture.homeTeamId,
+      awayTeamId: cpuFixture.awayTeamId,
+      homeGoals: goalsA,
+      awayGoals: goalsB,
+    });
+
+    // Update standings for both CPU teams
+    const homeWon = goalsA > goalsB;
+    const cpuDraw = goalsA === goalsB;
+    const awayWon = goalsB > goalsA;
+
+    updatedStandings = updatedStandings.map(s => {
+      if (s.teamId === cpuFixture.homeTeamId) {
+        return {
+          ...s,
+          played: s.played + 1,
+          won: s.won + (homeWon ? 1 : 0),
+          drawn: s.drawn + (cpuDraw ? 1 : 0),
+          lost: s.lost + (awayWon ? 1 : 0),
+          goalsFor: s.goalsFor + goalsA,
+          goalsAgainst: s.goalsAgainst + goalsB,
+          points: s.points + (homeWon ? 3 : cpuDraw ? 1 : 0),
+        };
+      }
+      if (s.teamId === cpuFixture.awayTeamId) {
+        return {
+          ...s,
+          played: s.played + 1,
+          won: s.won + (awayWon ? 1 : 0),
+          drawn: s.drawn + (cpuDraw ? 1 : 0),
+          lost: s.lost + (homeWon ? 1 : 0),
+          goalsFor: s.goalsFor + goalsB,
+          goalsAgainst: s.goalsAgainst + goalsA,
+          points: s.points + (awayWon ? 3 : cpuDraw ? 1 : 0),
+        };
+      }
+      return s;
+    });
+  }
+
+  const lastRoundResults: RoundResultSummary = { round: playerRound, fixtures: cpuRoundResults };
 
   // Apply XP to squad
   const updatedSquad = save.mySquad.map(p => {
@@ -394,6 +446,7 @@ function applyMatchResult(save: GameSave, matchData: ReturnType<typeof simulateM
     legendaryChanceBonus: legendaryBonus,
     currentRound: save.currentRound + 1,
     totalRoundsPlayed: save.totalRoundsPlayed + 1,
+    lastRoundResults,
   };
 }
 
@@ -402,6 +455,148 @@ function computeMood(moodPoints: number): Player['mood'] {
   if (moodPoints >= 60) return 'happy';
   if (moodPoints >= 35) return 'neutral';
   return 'unhappy';
+}
+
+function generatePlayerMessages(save: GameSave): PlayerMessage[] {
+  const newMessages: PlayerMessage[] = [];
+  const existing = save.playerMessages ?? [];
+
+  for (const player of save.mySquad) {
+    // Skip if player already sent a message this round
+    const recentMsg = existing.find(m => m.playerId === player.id && m.round >= save.currentRound - 1);
+    if (recentMsg) continue;
+
+    // 1. Bench streak — 3+ games on bench (low moodPoints after MOOD_BENCH_PENALTY)
+    if (player.moodPoints <= 30 && !player.injured && Math.random() < 0.6) {
+      newMessages.push({
+        id: `msg-${Date.now()}-${player.id}-bench`,
+        playerId: player.id,
+        playerName: player.name,
+        playerFlag: player.flag,
+        content: pickFrom([
+          `Manager, estou treinando muito e me sinto pronto. Por que não me usa nas partidas?`,
+          `Vim para este clube para jogar, não para ficar observando do banco.`,
+          `Tenho trabalhado duro. Só queria entender o critério de escalação.`,
+        ]),
+        mood: 'com_raiva',
+        type: 'bench_streak',
+        read: false,
+        round: save.currentRound,
+        timestamp: Date.now(),
+        responses: [
+          { text: 'Você é importante, mas precisa esperar seu momento.', moralDelta: 0, loyaltyDelta: 0 },
+          { text: 'Vai jogar na próxima partida, prometo.', moralDelta: 15, loyaltyDelta: 5 },
+          { text: 'Entendo sua frustração, mas a decisão é técnica.', moralDelta: -5, loyaltyDelta: 2 },
+        ],
+      });
+    }
+
+    // 2. Contract expiring — 1 season left
+    if (player.contractExpiresIn <= 1 && Math.random() < 0.5) {
+      newMessages.push({
+        id: `msg-${Date.now()}-${player.id}-contract`,
+        playerId: player.id,
+        playerName: player.name,
+        playerFlag: player.flag,
+        content: pickFrom([
+          `Meu contrato está acabando. Existe interesse do clube em renovar?`,
+          `Estou esperando uma sinalização do clube sobre meu futuro aqui.`,
+          `Já estou conversando com outros clubes. Mas prefiro ficar se houver proposta.`,
+        ]),
+        mood: 'insatisfeito',
+        type: 'contract_expiring',
+        read: false,
+        round: save.currentRound,
+        timestamp: Date.now() + 100,
+        responses: [
+          { text: 'Vamos renovar sim! Você é parte do nosso projeto.', moralDelta: 20, loyaltyDelta: 15 },
+          { text: 'Ainda estamos avaliando. Preciso de mais tempo.', moralDelta: -5, loyaltyDelta: -5 },
+          { text: 'Se tiver proposta melhor, pode analisar.', moralDelta: -10, loyaltyDelta: -20 },
+        ],
+      });
+    }
+
+    // 3. Happy / scoring streak — high moodPoints
+    if (player.moodPoints >= 85 && Math.random() < 0.25) {
+      newMessages.push({
+        id: `msg-${Date.now()}-${player.id}-happy`,
+        playerId: player.id,
+        playerName: player.name,
+        playerFlag: player.flag,
+        content: pickFrom([
+          `Estou muito feliz aqui! Esse clube me faz jogar meu melhor futebol.`,
+          `Manager, obrigado pela confiança. Vou dar o máximo em campo!`,
+          `Nunca estive tão confiante. Estou pronto para qualquer desafio!`,
+        ]),
+        mood: 'muito_feliz',
+        type: 'general',
+        read: false,
+        round: save.currentRound,
+        timestamp: Date.now() + 200,
+        responses: [
+          { text: 'Fico feliz em ouvir isso! Continue assim.', moralDelta: 5, loyaltyDelta: 5 },
+          { text: 'Excelente! O clube conta com você.', moralDelta: 8, loyaltyDelta: 8 },
+        ],
+      });
+    }
+
+    // 4. Injury return
+    if (!player.injured && player.injuredForRounds === 0 &&
+        existing.find(m => m.playerId === player.id && m.type === 'injury_return') === undefined &&
+        Math.random() < 0.3) {
+      // Only trigger once after returning from injury; check if player was recently injured
+      // (rough heuristic: low XP player with moodPoints just recovering)
+      if (player.moodPoints >= 40 && player.moodPoints <= 60 && Math.random() < 0.15) {
+        newMessages.push({
+          id: `msg-${Date.now()}-${player.id}-injreturn`,
+          playerId: player.id,
+          playerName: player.name,
+          playerFlag: player.flag,
+          content: pickFrom([
+            `Estou 100% recuperado e ansioso para voltar a jogar!`,
+            `Esses meses foram difíceis, mas a fisioterapia foi incrível. Estou pronto!`,
+            `Lesão superada. Só preciso de ritmo de jogo. Por favor, me escale!`,
+          ]),
+          mood: 'feliz',
+          type: 'injury_return',
+          read: false,
+          round: save.currentRound,
+          timestamp: Date.now() + 300,
+          responses: [
+            { text: 'Bem-vindo de volta! Vai jogar em breve.', moralDelta: 15, loyaltyDelta: 10 },
+            { text: 'Preciso te ver treinar mais um pouco primeiro.', moralDelta: -5, loyaltyDelta: 0 },
+          ],
+        });
+      }
+    }
+  }
+
+  return newMessages;
+}
+
+function generateIncomingOffer(save: GameSave): TransferOffer | null {
+  if (save.mySquad.length === 0 || Math.random() > 0.2) return null;
+  // Target a random player from squad
+  const candidates = save.mySquad.filter(p => p.stars >= 3);
+  if (candidates.length === 0) return null;
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  const offeringTeams = ALL_TEAMS.filter(t => t.id !== save.myTeamId);
+  const offeringTeam = offeringTeams[Math.floor(Math.random() * offeringTeams.length)];
+  if (!offeringTeam) return null;
+  const offerAmount = Math.round(target.marketValue * (0.8 + Math.random() * 0.6));
+  return {
+    id: `offer-${Date.now()}-${target.id}`,
+    playerId: target.id,
+    fromTeamId: offeringTeam.id,
+    toTeamId: save.myTeamId,
+    offerAmount,
+    status: 'pending',
+    round: save.currentRound,
+  };
+}
+
+function pickFrom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function advanceRound(save: GameSave): GameSave {
@@ -426,7 +621,23 @@ function advanceRound(save: GameSave): GameSave {
   // Random event
   const { save: eventSave } = applyRandomEvent({ ...save, mySquad, budget: newBudget - lifestyleCost, finances });
 
-  return eventSave;
+  // Generate player messages
+  const newMessages = generatePlayerMessages(eventSave);
+  const allMessages = [...newMessages, ...(eventSave.playerMessages ?? [])].slice(0, 30);
+  const unreadMessages = allMessages.filter(m => !m.read).length;
+
+  // Maybe generate incoming offer
+  const incomingOffer = generateIncomingOffer(eventSave);
+  const pendingOffers = incomingOffer
+    ? [incomingOffer, ...eventSave.pendingOffers.filter(o => o.status === 'pending')]
+    : eventSave.pendingOffers.filter(o => o.status === 'pending');
+
+  return {
+    ...eventSave,
+    playerMessages: allMessages,
+    unreadMessages,
+    pendingOffers,
+  };
 }
 
 function persistSave(save: GameSave) {
@@ -449,6 +660,12 @@ interface MBContextValue {
   playMatch: (fixtureIndex: number) => void;
   switchTurn: () => void;
   dismissNotification: () => void;
+  setManagerProfile: (profile: ManagerProfile, save: GameSave) => void;
+  readMessage: (messageId: string) => void;
+  respondMessage: (messageId: string, responseIndex: number) => void;
+  dismissRoundResults: () => void;
+  acceptOffer: (offerId: string) => void;
+  rejectOffer: (offerId: string) => void;
 }
 
 const MBContext = createContext<MBContextValue | null>(null);
@@ -461,6 +678,7 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
     lastMatchResult: null,
     selectedPlayerId: null,
     notification: null,
+    showRoundResults: false,
   });
 
   const setScreen = useCallback((s: MBScreen) => dispatch({ type: 'SET_SCREEN', screen: s }), []);
@@ -471,17 +689,13 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
   const trainPlayer = useCallback((playerId: string, cost: number) => dispatch({ type: 'TRAIN_PLAYER', playerId, cost }), []);
   const upgradeStadium = useCallback((u: StadiumUpgrade) => dispatch({ type: 'UPGRADE_STADIUM', upgrade: u }), []);
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
-  const switchTurn = useCallback(() => dispatch({ type: 'SWITCH_TURN' }), []);
-
-  // Debounced Firestore sync for online mode
-  useEffect(() => {
-    if (!state.save?.onlineLeagueCode || !state.save?.playerUid) return;
-    const timer = setTimeout(() => {
-      syncProgress(state.save!.onlineLeagueCode!, state.save!.playerUid!, state.save!);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [state.save]);
-
+  | { type: 'SWITCH_TURN' }
+  | { type: 'SET_MANAGER_PROFILE'; profile: ManagerProfile; save: GameSave }
+  | { type: 'READ_MESSAGE'; messageId: string }
+  | { type: 'RESPOND_MESSAGE'; messageId: string; responseIndex: number }
+  | { type: 'DISMISS_ROUND_RESULTS' }
+  | { type: 'ACCEPT_OFFER'; offerId: string }
+  | { type: 'REJECT_OFFER'; offerId: string };
   const playMatch = useCallback((fixtureIndex: number) => {
     if (!state.save) return;
     const fixture = state.save.fixtures[fixtureIndex];
@@ -512,7 +726,6 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
   return React.createElement(
     MBContext.Provider,
     { value: { state, dispatch, setScreen, selectPlayer, buyPlayer, sellPlayer, setSponsor, trainPlayer, upgradeStadium, playMatch, switchTurn, dismissNotification } },
-    children
   );
 }
 
