@@ -47,7 +47,7 @@ export default function GameLayout({ children, onBack }: { children: React.React
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 18 }}>⚽</span>
-          <span style={{ fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: 16, color: '#fff' }}>Mercado da Bola</span>
+          <span style={{ fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: 16, color: '#fff' }}>Lenda da Bola</span>
         </div>
         {state.save && (
           <div style={{ fontSize: 12, fontWeight: 700, color: '#fde68a' }}>

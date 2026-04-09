@@ -111,7 +111,7 @@ export default function LegendaryReveal({ player, onClose }: Props) {
             >
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 64 }}>⚽</div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#475569', letterSpacing: 3, marginTop: 8 }}>MERCADO DA BOLA</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: '#475569', letterSpacing: 3, marginTop: 8 }}>LENDA DA BOLA</div>
               </div>
             </div>
 
