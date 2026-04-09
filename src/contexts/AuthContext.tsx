@@ -56,11 +56,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       setUser(fbUser);
       if (fbUser) {
-        const profileSnap = await getDoc(doc(db, 'users', fbUser.uid));
-        if (profileSnap.exists()) {
-          setProfile(profileSnap.data() as UserProfile);
+        try {
+          const profileSnap = await getDoc(doc(db, 'users', fbUser.uid));
+          if (profileSnap.exists()) {
+            setProfile(profileSnap.data() as UserProfile);
+          }
+          await refreshAllUsers();
+        } catch (e) {
+          console.warn('Firestore error (check security rules):', e);
         }
-        await refreshAllUsers();
       } else {
         setProfile(null);
       }

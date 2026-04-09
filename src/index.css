@@ -73,10 +73,13 @@ html, body {
 button {
   font-family: var(--font-body);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-input, select {
+input, select, textarea {
   font-family: var(--font-body);
+  font-size: 16px; /* prevent iOS zoom on focus */
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
