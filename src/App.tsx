@@ -15,7 +15,7 @@ import HomePage from './components/HomePage';
 import GameHub from './components/GameHub';
 import JoinRoom from './components/JoinRoom';
 import RoomLobby from './components/RoomLobby';
-import MercadoDaBola from './games/mercado-da-bola/index';
+import LendaDaBola from './games/lenda-da-bola/index';
 import { useAuth } from './contexts/AuthContext';
 import {
   createGameDoc, saveGameState, saveGameStateNow, finishGame, cancelPendingGameSave,
@@ -310,7 +310,7 @@ export default function App() {
   }
 
   if (screen === 'mercado-da-bola') return (
-    <MercadoDaBola onBack={() => setScreen('hub')} />
+    <LendaDaBola onBack={() => setScreen('hub')} />
   );
 
   if (screen === 'hub') return (
