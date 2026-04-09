@@ -211,7 +211,7 @@ function PreMatchView() {
 // ─── Post-match animated panel ────────────────────────────────────────────────
 
 function PostMatchView() {
-  const { state, setScreen } = useMB();
+  const { state, setScreen, switchTurn } = useMB();
   const save = state.save!;
   const matchData = state.lastMatchResult!;
   const { result, narrative } = matchData;
@@ -353,22 +353,30 @@ function PostMatchView() {
       )}
 
       {/* ── Action buttons ── */}
-      {revealed >= narrative.length && (
-        <div className="grid grid-cols-2 gap-3 animate-fade-up">
-          <button
-            onClick={() => setScreen('match')}
-            className="flex items-center justify-center gap-2 rounded-xl border border-blue-700/40 bg-blue-600/10 py-3.5 text-sm font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
-          >
-            <Swords size={15} /> Próxima
-          </button>
-          <button
-            onClick={() => setScreen('standings')}
-            className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 py-3.5 text-sm font-bold text-slate-300 hover:bg-slate-700 transition-colors"
-          >
-            <Trophy size={15} /> Ver Tabela
-          </button>
-        </div>
-      )}
+      {revealed >= narrative.length && (() => {
+        const isMulti = save.mode === 'local-multi';
+        const nextTurn: 1 | 2 = save.currentTurn === 1 ? 2 : 1;
+        const nextPlayerName = isMulti && save.playerProfiles
+          ? save.playerProfiles[nextTurn - 1].name
+          : null;
+        return (
+          <div className="grid grid-cols-2 gap-3 animate-fade-up">
+            <button
+              onClick={isMulti ? switchTurn : () => setScreen('match')}
+              className="flex items-center justify-center gap-2 rounded-xl border border-blue-700/40 bg-blue-600/10 py-3.5 text-sm font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
+            >
+              <Swords size={15} />
+              {isMulti && nextPlayerName ? `Vez de ${nextPlayerName}` : 'Próxima'}
+            </button>
+            <button
+              onClick={() => setScreen('standings')}
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 py-3.5 text-sm font-bold text-slate-300 hover:bg-slate-700 transition-colors"
+            >
+              <Trophy size={15} /> Ver Tabela
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
