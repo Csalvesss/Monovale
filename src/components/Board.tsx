@@ -68,32 +68,32 @@ export default function Board({ state, onSpaceClick }: Props) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #14532d, #166534, #15803d)',
-        borderRadius: 4,
+        background: 'linear-gradient(135deg, #14532d, #1a6b3a, #15803d)',
+        borderRadius: 6,
         padding: 8,
       }}
     >
-      <div style={{ fontSize: 36, marginBottom: 4 }}>🗺️</div>
+      <div style={{ fontSize: 40, marginBottom: 4, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.4))' }}>🗺️</div>
       <div style={{
-        fontSize: 22,
-        fontWeight: 900,
+        fontFamily: "'Boogaloo', sans-serif",
+        fontSize: 26,
         color: '#d4af37',
-        letterSpacing: '-0.5px',
-        textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+        letterSpacing: '2px',
+        textShadow: '2px 2px 0 rgba(0,0,0,0.3)',
         textAlign: 'center',
-        lineHeight: 1.2,
+        lineHeight: 1.1,
       }}>
         MONO<br />VALE
       </div>
-      <div style={{ fontSize: 10, color: '#86efac', marginTop: 4, textAlign: 'center', fontWeight: 600 }}>
+      <div style={{ fontSize: 10, color: '#86efac', marginTop: 5, textAlign: 'center', fontWeight: 800, letterSpacing: '0.5px' }}>
         Vale do Paraíba
       </div>
-      <div style={{ fontSize: 10, color: '#d4af37', marginTop: 8, textAlign: 'center', opacity: 0.9 }}>
-        🏦 Banco do Sr. Marinho
+      <div style={{ fontSize: 10, color: '#d4af37', marginTop: 8, textAlign: 'center', opacity: 0.9, fontWeight: 700 }}>
+        🏦 Sr. Marinho
       </div>
 
       {/* Mini legend */}
-      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center', maxWidth: 200 }}>
+      <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center', maxWidth: 200 }}>
         {Object.entries(GROUP_COLORS).slice(0, 8).map(([group, color]) => (
           <div key={group} style={{
             width: 12,
@@ -114,10 +114,10 @@ export default function Board({ state, onSpaceClick }: Props) {
       display: 'grid',
       gridTemplateColumns: `${CORNER}px repeat(9, ${CELL_W}px) ${CORNER}px`,
       gridTemplateRows: `${CORNER}px repeat(9, ${CELL_W}px) ${CORNER}px`,
-      border: '3px solid #1a3a2a',
-      borderRadius: 4,
+      border: '4px solid #0f3a1a',
+      borderRadius: 14,
       overflow: 'hidden',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      boxShadow: '0 8px 0 rgba(15,58,26,0.5), 0 12px 40px rgba(0,0,0,0.35)',
       flexShrink: 0,
     }}>
       {cells}
@@ -143,15 +143,15 @@ function getCellStyle(
     background: isPending
       ? '#fef9c3'
       : isHovered
-        ? '#f0fdf4'
-        : '#fefefe',
-    border: '1px solid #d1d5db',
+        ? '#f5f5dc'
+        : '#faf8f0',
+    border: '1px solid rgba(139,94,60,0.18)',
     cursor: isHovered ? 'pointer' : 'default',
     position: 'relative',
     overflow: 'hidden',
     transition: 'background 0.1s',
     boxSizing: 'border-box',
-    outline: isPending ? '2px solid #ca8a04' : undefined,
+    outline: isPending ? '2px solid #c9a84c' : undefined,
   };
 }
 

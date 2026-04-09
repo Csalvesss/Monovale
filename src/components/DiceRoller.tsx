@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 
 interface Props {
   dice: [number, number] | null;
-  rolling?: boolean;
 }
 
 const FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
-export default function DiceRoller({ dice, rolling }: Props) {
+export default function DiceRoller({ dice }: Props) {
   const [display, setDisplay] = useState<[number, number]>(dice ?? [1, 1]);
   const [animating, setAnimating] = useState(false);
 
@@ -16,10 +15,7 @@ export default function DiceRoller({ dice, rolling }: Props) {
       setAnimating(true);
       let ticks = 0;
       const interval = setInterval(() => {
-        setDisplay([
-          Math.ceil(Math.random() * 6),
-          Math.ceil(Math.random() * 6),
-        ]);
+        setDisplay([Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6)]);
         ticks++;
         if (ticks >= 8) {
           clearInterval(interval);
@@ -32,78 +28,59 @@ export default function DiceRoller({ dice, rolling }: Props) {
   }, [dice]);
 
   const isDouble = dice && dice[0] === dice[1];
-  const total = dice ? dice[0] + dice[1] : 0;
+  const total = dice ? dice[0] + dice[1] : null;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.dice}>
-        <Die value={display[0]} animating={animating} />
-        <Die value={display[1]} animating={animating} />
+    <div style={S.wrap}>
+      <div style={S.diceRow}>
+        <div style={{ ...S.die, animation: animating ? 'spin 0.08s linear infinite' : 'none' }}>
+          {FACES[display[0]] ?? '⚀'}
+        </div>
+        <div style={{ ...S.die, animation: animating ? 'spin 0.08s linear infinite' : 'none', animationDelay: '0.04s' }}>
+          {FACES[display[1]] ?? '⚀'}
+        </div>
       </div>
-      {dice && (
-        <div style={styles.result}>
-          <span style={styles.total}>Total: {total}</span>
-          {isDouble && (
-            <span style={styles.doubleBadge}>🎲 PAR! Joga de novo!</span>
-          )}
+      {total && (
+        <div style={S.info}>
+          <span style={S.total}>{total}</span>
+          {isDouble && <span style={S.doublePill}>PAR! 🎲</span>}
         </div>
       )}
     </div>
   );
 }
 
-function Die({ value, animating }: { value: number; animating: boolean }) {
-  return (
-    <div style={{
-      ...styles.die,
-      animation: animating ? 'spin 0.1s linear infinite' : 'none',
-    }}>
-      {FACES[value] ?? '⚀'}
-    </div>
-  );
-}
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dice: {
-    display: 'flex',
-    gap: 8,
-  },
+const S: Record<string, React.CSSProperties> = {
+  wrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
+  diceRow: { display: 'flex', gap: 6 },
   die: {
-    width: 44,
-    height: 44,
-    background: '#fff',
-    borderRadius: 8,
-    border: '2px solid #e5e7eb',
+    width: 46,
+    height: 46,
+    background: 'white',
+    borderRadius: 12,
+    border: '2px solid var(--border)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 28,
-    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+    boxShadow: '0 4px 0 var(--border), 0 6px 12px rgba(0,0,0,0.1)',
     userSelect: 'none',
   },
-  result: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
+  info: { display: 'flex', alignItems: 'center', gap: 6 },
   total: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: '#d4af37',
+    fontFamily: 'var(--font-title)',
+    fontSize: 16,
+    color: 'var(--gold-dark)',
+    letterSpacing: '0.5px',
   },
-  doubleBadge: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#86efac',
-    background: 'rgba(134,239,172,0.1)',
+  doublePill: {
+    fontSize: 10,
+    fontWeight: 800,
+    color: 'var(--green-dark)',
+    background: '#dcfce7',
     padding: '2px 8px',
-    borderRadius: 20,
-    border: '1px solid rgba(134,239,172,0.3)',
+    borderRadius: 99,
+    border: '1px solid #bbf7d0',
+    fontFamily: 'var(--font-title)',
   },
 };

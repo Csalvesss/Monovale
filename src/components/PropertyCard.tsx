@@ -8,29 +8,14 @@ interface Props {
   state: GameState;
   onBuy?: () => void;
   onDecline?: () => void;
-  onMortgage?: (pos: number) => void;
-  onUnmortgage?: (pos: number) => void;
-  onBuildHouse?: (pos: number) => void;
-  onSellHouse?: (pos: number) => void;
   showActions?: boolean;
   mode?: 'buy_decision' | 'info';
 }
 
-export default function PropertyCard({
-  position,
-  state,
-  onBuy,
-  onDecline,
-  onMortgage,
-  onUnmortgage,
-  onBuildHouse,
-  onSellHouse,
-  showActions,
-  mode = 'info',
-}: Props) {
+export default function PropertyCard({ position, state, onBuy, onDecline, showActions, mode = 'info' }: Props) {
   const space = getSpace(position);
   const propState = state.properties[position];
-  const currentPlayer = state.players[state.currentPlayerIndex];
+  const player = state.players[state.currentPlayerIndex];
 
   if (!space) return null;
 
@@ -40,104 +25,71 @@ export default function PropertyCard({
   const ownerPawn = owner ? getPawn(owner.pawnId) : null;
   const mortgageValue = Math.floor((space.price ?? 0) / 2);
   const unmortgageCost = Math.floor((space.price ?? 0) * 0.55);
-
-  const canAfford = currentPlayer.money >= (space.price ?? 0);
-  const isOwned = !!propState?.ownerId;
-  const isMine = propState?.ownerId === currentPlayer.id;
+  const canAfford = player.money >= (space.price ?? 0);
 
   return (
-    <div style={styles.card}>
+    <div style={S.card}>
       {/* Header */}
-      <div style={{ ...styles.header, background: color }}>
-        {space.group && <div style={styles.groupName}>{groupName}</div>}
-        <div style={styles.spaceName}>{space.name}</div>
-        {space.price !== undefined && (
-          <div style={styles.price}>R${space.price}</div>
-        )}
+      <div style={{ ...S.header, background: color }}>
+        {groupName && <div style={S.groupLabel}>{groupName.toUpperCase()}</div>}
+        <div style={S.spaceName}>{space.name}</div>
+        {space.price !== undefined && <div style={S.priceLabel}>R${space.price}</div>}
       </div>
 
-      <div style={styles.body}>
-        {/* Rent table for properties */}
+      <div style={S.body}>
+        {/* Rent table */}
         {space.type === 'property' && space.rent && (
-          <div style={styles.rentTable}>
-            <div style={styles.rentTitle}>Tabela de Aluguel</div>
-            {[
-              ['Sem casa', space.rent[0]],
-              ['1 Casa', space.rent[1]],
-              ['2 Casas', space.rent[2]],
-              ['3 Casas', space.rent[3]],
-              ['4 Casas', space.rent[4]],
-              ['Hotel', space.rent[5]],
-            ].map(([label, value], i) => {
+          <div style={S.rentTable}>
+            <div style={S.tableTitle}>TABELA DE ALUGUEL</div>
+            {['Sem casa', '1 Casa', '2 Casas', '3 Casas', '4 Casas', 'Hotel'].map((label, i) => {
               const isCurrent = propState
                 ? (!propState.hotel && propState.houses === i && i <= 4) ||
                   (propState.hotel && i === 5)
                 : false;
               return (
-                <div key={i} style={{
-                  ...styles.rentRow,
-                  ...(isCurrent ? styles.rentRowActive : {}),
-                }}>
+                <div key={i} style={{ ...S.rentRow, ...(isCurrent ? S.rentRowActive : {}) }}>
                   <span>{label}</span>
-                  <span style={{ fontWeight: 700 }}>R${value}</span>
+                  <span style={{ fontWeight: 800 }}>R${space.rent![i]}</span>
                 </div>
               );
             })}
             {space.housePrice && (
-              <div style={styles.housePriceRow}>
-                Casa/Hotel: R${space.housePrice}
-              </div>
+              <div style={S.houseNote}>Casa/Hotel: R${space.housePrice}</div>
             )}
           </div>
         )}
 
-        {/* Railroad */}
         {space.type === 'railroad' && (
-          <div style={styles.rentTable}>
-            <div style={styles.rentTitle}>Aluguel por Estações Possuídas</div>
-            {[[1, 25], [2, 50], [3, 100], [4, 200]].map(([count, rent]) => (
-              <div key={count} style={styles.rentRow}>
-                <span>{count} Estação{count > 1 ? 'ões' : ''}</span>
-                <span style={{ fontWeight: 700 }}>R${rent}</span>
+          <div style={S.rentTable}>
+            <div style={S.tableTitle}>ALUGUEL POR ESTAÇÕES</div>
+            {[[1,25],[2,50],[3,100],[4,200]].map(([n, r]) => (
+              <div key={n} style={S.rentRow}>
+                <span>{n} Estação{n > 1 ? 'ões' : ''}</span>
+                <span style={{ fontWeight: 800 }}>R${r}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Utility */}
         {space.type === 'utility' && (
-          <div style={styles.rentTable}>
-            <div style={styles.rentTitle}>Aluguel por Empresas Possuídas</div>
-            <div style={styles.rentRow}>
-              <span>1 Empresa</span>
-              <span style={{ fontWeight: 700 }}>4× dados</span>
-            </div>
-            <div style={styles.rentRow}>
-              <span>2 Empresas</span>
-              <span style={{ fontWeight: 700 }}>10× dados</span>
-            </div>
+          <div style={S.rentTable}>
+            <div style={S.tableTitle}>ALUGUEL POR EMPRESAS</div>
+            <div style={S.rentRow}><span>1 Empresa</span><span style={{ fontWeight: 800 }}>4× dados</span></div>
+            <div style={S.rentRow}><span>2 Empresas</span><span style={{ fontWeight: 800 }}>10× dados</span></div>
           </div>
         )}
 
-        {/* Owner info */}
+        {/* Owner */}
         {owner && ownerPawn && (
-          <div style={styles.ownerRow}>
-            <div style={{
-              width: 20, height: 20, borderRadius: '50%',
-              background: ownerPawn.color,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12,
-            }}>{ownerPawn.emoji}</div>
-            <span style={{ fontSize: 12, color: '#4b5563' }}>
-              Dono: <strong>{owner.name}</strong>
-              {propState?.mortgaged && ' (Hipotecada)'}
-            </span>
+          <div style={S.ownerRow}>
+            <div style={{ ...S.ownerToken, background: ownerPawn.color }}>{ownerPawn.emoji}</div>
+            <span style={S.ownerName}>Dono: <strong>{owner.name}</strong></span>
+            {propState?.mortgaged && <span style={S.mortgagedTag}>HIPOTECADA</span>}
           </div>
         )}
 
-        {/* Mortgage value */}
         {space.price && (
-          <div style={styles.mortgageInfo}>
+          <div style={S.mortInfo}>
             <span>Hipoteca: R${mortgageValue}</span>
             <span>Resgatar: R${unmortgageCost}</span>
           </div>
@@ -146,19 +98,19 @@ export default function PropertyCard({
 
       {/* Actions */}
       {showActions && mode === 'buy_decision' && (
-        <div style={styles.actions}>
+        <div style={S.actions}>
           <button
             onClick={onBuy}
             disabled={!canAfford}
             style={{
-              ...styles.btnPrimary,
-              ...(!canAfford ? styles.btnDisabled : {}),
+              ...S.btnBuy,
+              ...(!canAfford ? S.btnDisabled : {}),
             }}
           >
             🏠 Comprar — R${space.price}
           </button>
-          <button onClick={onDecline} style={styles.btnSecondary}>
-            🏦 Leiloar
+          <button onClick={onDecline} style={S.btnAuction}>
+            🔨 Leiloar
           </button>
         </div>
       )}
@@ -166,119 +118,132 @@ export default function PropertyCard({
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const S: Record<string, React.CSSProperties> = {
   card: {
-    background: '#fff',
-    borderRadius: 10,
+    background: 'var(--white)',
+    borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    minWidth: 200,
+    border: '2px solid var(--border)',
+    boxShadow: 'var(--shadow-md)',
     maxWidth: 240,
+    width: '100%',
   },
   header: {
     padding: '12px 14px',
     color: '#fff',
-    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+    textShadow: '0 1px 3px rgba(0,0,0,0.3)',
   },
-  groupName: {
+  groupLabel: {
+    fontFamily: 'var(--font-title)',
     fontSize: 10,
-    fontWeight: 700,
     opacity: 0.9,
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
+    letterSpacing: '2px',
     marginBottom: 2,
   },
   spaceName: {
-    fontSize: 16,
-    fontWeight: 800,
+    fontFamily: 'var(--font-title)',
+    fontSize: 18,
     lineHeight: 1.2,
   },
-  price: {
+  priceLabel: {
     fontSize: 13,
-    fontWeight: 600,
-    marginTop: 4,
-    opacity: 0.95,
-  },
-  body: {
-    padding: '10px 14px',
-  },
-  rentTable: {
-    marginBottom: 10,
-  },
-  rentTitle: {
-    fontSize: 10,
     fontWeight: 700,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    marginBottom: 6,
+    opacity: 0.95,
+    marginTop: 4,
+  },
+  body: { padding: '10px 14px' },
+  rentTable: { marginBottom: 10 },
+  tableTitle: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 10,
+    color: 'var(--text-mid)',
+    letterSpacing: '1px',
+    marginBottom: 5,
   },
   rentRow: {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: 12,
-    color: '#374151',
-    padding: '2px 0',
-    borderBottom: '1px solid #f3f4f6',
+    color: 'var(--text)',
+    padding: '3px 0',
+    borderBottom: '1px solid var(--border)',
   },
   rentRowActive: {
-    color: '#166534',
-    fontWeight: 700,
+    color: 'var(--green-dark)',
+    fontWeight: 800,
     background: '#f0fdf4',
-    borderRadius: 3,
-    padding: '2px 4px',
+    borderRadius: 4,
+    padding: '3px 6px',
   },
-  housePriceRow: {
-    fontSize: 11,
-    color: '#6b7280',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
+  houseNote: { fontSize: 10, color: 'var(--text-light)', marginTop: 4, fontStyle: 'italic' },
   ownerRow: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    padding: '6px 0',
-    borderTop: '1px solid #f3f4f6',
+    padding: '7px 0',
+    borderTop: '1px solid var(--border)',
     marginBottom: 6,
+    flexWrap: 'wrap',
   },
-  mortgageInfo: {
+  ownerToken: {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 12,
+    border: '2px solid rgba(255,255,255,0.5)',
+  },
+  ownerName: { fontSize: 12, color: 'var(--text)' },
+  mortgagedTag: {
+    fontSize: 9,
+    fontWeight: 900,
+    color: '#fff',
+    background: '#9ca3af',
+    padding: '1px 5px',
+    borderRadius: 4,
+    letterSpacing: '0.5px',
+  },
+  mortInfo: {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: 10,
-    color: '#9ca3af',
+    color: 'var(--text-light)',
   },
   actions: {
     padding: '10px 14px',
     display: 'flex',
     gap: 8,
-    borderTop: '1px solid #f3f4f6',
+    borderTop: '2px solid var(--border)',
   },
-  btnPrimary: {
+  btnBuy: {
     flex: 1,
-    padding: '8px',
-    background: '#166534',
+    padding: '9px',
+    background: 'var(--green-grad)',
     color: '#fff',
     border: 'none',
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 700,
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--font-title)',
+    fontSize: 13,
     cursor: 'pointer',
+    boxShadow: '0 3px 0 var(--green-dark)',
   },
-  btnSecondary: {
+  btnAuction: {
     flex: 1,
-    padding: '8px',
-    background: '#f97316',
-    color: '#fff',
+    padding: '9px',
+    background: 'var(--gold-grad)',
+    color: 'var(--text)',
     border: 'none',
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 700,
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--font-title)',
+    fontSize: 13,
     cursor: 'pointer',
+    boxShadow: '0 3px 0 var(--gold-dark)',
   },
   btnDisabled: {
-    background: '#9ca3af',
+    background: 'linear-gradient(135deg,#d1d5db,#9ca3af)',
+    boxShadow: '0 3px 0 #6b7280',
     cursor: 'not-allowed',
   },
 };

@@ -1,53 +1,177 @@
-*, *::before, *::after {
-  box-sizing: border-box;
+/* ─── Google Fonts ─────────────────────────────────────────────────────────── */
+/* Boogaloo = títulos cartoon, Nunito = corpo de texto */
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:          #e8e4cc;
+  --bg-alt:      #ddd9b8;
+  --card:        #faf7ea;
+  --card-alt:    #f2eed8;
+
+  --gold:        #c9a84c;
+  --gold-dark:   #a07830;
+  --gold-light:  #e8c96c;
+  --gold-grad:   linear-gradient(135deg, #e8c96c 0%, #c9a84c 50%, #a07830 100%);
+
+  --green:       #4baf50;
+  --green-dark:  #2d8a35;
+  --green-bright:#6ad15e;
+  --green-grad:  linear-gradient(135deg, #6ad15e, #4baf50);
+
+  --red:         #e63946;
+  --red-dark:    #b52832;
+  --red-grad:    linear-gradient(135deg, #ff6b6b, #e63946);
+
+  --yellow:      #ffd23f;
+  --yellow-dark: #d4a90a;
+  --yellow-grad: linear-gradient(135deg, #ffe56e, #ffd23f);
+
+  --blue:        #3b82f6;
+  --purple:      #a855f7;
+
+  --text:        #3d2b1f;
+  --text-mid:    #7a5c3e;
+  --text-light:  #a88a6e;
+  --white:       #fffdf5;
+
+  --border:      rgba(139,94,60,0.2);
+  --border-gold: rgba(201,168,76,0.4);
+
+  --shadow-sm:   0 2px 8px rgba(139,94,60,0.12);
+  --shadow:      0 4px 16px rgba(139,94,60,0.18);
+  --shadow-md:   0 6px 0 rgba(139,94,60,0.25), 0 8px 24px rgba(0,0,0,0.1);
+  --shadow-lg:   0 8px 0 rgba(139,94,60,0.22), 0 12px 40px rgba(0,0,0,0.15);
+
+  --radius-sm:   8px;
+  --radius:      14px;
+  --radius-md:   18px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+
+  --font-title:  'Boogaloo', 'Arial Rounded MT Bold', sans-serif;
+  --font-body:   'Nunito', 'Segoe UI', system-ui, sans-serif;
 }
+
+/* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
 }
 
 #root {
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.05);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.35);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* App handles its own scroll */
 }
 
 button {
-  font-family: inherit;
+  font-family: var(--font-body);
+  cursor: pointer;
 }
 
-input:focus {
-  border-color: #166534 !important;
-  box-shadow: 0 0 0 2px rgba(22,101,52,0.2);
+input, select {
+  font-family: var(--font-body);
 }
 
-/* Dice animation */
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track {
+  background: var(--bg-alt);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 99px;
+  border: 2px solid var(--bg-alt);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-dark);
+}
+
+/* ─── Utility Classes ──────────────────────────────────────────────────────── */
+.title {
+  font-family: var(--font-title);
+  letter-spacing: 0.5px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+/* ─── Button Base ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+}
+.btn-green {
+  background: var(--green-grad);
+  color: white;
+  box-shadow: 0 4px 0 var(--green-dark);
+}
+.btn-green:active { box-shadow: 0 2px 0 var(--green-dark); }
+
+.btn-gold {
+  background: var(--gold-grad);
+  color: var(--text);
+  box-shadow: 0 4px 0 var(--gold-dark);
+}
+.btn-gold:active { box-shadow: 0 2px 0 var(--gold-dark); }
+
+.btn-red {
+  background: var(--red-grad);
+  color: white;
+  box-shadow: 0 4px 0 var(--red-dark);
+}
+.btn-red:active { box-shadow: 0 2px 0 var(--red-dark); }
+
+/* ─── Animations ───────────────────────────────────────────────────────────── */
 @keyframes spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0%   { transform: rotate(0deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1.1); }
 }
 
-/* Token pulse for active player */
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.4); }
-  50%       { box-shadow: 0 0 0 6px rgba(212,175,55,0); }
+@keyframes pop-in {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.03); }
+  100% { transform: scale(1); opacity: 1; }
 }
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 6px 0 var(--gold-dark), 0 0 0 0 rgba(201,168,76,0.4); }
+  50%       { box-shadow: 0 6px 0 var(--gold-dark), 0 0 0 8px rgba(201,168,76,0); }
+}
+
+.animate-pop   { animation: pop-in 0.3s ease; }
+.animate-bounce{ animation: bounce 1s ease infinite; }

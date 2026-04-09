@@ -21,16 +21,15 @@ export default function AuctionModal({ state, onBid, onPass }: Props) {
   const activeBidderId = auction.activePlayerIds[auction.activeBidderIndex];
   const currentBidder = state.players.find(p => p.id === activeBidderId);
   const highestBidder = auction.highestBidderIndex !== null
-    ? state.players[auction.highestBidderIndex]
-    : null;
+    ? state.players[auction.highestBidderIndex] : null;
 
   const minBid = auction.highestBid + 10;
-  const parsedBid = parseInt(bidAmount, 10);
-  const validBid = !isNaN(parsedBid) && parsedBid >= minBid && currentBidder && parsedBid <= currentBidder.money;
+  const parsed = parseInt(bidAmount, 10);
+  const validBid = !isNaN(parsed) && parsed >= minBid && currentBidder && parsed <= currentBidder.money;
 
   function handleBid() {
     if (!currentBidder || !validBid) return;
-    onBid(currentBidder.id, parsedBid);
+    onBid(currentBidder.id, parsed);
     setBidAmount('');
   }
 
@@ -41,89 +40,91 @@ export default function AuctionModal({ state, onBid, onPass }: Props) {
   }
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div style={S.overlay}>
+      <div style={S.modal}>
         {/* Header */}
-        <div style={{ ...styles.header, background: color }}>
-          <div style={styles.headerTitle}>🏦 Leilão do Sr. Marinho</div>
-          <div style={styles.headerSub}>{space.name}</div>
-          {space.price && <div style={styles.headerPrice}>Valor de mercado: R${space.price}</div>}
+        <div style={{ ...S.header, background: color }}>
+          <div style={S.headerEyebrow}>🔨 Leilão do Sr. Marinho</div>
+          <div style={S.headerTitle}>{space.name}</div>
+          {space.price && <div style={S.headerPrice}>Valor de mercado: R${space.price}</div>}
         </div>
 
-        <div style={styles.body}>
-          {/* Current highest bid */}
-          <div style={styles.bidStatus}>
+        <div style={S.body}>
+          {/* Highest bid display */}
+          <div style={S.bidStatus}>
             {highestBidder ? (
               <>
-                <span>Lance mais alto:</span>
-                <span style={styles.bidHighlight}>
-                  R${auction.highestBid} — {highestBidder.name} {getPawn(highestBidder.pawnId).emoji}
+                <span style={S.bidLabel}>Lance mais alto:</span>
+                <span style={S.bidValue}>
+                  {getPawn(highestBidder.pawnId).emoji} {highestBidder.name} — R${auction.highestBid}
                 </span>
               </>
             ) : (
-              <span style={{ color: '#6b7280' }}>Nenhum lance ainda. Lance mínimo: R$10</span>
+              <span style={S.bidLabel}>Lance mínimo: R$10 • Nenhum lance ainda</span>
             )}
           </div>
 
-          {/* Active players */}
-          <div style={styles.playersSection}>
-            <div style={styles.sectionLabel}>Participantes</div>
-            <div style={styles.playersList}>
-              {state.players.filter(p => !p.bankrupt).map(player => {
-                const pawn = getPawn(player.pawnId);
-                const isActive = player.id === activeBidderId;
-                const hasPassed = auction.passedPlayerIds.includes(player.id);
-                return (
-                  <div key={player.id} style={{
-                    ...styles.playerChip,
-                    ...(isActive ? styles.playerChipActive : {}),
-                    ...(hasPassed ? styles.playerChipPassed : {}),
-                  }}>
-                    <span>{pawn.emoji}</span>
-                    <span style={{ fontSize: 12 }}>{player.name}</span>
-                    {hasPassed && <span style={{ fontSize: 10, color: '#9ca3af' }}>(Passou)</span>}
-                    {isActive && <span style={styles.turnIndicator}>VEZ</span>}
-                    <span style={{ fontSize: 11, color: '#6b7280' }}>R${player.money}</span>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Players */}
+          <div style={S.playersSection}>
+            <div style={S.secLabel}>PARTICIPANTES</div>
+            {state.players.filter(p => !p.bankrupt).map(player => {
+              const pawn = getPawn(player.pawnId);
+              const isActive = player.id === activeBidderId;
+              const hasPassed = auction.passedPlayerIds.includes(player.id);
+              return (
+                <div key={player.id} style={{
+                  ...S.playerRow,
+                  ...(isActive ? S.playerRowActive : {}),
+                  ...(hasPassed ? S.playerRowPassed : {}),
+                }}>
+                  <span style={{ fontSize: 18 }}>{pawn.emoji}</span>
+                  <span style={S.playerName}>{player.name}</span>
+                  {isActive && <span style={S.activeBadge}>VEZ</span>}
+                  {hasPassed && <span style={S.passedBadge}>PASSOU</span>}
+                  <span style={S.playerBalance}>R${player.money}</span>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Bid input — only shown for current bidder */}
+          {/* Bid input */}
           {currentBidder && (
-            <div style={styles.bidSection}>
-              <div style={styles.sectionLabel}>
-                Vez de <strong>{currentBidder.name}</strong> {getPawn(currentBidder.pawnId).emoji}
-                {' '}(Saldo: R${currentBidder.money})
+            <div style={S.bidSection}>
+              <div style={S.secLabel}>
+                VEZ DE {currentBidder.name.toUpperCase()} {getPawn(currentBidder.pawnId).emoji}
               </div>
-              <div style={styles.bidInput}>
-                <span style={styles.bidPrefix}>R$</span>
+              <div style={S.inputWrap}>
+                <span style={S.inputPrefix}>R$</span>
                 <input
                   type="number"
                   min={minBid}
                   max={currentBidder.money}
                   value={bidAmount}
                   onChange={e => setBidAmount(e.target.value)}
-                  placeholder={`Mín. R$${minBid}`}
-                  style={styles.input}
+                  placeholder={`Mín. ${minBid}`}
+                  style={S.input}
                   onKeyDown={e => e.key === 'Enter' && validBid && handleBid()}
                 />
               </div>
-              {bidAmount && !isNaN(parsedBid) && parsedBid > currentBidder.money && (
-                <p style={styles.errorMsg}>Saldo insuficiente.</p>
+              {bidAmount && !isNaN(parsed) && parsed > currentBidder.money && (
+                <p style={{ color: 'var(--red)', fontSize: 12, margin: '4px 0 0', fontWeight: 700 }}>
+                  Saldo insuficiente.
+                </p>
               )}
-              <div style={styles.bidActions}>
-                <button
-                  onClick={handleBid}
+              <div style={S.bidBtns}>
+                <BidBtn
+                  label="💰 DAR LANCE"
+                  bg="var(--green-grad)"
+                  shadow="var(--green-dark)"
                   disabled={!validBid}
-                  style={{ ...styles.btnBid, ...(!validBid ? styles.btnDisabled : {}) }}
-                >
-                  💰 Dar Lance
-                </button>
-                <button onClick={handlePass} style={styles.btnPass}>
-                  🚫 Passar
-                </button>
+                  onClick={handleBid}
+                />
+                <BidBtn
+                  label="🚫 PASSAR"
+                  bg="var(--red-grad)"
+                  shadow="var(--red-dark)"
+                  onClick={handlePass}
+                />
               </div>
             </div>
           )}
@@ -133,143 +134,147 @@ export default function AuctionModal({ state, onBid, onPass }: Props) {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+function BidBtn({ label, bg, shadow, disabled, onClick }: {
+  label: string; bg: string; shadow: string;
+  disabled?: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        flex: 1,
+        padding: '12px',
+        background: disabled ? 'linear-gradient(135deg,#d1d5db,#9ca3af)' : bg,
+        color: '#fff',
+        border: 'none',
+        borderRadius: 'var(--radius)',
+        fontFamily: 'var(--font-title)',
+        fontSize: 16,
+        letterSpacing: '0.5px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        boxShadow: `0 4px 0 ${disabled ? '#6b7280' : shadow}`,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+const S: Record<string, React.CSSProperties> = {
   overlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0,0,0,0.75)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: 20,
+    position: 'fixed', inset: 0,
+    background: 'rgba(0,0,0,0.65)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 1000, padding: 20,
+    backdropFilter: 'blur(4px)',
   },
   modal: {
-    background: '#fff',
-    borderRadius: 14,
+    background: 'var(--card)',
+    borderRadius: 'var(--radius-xl)',
     overflow: 'hidden',
-    width: '100%',
-    maxWidth: 420,
-    boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+    width: '100%', maxWidth: 420,
+    boxShadow: 'var(--shadow-lg)',
+    border: '3px solid var(--border-gold)',
+    animation: 'pop-in 0.25s ease',
   },
   header: {
-    padding: '16px 20px',
+    padding: '18px 22px',
     color: '#fff',
-    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+    textShadow: '0 1px 3px rgba(0,0,0,0.3)',
   },
-  headerTitle: { fontSize: 13, fontWeight: 700, opacity: 0.9, marginBottom: 2 },
-  headerSub: { fontSize: 22, fontWeight: 800, lineHeight: 1.2 },
-  headerPrice: { fontSize: 13, fontWeight: 600, opacity: 0.9, marginTop: 4 },
+  headerEyebrow: { fontSize: 12, fontWeight: 700, opacity: 0.9, marginBottom: 4, letterSpacing: '1px' },
+  headerTitle: { fontFamily: 'var(--font-title)', fontSize: 26, lineHeight: 1.2 },
+  headerPrice: { fontSize: 13, fontWeight: 700, opacity: 0.9, marginTop: 4 },
+
   body: { padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 },
+
   bidStatus: {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
     padding: '10px 14px',
-    background: '#f9fafb',
-    borderRadius: 8,
-    fontSize: 13,
+    background: '#fef9e7',
+    borderRadius: 'var(--radius)',
+    border: '2px solid var(--border-gold)',
     flexWrap: 'wrap',
   },
-  bidHighlight: {
-    fontWeight: 700,
-    color: '#166534',
-  },
+  bidLabel: { fontSize: 12, fontWeight: 600, color: 'var(--text-mid)' },
+  bidValue: { fontFamily: 'var(--font-title)', fontSize: 16, color: 'var(--green-dark)' },
+
   playersSection: {},
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
+  secLabel: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 12,
+    color: 'var(--text-mid)',
+    letterSpacing: '1px',
     marginBottom: 6,
   },
-  playersList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  playerChip: {
+  playerRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    padding: '6px 10px',
-    borderRadius: 8,
-    background: '#f3f4f6',
-    border: '1px solid transparent',
+    gap: 8,
+    padding: '7px 10px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--card-alt)',
+    border: '2px solid transparent',
+    marginBottom: 4,
   },
-  playerChipActive: {
-    background: '#fef9c3',
-    border: '1px solid #ca8a04',
+  playerRowActive: {
+    background: '#fef9e7',
+    border: '2px solid var(--gold)',
   },
-  playerChipPassed: {
-    opacity: 0.5,
+  playerRowPassed: { opacity: 0.4 },
+  playerName: { flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--text)' },
+  activeBadge: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 9,
+    color: 'var(--text)',
+    background: 'var(--gold-grad)',
+    padding: '1px 7px',
+    borderRadius: 99,
   },
-  turnIndicator: {
+  passedBadge: {
     fontSize: 9,
     fontWeight: 800,
-    color: '#92400e',
-    background: '#fde68a',
-    padding: '1px 5px',
-    borderRadius: 3,
+    color: '#9ca3af',
+    background: '#f3f4f6',
+    padding: '1px 7px',
+    borderRadius: 99,
   },
+  playerBalance: { fontSize: 11, fontWeight: 700, color: 'var(--text-mid)' },
+
   bidSection: {
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '2px solid var(--border)',
     paddingTop: 12,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
+    display: 'flex', flexDirection: 'column', gap: 8,
   },
-  bidInput: {
+  inputWrap: {
     display: 'flex',
     alignItems: 'center',
-    border: '2px solid #d1d5db',
-    borderRadius: 8,
+    border: '2px solid var(--border-gold)',
+    borderRadius: 'var(--radius)',
     overflow: 'hidden',
+    background: 'var(--white)',
   },
-  bidPrefix: {
-    padding: '8px 10px',
-    background: '#f3f4f6',
-    fontWeight: 700,
-    fontSize: 14,
-    color: '#374151',
-    borderRight: '1px solid #d1d5db',
+  inputPrefix: {
+    padding: '10px 12px',
+    background: 'var(--gold-grad)',
+    fontFamily: 'var(--font-title)',
+    fontSize: 15,
+    color: 'var(--text)',
+    borderRight: '2px solid var(--border-gold)',
   },
   input: {
     flex: 1,
-    padding: '8px 12px',
+    padding: '10px 14px',
     border: 'none',
     outline: 'none',
-    fontSize: 15,
-    fontWeight: 700,
-    fontFamily: 'inherit',
+    fontSize: 16,
+    fontWeight: 800,
+    fontFamily: 'var(--font-body)',
+    background: 'transparent',
+    color: 'var(--text)',
   },
-  errorMsg: { fontSize: 12, color: '#dc2626', margin: 0 },
-  bidActions: { display: 'flex', gap: 8 },
-  btnBid: {
-    flex: 1,
-    padding: '10px',
-    background: '#166534',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  btnPass: {
-    flex: 1,
-    padding: '10px',
-    background: '#ef4444',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  btnDisabled: {
-    background: '#9ca3af',
-    cursor: 'not-allowed',
-  },
+  bidBtns: { display: 'flex', gap: 8 },
 };

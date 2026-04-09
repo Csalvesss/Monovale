@@ -5,83 +5,114 @@ interface Props {
   log: LogEntry[];
 }
 
+const TYPE_CONFIG: Record<LogEntry['type'], { icon: string; accent: string; bg: string }> = {
+  info:     { icon: '📋', accent: 'var(--text-light)', bg: 'var(--card-alt)' },
+  bank:     { icon: '🏦', accent: 'var(--gold-dark)',  bg: '#fef9e7' },
+  trade:    { icon: '🤝', accent: 'var(--blue)',       bg: '#eff6ff' },
+  auction:  { icon: '🔨', accent: '#ea580c',           bg: '#fff7ed' },
+  jail:     { icon: '🚔', accent: 'var(--red)',        bg: '#fef2f2' },
+  card:     { icon: '🎟️', accent: 'var(--purple)',     bg: '#faf5ff' },
+  bankrupt: { icon: '💀', accent: 'var(--red-dark)',   bg: '#fee2e2' },
+};
+
 export default function EventLog({ log }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    topRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [log.length]);
 
   return (
-    <div style={styles.panel}>
-      <div style={styles.header}>
-        <span>📋</span> Registro do Sr. Marinho
+    <div style={S.panel}>
+      <div style={S.header}>
+        <span style={S.headerIcon}>📋</span>
+        <span style={S.headerTitle}>REGISTRO</span>
+        <span style={S.bankerNote}>Sr. Marinho</span>
       </div>
-      <div style={styles.logList}>
-        {[...log].reverse().map(entry => (
-          <div key={entry.id} style={{ ...styles.entry, ...getEntryStyle(entry.type) }}>
-            <span style={styles.entryText}>{entry.text}</span>
-          </div>
-        ))}
-        <div ref={bottomRef} />
+
+      <div style={S.logList}>
+        <div ref={topRef} />
+        {log.map(entry => {
+          const cfg = TYPE_CONFIG[entry.type] ?? TYPE_CONFIG.info;
+          return (
+            <div key={entry.id} style={{ ...S.entry, background: cfg.bg, borderLeftColor: cfg.accent }}>
+              <span style={S.entryIcon}>{cfg.icon}</span>
+              <span style={{ ...S.entryText, color: 'var(--text)' }}>{entry.text}</span>
+            </div>
+          );
+        })}
+        {log.length === 0 && (
+          <div style={S.empty}>O Sr. Marinho está aguardando...</div>
+        )}
       </div>
     </div>
   );
 }
 
-function getEntryStyle(type: LogEntry['type']): React.CSSProperties {
-  const map: Record<LogEntry['type'], React.CSSProperties> = {
-    info:     { borderLeftColor: '#6b7280' },
-    bank:     { borderLeftColor: '#d4af37', background: 'rgba(212,175,55,0.07)' },
-    trade:    { borderLeftColor: '#3b82f6', background: 'rgba(59,130,246,0.07)' },
-    auction:  { borderLeftColor: '#f97316', background: 'rgba(249,115,22,0.07)' },
-    jail:     { borderLeftColor: '#ef4444', background: 'rgba(239,68,68,0.07)' },
-    card:     { borderLeftColor: '#a855f7', background: 'rgba(168,85,247,0.07)' },
-    bankrupt: { borderLeftColor: '#dc2626', background: 'rgba(220,38,38,0.1)' },
-  };
-  return map[type] ?? {};
-}
-
-const styles: Record<string, React.CSSProperties> = {
+const S: Record<string, React.CSSProperties> = {
   panel: {
     display: 'flex',
     flexDirection: 'column',
-    background: 'rgba(15, 36, 24, 0.95)',
-    borderRadius: 12,
+    background: 'var(--card)',
+    borderRadius: 'var(--radius-md)',
+    border: '2px solid var(--border-gold)',
+    boxShadow: 'var(--shadow-md)',
     overflow: 'hidden',
-    border: '1px solid rgba(255,255,255,0.1)',
     height: '100%',
   },
+
   header: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     padding: '12px 14px',
-    background: 'rgba(255,255,255,0.05)',
-    fontWeight: 700,
-    fontSize: 13,
-    color: '#d4af37',
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--gold-grad)',
     flexShrink: 0,
   },
+  headerIcon: { fontSize: 16 },
+  headerTitle: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 17,
+    color: 'var(--text)',
+    letterSpacing: '1px',
+    flex: 1,
+  },
+  bankerNote: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'var(--text)',
+    opacity: 0.65,
+  },
+
   logList: {
     flex: 1,
     overflowY: 'auto',
     padding: '8px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
+    gap: 5,
   },
+
   entry: {
-    padding: '7px 10px',
-    borderRadius: 6,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 7,
+    padding: '8px 10px',
+    borderRadius: 10,
     borderLeft: '3px solid transparent',
-    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(0,0,0,0.06)',
   },
+  entryIcon: { fontSize: 13, flexShrink: 0, marginTop: 1 },
   entryText: {
+    fontSize: 11.5,
+    lineHeight: 1.45,
+    fontWeight: 600,
+  },
+  empty: {
+    textAlign: 'center',
     fontSize: 12,
-    color: '#d1d5db',
-    lineHeight: 1.4,
+    color: 'var(--text-light)',
+    fontStyle: 'italic',
+    padding: '20px 0',
   },
 };
