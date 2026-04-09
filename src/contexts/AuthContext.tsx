@@ -96,9 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    await signOut(auth);
+    setUser(null);     // immediately, prevents blank screen race condition
     setProfile(null);
     setAllUsers([]);
+    await signOut(auth);
   }
 
   async function updatePawn(pawnId: string) {
