@@ -340,7 +340,13 @@ export default function App() {
         />
       )}
       {gameState.turnPhase === 'auction' && gameState.auction && (
-        <AuctionModal state={gameState} onBid={(p, a) => act(s => placeBid(s, p, a))} onPass={(p) => act(s => passBid(s, p))} />
+        <AuctionModal
+          state={gameState}
+          myUid={profile?.uid ?? null}
+          isRoomGame={isRoomGame}
+          onBid={(p, a) => act(s => placeBid(s, p, a))}
+          onPass={(p) => act(s => passBid(s, p))}
+        />
       )}
       {gameState.turnPhase === 'trade' && gameState.trade && (
         <TradeModal state={gameState} onUpdate={(t: TradeState) => act(s => updateTrade(s, t))} onAccept={() => act(acceptTrade)} onCancel={() => act(cancelTrade)} />
