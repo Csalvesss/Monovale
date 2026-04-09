@@ -23,7 +23,15 @@ export default function PackOpening({ player, onCollect }: Props) {
   const isReveal = stage === 'reveal';
 
   return (
-    <div className="lenda-pack-overlay" style={{ gap: 24 }}>
+    <div
+      className="lenda-pack-overlay"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(2,6,23,0.97)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', padding: 20, gap: 24,
+      }}
+    >
       {/* Sparkle particles */}
       {isReveal && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>

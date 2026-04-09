@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Trophy, Home, Users, ShoppingBag, BarChart2, DollarSign, RotateCcw } from 'lucide-react';
+import '../../styles/lenda.css';
 import { useGameStore } from '../../store/gameStore';
 import { useSquadStore } from '../../store/squadStore';
 import { TEAMS } from '../../data/initialData';
