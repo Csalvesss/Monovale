@@ -26,7 +26,7 @@ import {
 } from './logic/gameEngine';
 
 const STORAGE_KEY = 'monovale_game_state';
-const BOARD_PX = 776;
+const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
 type Screen = 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
 type MobileTab = 'board' | 'players' | 'log';
