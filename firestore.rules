@@ -32,5 +32,10 @@ service cloud.firestore {
     match /lenda-saves/{saveId} {
       allow read, write: if request.auth != null;
     }
+
+    // Lendas da Bola — multiplayer board game rooms
+    match /lendas-rooms/{code} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
