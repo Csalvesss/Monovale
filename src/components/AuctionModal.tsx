@@ -5,11 +5,13 @@ import { getPawn } from '../data/pawns';
 
 interface Props {
   state: GameState;
+  myUid: string | null;
+  isRoomGame: boolean;
   onBid: (playerId: string, amount: number) => void;
   onPass: (playerId: string) => void;
 }
 
-export default function AuctionModal({ state, onBid, onPass }: Props) {
+export default function AuctionModal({ state, myUid, isRoomGame, onBid, onPass }: Props) {
   const auction = state.auction;
   const [bidAmount, setBidAmount] = useState('');
 
@@ -22,6 +24,9 @@ export default function AuctionModal({ state, onBid, onPass }: Props) {
   const currentBidder = state.players.find(p => p.id === activeBidderId);
   const highestBidder = auction.highestBidderIndex !== null
     ? state.players[auction.highestBidderIndex] : null;
+
+  // In room games, only show the bid input to the player whose turn it is
+  const isMyBidTurn = !isRoomGame || currentBidder?.uid === myUid;
 
   const minBid = auction.highestBid + 10;
   const parsed = parseInt(bidAmount, 10);
@@ -87,8 +92,15 @@ export default function AuctionModal({ state, onBid, onPass }: Props) {
             })}
           </div>
 
-          {/* Bid input */}
-          {currentBidder && (
+          {/* Waiting message for non-active bidders in room games */}
+          {currentBidder && !isMyBidTurn && (
+            <div style={S.waitingMsg}>
+              ⏳ Aguardando <strong>{currentBidder.name}</strong> dar lance...
+            </div>
+          )}
+
+          {/* Bid input — only shown to active bidder */}
+          {currentBidder && isMyBidTurn && (
             <div style={S.bidSection}>
               <div style={S.secLabel}>
                 VEZ DE {currentBidder.name.toUpperCase()} {getPawn(currentBidder.pawnId).emoji}
@@ -277,4 +289,14 @@ const S: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
   },
   bidBtns: { display: 'flex', gap: 8 },
+  waitingMsg: {
+    padding: '12px 16px',
+    background: '#fef9e7',
+    border: '2px solid var(--border-gold)',
+    borderRadius: 'var(--radius)',
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--text-mid)',
+    textAlign: 'center',
+  },
 };
