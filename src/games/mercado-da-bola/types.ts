@@ -218,7 +218,8 @@ export type MBScreen =
   | 'social'
   | 'stadium'
   | 'player-detail'
-  | 'turn-handoff';
+  | 'turn-handoff'
+  | 'online-lobby';
 
 // ─── Multiplayer ──────────────────────────────────────────────────────────────
 
@@ -263,7 +264,13 @@ export interface GameSave {
   seasonHistory: { season: number; position: number; budget: number }[];
   totalRoundsPlayed: number;
   // Multiplayer extensions
-  mode: 'solo' | 'local-multi';
+  mode: 'solo' | 'local-multi' | 'online';
   currentTurn: 1 | 2;
   playerProfiles: [PlayerProfile, PlayerProfile] | null;
+  // Match simulation variety (prevents always-same result with seed=7)
+  randomSeed: number;
+  // Online league
+  onlineLeagueCode?: string;
+  playerUid?: string;
+  playerDisplayName?: string;
 }

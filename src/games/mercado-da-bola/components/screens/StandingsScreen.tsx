@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMB } from '../../store/gameStore';
 import { getTeam } from '../../data/teams';
 import type { Standing, MatchFixture } from '../../types';
+import type { LeagueStanding } from '../../services/lendaService';
+import { listenLeagueStandings } from '../../services/lendaService';
 import { cn } from '../../../../lib/utils';
 import { Badge } from '../../../../components/ui/badge';
 import { Card } from '../../../../components/ui/card';
-import { BarChart2, Trophy, TrendingUp, AlertTriangle, Home, Plane } from 'lucide-react';
+import { BarChart2, Trophy, TrendingUp, AlertTriangle, Home, Plane, Globe } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,10 +113,93 @@ function StandingRow({ pos, standing, myTeamId, totalTeams, isLastPromo, isFirst
   );
 }
 
+// ─── Online league table ──────────────────────────────────────────────────────
+
+function OnlineLeagueTable({ leagueCode, myUid }: { leagueCode: string; myUid: string }) {
+  const [standings, setStandings] = useState<LeagueStanding[]>([]);
+
+  useEffect(() => {
+    const unsub = listenLeagueStandings(leagueCode, setStandings);
+    return unsub;
+  }, [leagueCode]);
+
+  const sorted = [...standings].sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    const sgA = a.goalsFor - a.goalsAgainst;
+    const sgB = b.goalsFor - b.goalsAgainst;
+    if (sgB !== sgA) return sgB - sgA;
+    return b.goalsFor - a.goalsFor;
+  });
+
+  if (sorted.length === 0) {
+    return (
+      <Card className="p-6 flex flex-col items-center gap-2 text-center">
+        <Globe size={32} className="text-slate-600" />
+        <p className="text-sm font-bold text-slate-400">Nenhum dado ainda</p>
+        <p className="text-xs text-slate-600">Jogue uma partida para aparecer na tabela online</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-slate-900 border-b border-slate-700">
+              {['Pos', 'Jogador', 'P', 'J', 'V', 'E', 'D', 'SG'].map(col => (
+                <th
+                  key={col}
+                  className={cn(
+                    'py-2.5 px-2 text-[9px] font-black uppercase tracking-wider text-slate-500',
+                    col === 'Jogador' ? 'text-left pl-3' : 'text-center'
+                  )}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((s, idx) => {
+              const isMe = s.uid === myUid;
+              const team = getTeam(s.teamId);
+              const sg = s.goalsFor - s.goalsAgainst;
+              const cell = cn('py-2.5 px-2 text-xs text-center whitespace-nowrap', isMe ? 'font-bold text-slate-100' : 'text-slate-400');
+              return (
+                <tr key={s.uid} className={cn('transition-colors', isMe ? 'bg-blue-600/10' : '')} style={isMe ? { borderLeft: '3px solid #3b82f6' } : {}}>
+                  <td className={cn(cell, 'font-black')} style={{ color: idx === 0 ? '#fde68a' : '#64748b' }}>{idx + 1}</td>
+                  <td className={cn(cell, '!text-left pl-3')}>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full shrink-0" style={{ background: team?.primaryColor ?? '#64748b' }} />
+                      <span className="truncate max-w-[80px]">{s.name}</span>
+                      {isMe && <Badge variant="default" className="text-[8px] px-1 py-0">EU</Badge>}
+                    </div>
+                    <p className="text-[9px] text-slate-600 ml-4">{team?.shortName ?? s.teamId}</p>
+                  </td>
+                  <td className={cn(cell, 'text-amber-400 font-black text-sm')}>{s.points}</td>
+                  <td className={cell}>{s.wins + s.draws + s.losses}</td>
+                  <td className={cn(cell, 'text-emerald-400')}>{s.wins}</td>
+                  <td className={cn(cell, 'text-blue-400')}>{s.draws}</td>
+                  <td className={cn(cell, 'text-red-400')}>{s.losses}</td>
+                  <td className={cn(cell, 'font-bold', sg > 0 ? 'text-emerald-400' : sg < 0 ? 'text-red-400' : 'text-slate-500')}>
+                    {sg > 0 ? `+${sg}` : sg}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function StandingsScreen() {
   const { state } = useMB();
+  const [activeTab, setActiveTab] = useState<'league' | 'online'>('league');
 
   if (!state.save) {
     return <div className="flex h-full items-center justify-center text-slate-500">Carregando…</div>;
@@ -148,6 +233,45 @@ export default function StandingsScreen() {
           </p>
         </div>
       </div>
+
+      {/* ── Tabs ── */}
+      {save.onlineLeagueCode && (
+        <div className="flex rounded-xl border border-slate-700 overflow-hidden">
+          <button
+            onClick={() => setActiveTab('league')}
+            className={cn(
+              'flex-1 py-2 text-xs font-black transition-colors',
+              activeTab === 'league' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+            )}
+          >
+            Campeonato
+          </button>
+          <button
+            onClick={() => setActiveTab('online')}
+            className={cn(
+              'flex-1 py-2 text-xs font-black flex items-center justify-center gap-1.5 transition-colors',
+              activeTab === 'online' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+            )}
+          >
+            <Globe size={11} />
+            Liga Online
+          </button>
+        </div>
+      )}
+
+      {/* ── Online tab ── */}
+      {save.onlineLeagueCode && activeTab === 'online' && (
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-black text-slate-300">Liga Online</p>
+            <Badge variant="secondary" className="font-mono text-xs">{save.onlineLeagueCode}</Badge>
+          </div>
+          <OnlineLeagueTable leagueCode={save.onlineLeagueCode} myUid={save.playerUid ?? ''} />
+        </>
+      )}
+
+      {/* ── Local league tab (hidden when online tab active) ── */}
+      {(!save.onlineLeagueCode || activeTab === 'league') && <>
 
       {/* ── My team summary ── */}
       <Card className="p-4 border-blue-700/40 bg-blue-600/5">
@@ -302,6 +426,8 @@ export default function StandingsScreen() {
           </Card>
         </div>
       )}
+
+      </> /* end local league tab */}
     </div>
   );
 }

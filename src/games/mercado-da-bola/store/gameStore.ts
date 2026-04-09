@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { syncProgress } from '../services/lendaService';
 import type { GameSave, Player, MBScreen, MatchFixture, MatchResult, TransferOffer, StadiumUpgrade, PlayerProfile } from '../types';
 import { ALL_TEAMS, getTeam } from '../data/teams';
 import { ALL_SPONSORS, getSponsor } from '../data/sponsors';
@@ -57,6 +58,7 @@ function reducer(state: MBState, action: Action): MBState {
         mode: 'solo',
         currentTurn: 1,
         playerProfiles: null,
+        randomSeed: Math.floor(Math.random() * 1_000_000),
         ...action.save,
       };
       return { ...state, save: migratedSave, screen: action.type === 'START_NEW_GAME' && migratedSave.mode === 'local-multi' ? 'turn-handoff' : 'home' };
@@ -471,6 +473,15 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
   const switchTurn = useCallback(() => dispatch({ type: 'SWITCH_TURN' }), []);
 
+  // Debounced Firestore sync for online mode
+  useEffect(() => {
+    if (!state.save?.onlineLeagueCode || !state.save?.playerUid) return;
+    const timer = setTimeout(() => {
+      syncProgress(state.save!.onlineLeagueCode!, state.save!.playerUid!, state.save!);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [state.save]);
+
   const playMatch = useCallback((fixtureIndex: number) => {
     if (!state.save) return;
     const fixture = state.save.fixtures[fixtureIndex];
@@ -493,7 +504,7 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
       stadiumCapacity: state.save.stadium.capacity,
       ticketPrice: state.save.stadium.ticketPrice,
       isHome,
-      roundSeed: fixtureIndex * 31337 + state.save.currentRound * 7,
+      roundSeed: fixtureIndex * 31337 + state.save.currentRound * 7 + (state.save.randomSeed ?? 0),
     });
     dispatch({ type: 'PLAY_MATCH', result, fixtureIndex });
   }, [state.save]);

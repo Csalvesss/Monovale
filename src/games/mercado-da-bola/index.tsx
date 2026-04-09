@@ -12,6 +12,7 @@ import SocialScreen from './components/screens/SocialScreen';
 import StadiumScreen from './components/screens/StadiumScreen';
 import PlayerDetailScreen from './components/screens/PlayerDetailScreen';
 import TurnHandoffScreen from './components/screens/TurnHandoffScreen';
+import OnlineLobbyScreen from './components/screens/OnlineLobbyScreen';
 
 interface Props {
   onBack: () => void;
@@ -30,6 +31,11 @@ function GameRouter({ onBack }: Props) {
   }, []); // eslint-disable-line
 
   const { screen, save } = state;
+
+  // Online lobby — shown before a save exists
+  if (screen === 'online-lobby') {
+    return <OnlineLobbyScreen onBack={() => setScreen('team-select')} />;
+  }
 
   // Team selection (no save yet)
   if (!save || screen === 'team-select') {
