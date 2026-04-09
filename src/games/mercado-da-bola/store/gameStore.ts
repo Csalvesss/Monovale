@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import type { GameSave, Player, MBScreen, MatchFixture, MatchResult, TransferOffer, StadiumUpgrade } from '../types';
+import type { GameSave, Player, MBScreen, MatchFixture, MatchResult, TransferOffer, StadiumUpgrade, PlayerProfile } from '../types';
 import { ALL_TEAMS, getTeam } from '../data/teams';
 import { ALL_SPONSORS, getSponsor } from '../data/sponsors';
 import { LEGENDARY_PLAYERS, getLegendaryById } from '../data/legendary-players';
@@ -43,15 +43,24 @@ type Action =
   | { type: 'ADVANCE_ROUND' }
   | { type: 'DISMISS_NOTIFICATION' }
   | { type: 'SHOW_NOTIFICATION'; message: string; notifType: 'success' | 'error' | 'info' | 'legendary' }
-  | { type: 'UPDATE_SAVE'; save: GameSave };
+  | { type: 'UPDATE_SAVE'; save: GameSave }
+  | { type: 'SWITCH_TURN' };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
 
 function reducer(state: MBState, action: Action): MBState {
   switch (action.type) {
     case 'LOAD_SAVE':
-    case 'START_NEW_GAME':
-      return { ...state, save: action.save, screen: 'home' };
+    case 'START_NEW_GAME': {
+      // Backfill multiplayer fields for old saves that lack them
+      const migratedSave: GameSave = {
+        mode: 'solo',
+        currentTurn: 1,
+        playerProfiles: null,
+        ...action.save,
+      };
+      return { ...state, save: migratedSave, screen: action.type === 'START_NEW_GAME' && migratedSave.mode === 'local-multi' ? 'turn-handoff' : 'home' };
+    }
 
     case 'SET_SCREEN':
       return {
@@ -189,6 +198,62 @@ function reducer(state: MBState, action: Action): MBState {
     case 'UPDATE_SAVE':
       persistSave(action.save);
       return { ...state, save: action.save };
+
+    case 'SWITCH_TURN': {
+      if (!state.save || !state.save.playerProfiles) return state;
+      const { save } = state;
+      const currentTurn = save.currentTurn;
+      const nextTurn: 1 | 2 = currentTurn === 1 ? 2 : 1;
+
+      // Archive current player's live data into their profile slot
+      const updatedProfiles: [PlayerProfile, PlayerProfile] = [
+        { ...save.playerProfiles[0] },
+        { ...save.playerProfiles[1] },
+      ];
+      updatedProfiles[currentTurn - 1] = {
+        name: save.playerProfiles[currentTurn - 1].name,
+        teamId: save.myTeamId,
+        squad: save.mySquad,
+        budget: save.budget,
+        stadium: save.stadium,
+        sponsorId: save.sponsorId,
+        sponsorPoints: save.sponsorPoints,
+        legendaryCardsOwned: save.legendaryCardsOwned,
+        legendaryChanceBonus: save.legendaryChanceBonus,
+        pendingOffers: save.pendingOffers,
+        finances: save.finances,
+        fixtures: save.fixtures,
+        currentRound: save.currentRound,
+        currentSeason: save.currentSeason,
+        seasonHistory: save.seasonHistory,
+        totalRoundsPlayed: save.totalRoundsPlayed,
+      };
+
+      const next = updatedProfiles[nextTurn - 1];
+      const newSave: GameSave = {
+        ...save,
+        currentTurn: nextTurn,
+        playerProfiles: updatedProfiles,
+        myTeamId: next.teamId,
+        mySquad: next.squad,
+        budget: next.budget,
+        stadium: next.stadium,
+        sponsorId: next.sponsorId,
+        sponsorPoints: next.sponsorPoints,
+        legendaryCardsOwned: next.legendaryCardsOwned,
+        legendaryChanceBonus: next.legendaryChanceBonus,
+        pendingOffers: next.pendingOffers,
+        finances: next.finances,
+        fixtures: next.fixtures,
+        currentRound: next.currentRound,
+        currentSeason: next.currentSeason,
+        seasonHistory: next.seasonHistory,
+        totalRoundsPlayed: next.totalRoundsPlayed,
+      };
+
+      persistSave(newSave);
+      return { ...state, save: newSave, screen: 'turn-handoff', lastMatchResult: null, matchPhase: null };
+    }
 
     default:
       return state;
@@ -380,6 +445,7 @@ interface MBContextValue {
   trainPlayer: (playerId: string, cost: number) => void;
   upgradeStadium: (u: StadiumUpgrade) => void;
   playMatch: (fixtureIndex: number) => void;
+  switchTurn: () => void;
   dismissNotification: () => void;
 }
 
@@ -403,6 +469,7 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
   const trainPlayer = useCallback((playerId: string, cost: number) => dispatch({ type: 'TRAIN_PLAYER', playerId, cost }), []);
   const upgradeStadium = useCallback((u: StadiumUpgrade) => dispatch({ type: 'UPGRADE_STADIUM', upgrade: u }), []);
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
+  const switchTurn = useCallback(() => dispatch({ type: 'SWITCH_TURN' }), []);
 
   const playMatch = useCallback((fixtureIndex: number) => {
     if (!state.save) return;
@@ -433,7 +500,7 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
 
   return React.createElement(
     MBContext.Provider,
-    { value: { state, dispatch, setScreen, selectPlayer, buyPlayer, sellPlayer, setSponsor, trainPlayer, upgradeStadium, playMatch, dismissNotification } },
+    { value: { state, dispatch, setScreen, selectPlayer, buyPlayer, sellPlayer, setSponsor, trainPlayer, upgradeStadium, playMatch, switchTurn, dismissNotification } },
     children
   );
 }

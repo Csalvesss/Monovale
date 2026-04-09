@@ -80,14 +80,21 @@ export default function GameLayout({ children, onBack }: { children: React.React
           </span>
         </div>
 
-        {state.save ? (
-          <div className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5">
-            <DollarSign size={12} className="text-amber-400" />
-            <span className="text-xs font-black text-amber-400">${budgetFormatted}k</span>
-          </div>
-        ) : (
-          <div className="w-[72px]" />
-        )}
+        <div className="flex flex-col items-end gap-0.5">
+          {state.save ? (
+            <div className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5">
+              <DollarSign size={12} className="text-amber-400" />
+              <span className="text-xs font-black text-amber-400">${budgetFormatted}k</span>
+            </div>
+          ) : (
+            <div className="w-[72px]" />
+          )}
+          {state.save?.mode === 'local-multi' && state.save.playerProfiles && (
+            <span className="text-[9px] font-bold text-slate-500">
+              {state.save.playerProfiles[state.save.currentTurn - 1].name}
+            </span>
+          )}
+        </div>
       </header>
 
       {/* ── Content ── */}

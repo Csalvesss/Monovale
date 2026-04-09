@@ -11,6 +11,7 @@ import StandingsScreen from './components/screens/StandingsScreen';
 import SocialScreen from './components/screens/SocialScreen';
 import StadiumScreen from './components/screens/StadiumScreen';
 import PlayerDetailScreen from './components/screens/PlayerDetailScreen';
+import TurnHandoffScreen from './components/screens/TurnHandoffScreen';
 
 interface Props {
   onBack: () => void;
@@ -32,9 +33,12 @@ function GameRouter({ onBack }: Props) {
 
   // Team selection (no save yet)
   if (!save || screen === 'team-select') {
-    return (
-      <TeamSelectionScreen onBack={onBack} />
-    );
+    return <TeamSelectionScreen onBack={onBack} />;
+  }
+
+  // Turn handoff — fullscreen, no game layout chrome
+  if (screen === 'turn-handoff') {
+    return <TurnHandoffScreen />;
   }
 
   const screenComponent = (() => {

@@ -217,7 +217,29 @@ export type MBScreen =
   | 'standings'
   | 'social'
   | 'stadium'
-  | 'player-detail';
+  | 'player-detail'
+  | 'turn-handoff';
+
+// ─── Multiplayer ──────────────────────────────────────────────────────────────
+
+export interface PlayerProfile {
+  name: string;
+  teamId: string;
+  squad: Player[];
+  budget: number;
+  stadium: Stadium;
+  sponsorId: string | null;
+  sponsorPoints: number;
+  legendaryCardsOwned: string[];
+  legendaryChanceBonus: number;
+  pendingOffers: TransferOffer[];
+  finances: FinancialRecord[];
+  fixtures: MatchFixture[];
+  currentRound: number;
+  currentSeason: number;
+  seasonHistory: { season: number; position: number; budget: number }[];
+  totalRoundsPlayed: number;
+}
 
 export interface GameSave {
   version: '1.0';
@@ -240,4 +262,8 @@ export interface GameSave {
   pendingOffers: TransferOffer[];
   seasonHistory: { season: number; position: number; budget: number }[];
   totalRoundsPlayed: number;
+  // Multiplayer extensions
+  mode: 'solo' | 'local-multi';
+  currentTurn: 1 | 2;
+  playerProfiles: [PlayerProfile, PlayerProfile] | null;
 }
