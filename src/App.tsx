@@ -29,6 +29,7 @@ import {
 } from './logic/gameEngine';
 
 const STORAGE_KEY = 'monovale_game_state';
+const ROOM_KEY    = 'monovale_room_code';
 const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
 type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
@@ -86,9 +87,20 @@ export default function App() {
   const mobileScale  = Math.min(1, (winW - 16) / BOARD_PX);
   const tabletScale  = Math.min(1, (winW - 276) / BOARD_PX);
 
-  const [screen, setScreen] = useState<Screen>('hub');
+  const [screen, setScreen] = useState<Screen>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as GameState;
+        if (parsed.phase === 'playing' && Array.isArray(parsed.players) && Array.isArray(parsed.spaces) && Array.isArray(parsed.dice)) return 'game';
+      }
+    } catch { /* ignore */ }
+    return 'hub';
+  });
   const [mobileTab, setMobileTab] = useState<MobileTab>('board');
-  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(() => {
+    try { return localStorage.getItem(ROOM_KEY); } catch { return null; }
+  });
 
   // ── Game state ──
   const [gameState, setGameState] = useState<GameState | null>(() => {
@@ -128,10 +140,18 @@ export default function App() {
   const roomListenerRef = useRef<(() => void) | null>(null);
   const gameListenerRef = useRef<(() => void) | null>(null);
 
-  // Restore in-progress game on mount
+  // Restore in-progress room game listener on mount
   useEffect(() => {
-    if (gameState?.phase === 'playing') setScreen('game');
+    if (gameState?.phase === 'playing' && roomCode && gameState.gameId) {
+      startGameListener(gameState.gameId);
+    }
   }, []); // eslint-disable-line
+
+  // Persist roomCode to localStorage
+  useEffect(() => {
+    if (roomCode) localStorage.setItem(ROOM_KEY, roomCode);
+    else localStorage.removeItem(ROOM_KEY);
+  }, [roomCode]);
 
   // Persist locally + to Firestore
   useEffect(() => {
@@ -236,6 +256,7 @@ export default function App() {
     setFinishedGameId(null);
     setRoomCode(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ROOM_KEY);
     setScreen('hub');
   }
 
