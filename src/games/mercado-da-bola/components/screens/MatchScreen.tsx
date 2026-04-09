@@ -363,45 +363,12 @@ function PostMatchView() {
   }, [narrative]);
 
   const isVictory = label === 'VITÓRIA';
+  const narrativeDone = revealed >= narrative.length;
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-8">
 
-      {/* ── Result banner ── */}
-      <div className={cn('rounded-2xl border p-6 flex flex-col items-center gap-3', colors.bg, colors.border)}>
-        <span className="text-xs font-black uppercase tracking-widest text-slate-500">
-          {opponent?.name ?? 'Adversário'}
-        </span>
-        <div className={cn('text-6xl font-black tracking-widest animate-score-reveal', colors.text)}>
-          {myGoals} <span className="text-slate-600 text-5xl">x</span> {opGoals}
-        </div>
-        <Badge
-          className={cn(
-            'text-sm px-5 py-1.5 rounded-full font-black',
-            isVictory ? 'bg-emerald-600/20 text-emerald-400 border-emerald-600/30' :
-            label === 'EMPATE' ? 'bg-slate-600/20 text-slate-400 border-slate-600/30' :
-            'bg-red-600/20 text-red-400 border-red-600/30'
-          )}
-        >
-          {label}
-        </Badge>
-      </div>
-
-      {/* ── Earnings ── */}
-      <Card className="p-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Receitas</p>
-        <div className="flex flex-col gap-2">
-          <EarningRow icon={DollarSign} label="Patrocínio" value={result.sponsorEarned} />
-          {result.ticketRevenue > 0 && (
-            <EarningRow icon={Trophy} label="Bilheteria" value={result.ticketRevenue} />
-          )}
-          <div className="border-t border-slate-700 pt-2 mt-1">
-            <EarningRow icon={DollarSign} label="Total" value={result.sponsorEarned + result.ticketRevenue} highlight />
-          </div>
-        </div>
-      </Card>
-
-      {/* ── Match narrative timeline ── */}
+      {/* ── Match narrative timeline — always first ── */}
       <Card className="p-4">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Lances da Partida</p>
         <div className="relative pl-5">
@@ -435,8 +402,46 @@ function PostMatchView() {
         </div>
       </Card>
 
+      {/* ── Result banner — revealed after narrative ── */}
+      {narrativeDone && (
+        <div className={cn('rounded-2xl border p-6 flex flex-col items-center gap-3 animate-fade-up', colors.bg, colors.border)}>
+          <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+            {opponent?.name ?? 'Adversário'}
+          </span>
+          <div className={cn('text-6xl font-black tracking-widest', colors.text)}>
+            {myGoals} <span className="text-slate-600 text-5xl">x</span> {opGoals}
+          </div>
+          <Badge
+            className={cn(
+              'text-sm px-5 py-1.5 rounded-full font-black',
+              isVictory ? 'bg-emerald-600/20 text-emerald-400 border-emerald-600/30' :
+              label === 'EMPATE' ? 'bg-slate-600/20 text-slate-400 border-slate-600/30' :
+              'bg-red-600/20 text-red-400 border-red-600/30'
+            )}
+          >
+            {label}
+          </Badge>
+        </div>
+      )}
+
+      {/* ── Earnings — revealed after narrative ── */}
+      {narrativeDone && (
+        <Card className="p-4 animate-fade-up">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Receitas</p>
+          <div className="flex flex-col gap-2">
+            <EarningRow icon={DollarSign} label="Patrocínio" value={result.sponsorEarned} />
+            {result.ticketRevenue > 0 && (
+              <EarningRow icon={Trophy} label="Bilheteria" value={result.ticketRevenue} />
+            )}
+            <div className="border-t border-slate-700 pt-2 mt-1">
+              <EarningRow icon={DollarSign} label="Total" value={result.sponsorEarned + result.ticketRevenue} highlight />
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* ── XP highlights ── */}
-      {xpList.length > 0 && revealed >= narrative.length && (
+      {xpList.length > 0 && narrativeDone && (
         <Card className="p-4 animate-fade-up">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Destaques da Partida</p>
           <div className="flex flex-col gap-3">
@@ -463,7 +468,7 @@ function PostMatchView() {
       )}
 
       {/* ── Round results button ── */}
-      {revealed >= narrative.length && save.lastRoundResults && save.lastRoundResults.fixtures.length > 1 && (
+      {narrativeDone && save.lastRoundResults && save.lastRoundResults.fixtures.length > 1 && (
         <Card className="p-4 animate-fade-up border-blue-700/30 bg-blue-600/5">
           <div className="flex items-center justify-between">
             <div>
@@ -481,7 +486,7 @@ function PostMatchView() {
       )}
 
       {/* ── Action buttons ── */}
-      {revealed >= narrative.length && (() => {
+      {narrativeDone && (() => {
         const isMulti = save.mode === 'local-multi';
         const nextTurn: 1 | 2 = save.currentTurn === 1 ? 2 : 1;
         const nextPlayerName = isMulti && save.playerProfiles
