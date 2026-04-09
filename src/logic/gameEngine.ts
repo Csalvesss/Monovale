@@ -793,17 +793,20 @@ export function buildHouse(state: GameState, position: number): GameState {
   const cost = space.housePrice;
   if (player.money < cost) return state;
 
-  const maxHouses = groupPos.reduce((max: number, p: number) => {
-    return Math.max(max, state.properties[p]?.houses ?? 0);
-  }, 0);
+  // Even building rule: find the minimum houses across the group
+  const minHouses = groupPos.reduce((min: number, p: number) => {
+    return Math.min(min, state.properties[p]?.houses ?? 0);
+  }, Infinity);
 
   let newHouses = propState.houses;
   let newHotel = propState.hotel;
 
   if (propState.houses < 4) {
-    if (propState.houses >= maxHouses) return state; // must build evenly
+    if (propState.houses > minHouses) return state; // must build on lowest-count property first
     newHouses = propState.houses + 1;
   } else {
+    // 4 houses → hotel: only allowed when all group properties have 4 houses
+    if (minHouses < 4) return state;
     newHotel = true;
     newHouses = 0;
   }
