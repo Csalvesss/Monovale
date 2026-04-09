@@ -79,12 +79,16 @@ export default function PlayerCard({ player, size = 'md', onClick, selected }: P
         </span>
       </div>
 
-      {/* Photo */}
+      {/* Avatar art */}
       <div style={{
         width: '100%',
         height: size === 'sm' ? '55%' : '58%',
         position: 'relative',
         overflow: 'hidden',
+        background: '#0f172a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
         <img
           src={player.photo}
@@ -92,26 +96,34 @@ export default function PlayerCard({ player, size = 'md', onClick, selected }: P
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            filter: 'grayscale(20%)',
-            transition: 'filter 0.5s ease, transform 0.3s ease',
+            objectFit: 'contain',
+            transition: 'transform 0.3s ease',
             display: 'block',
           }}
           onMouseEnter={e => {
-            (e.target as HTMLImageElement).style.filter = 'grayscale(0%)';
-            (e.target as HTMLImageElement).style.transform = 'scale(1.05)';
+            (e.target as HTMLImageElement).style.transform = 'scale(1.08)';
           }}
           onMouseLeave={e => {
-            (e.target as HTMLImageElement).style.filter = 'grayscale(20%)';
             (e.target as HTMLImageElement).style.transform = 'scale(1)';
           }}
-          onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.name}&background=1e293b&color=fbbf24&size=200`; }}
+          onError={e => {
+            (e.target as HTMLImageElement).src =
+              `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(player.name)}&backgroundType=solid&backgroundColor=0f172a`;
+          }}
         />
+        {/* Bottom fade so name section blends cleanly */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          height: '30%',
+          background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.85))',
+          pointerEvents: 'none',
+        }} />
+        {/* Legendary shimmer overlay */}
         {isLegendary && (
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            height: '40%',
-            background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.8))',
+            position: 'absolute', inset: 0,
+            background: `linear-gradient(135deg, ${rarityColor}18 0%, transparent 60%)`,
+            pointerEvents: 'none',
           }} />
         )}
       </div>
