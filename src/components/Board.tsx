@@ -470,7 +470,7 @@ function CellContent({
         position: 'relative',
       }}>
         {space.icon && <span style={{ fontSize: 15, lineHeight: 1 }}>{space.icon}</span>}
-        <span style={{ ...nameStyle, maxWidth: undefined }}>
+        <span style={{ ...nameStyle, maxWidth: undefined, wordBreak: 'normal', hyphens: 'none', whiteSpace: 'nowrap', overflow: 'hidden' }}>
           {space.name}
         </span>
         {space.price     !== undefined && <span style={priceStyle}>R${space.price}</span>}
