@@ -6,9 +6,11 @@ import type { GameResult } from '../types';
 
 interface Props {
   onStartGame: () => void;
+  onCreateRoom: () => void;
+  onJoinRoom: () => void;
 }
 
-export default function HomePage({ onStartGame }: Props) {
+export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Props) {
   const { profile, logout, updatePawn } = useAuth();
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
@@ -103,9 +105,17 @@ export default function HomePage({ onStartGame }: Props) {
             <StatCard emoji="💰" label="Patrimônio Médio" value={`M$ ${avgNetWorth.toLocaleString('pt-BR')}`} color="var(--purple)" />
           </div>
 
-          {/* ── CTA ── */}
-          <button onClick={onStartGame} style={S.startBtn}>
-            🎲 INICIAR PARTIDA
+          {/* ── CTA buttons ── */}
+          <div style={S.ctaGrid}>
+            <button onClick={onCreateRoom} style={S.ctaBtnGreen}>
+              🎮 Criar Sala Online
+            </button>
+            <button onClick={onJoinRoom} style={S.ctaBtnGold}>
+              🔑 Entrar numa Sala
+            </button>
+          </div>
+          <button onClick={onStartGame} style={S.ctaBtnLocal}>
+            📱 Jogar Local (mesmo dispositivo)
           </button>
 
           {/* ── Recent games ── */}
@@ -335,19 +345,47 @@ const S: Record<string, React.CSSProperties> = {
   statLabel: { fontSize: 11, fontWeight: 800, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px' },
 
   /* CTA */
-  startBtn: {
-    width: '100%',
-    padding: '18px',
+  ctaGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 12,
+  },
+  ctaBtnGreen: {
+    padding: '16px 8px',
     background: 'var(--green-grad)',
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius-lg)',
     fontFamily: 'var(--font-title)',
-    fontSize: 24,
-    letterSpacing: '1.5px',
+    fontSize: 18,
+    letterSpacing: '0.5px',
     cursor: 'pointer',
-    boxShadow: '0 6px 0 var(--green-dark)',
-    transition: 'transform 0.1s, box-shadow 0.1s',
+    boxShadow: '0 5px 0 var(--green-dark)',
+  },
+  ctaBtnGold: {
+    padding: '16px 8px',
+    background: 'var(--gold-grad)',
+    color: 'var(--text)',
+    border: 'none',
+    borderRadius: 'var(--radius-lg)',
+    fontFamily: 'var(--font-title)',
+    fontSize: 18,
+    letterSpacing: '0.5px',
+    cursor: 'pointer',
+    boxShadow: '0 5px 0 var(--gold-dark)',
+  },
+  ctaBtnLocal: {
+    width: '100%',
+    padding: '12px',
+    background: 'var(--card-alt)',
+    color: 'var(--text-mid)',
+    border: '2px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: 'pointer',
+    boxShadow: '0 3px 0 var(--border)',
   },
 
   /* Recent games */
