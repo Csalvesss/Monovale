@@ -461,7 +461,7 @@ function CellContent({
         writingMode: 'vertical-lr',
         transform: side === 'left' ? 'rotate(180deg)' : 'none',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         flex: 1,
