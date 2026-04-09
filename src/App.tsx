@@ -9,24 +9,10 @@ import TradeModal from './components/TradeModal';
 import EndScreen from './components/EndScreen';
 import type { GameState, LobbyConfig, TradeState } from './types';
 import {
-  initGame,
-  rollDice,
-  buyProperty,
-  startAuction,
-  placeBid,
-  passBid,
-  endTurn,
-  payJailFine,
-  useJailCard,
-  buildHouse,
-  sellHouse,
-  mortgageProperty,
-  unmortgageProperty,
-  proposeTrade,
-  updateTrade,
-  acceptTrade,
-  cancelTrade,
-  resolveCard,
+  initGame, rollDice, buyProperty, startAuction, placeBid, passBid,
+  endTurn, payJailFine, useJailCard, buildHouse, sellHouse,
+  mortgageProperty, unmortgageProperty, proposeTrade, updateTrade,
+  acceptTrade, cancelTrade, resolveCard,
 } from './logic/gameEngine';
 
 const STORAGE_KEY = 'monovale_game_state';
@@ -37,20 +23,16 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as GameState;
-        // Only restore if in playing state (not lobby/ended)
         if (parsed.phase === 'playing') return parsed;
       }
     } catch { /* ignore */ }
     return null;
   });
 
-  const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  // Persist state on every change
   useEffect(() => {
-    if (gameState) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-    }
+    if (gameState) localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
   }, [gameState]);
 
   const update = useCallback((fn: (s: GameState) => GameState) => {
@@ -62,59 +44,51 @@ export default function App() {
   }
 
   function handleNewGame() {
-    if (gameState?.phase === 'playing') {
-      setShowNewGameConfirm(true);
-    } else {
-      setGameState(null);
-    }
+    if (gameState?.phase === 'playing') setShowConfirm(true);
+    else { setGameState(null); localStorage.removeItem(STORAGE_KEY); }
   }
 
   function confirmNewGame() {
-    setShowNewGameConfirm(false);
+    setShowConfirm(false);
     setGameState(null);
     localStorage.removeItem(STORAGE_KEY);
   }
 
   if (!gameState || gameState.phase === 'lobby') {
-    return (
-      <div>
-        <Lobby onStart={handleStart} />
-      </div>
-    );
+    return <Lobby onStart={handleStart} />;
   }
 
   return (
-    <div style={styles.root}>
-      {/* Top bar */}
-      <div style={styles.topBar}>
-        <div style={styles.topBarTitle}>
-          <span>🗺️</span> Monovale
-          <span style={styles.topBarSub}>Vale do Paraíba</span>
+    <div style={S.root}>
+      {/* ── Top bar ── */}
+      <div style={S.topBar}>
+        <div style={S.topLogo}>
+          <span style={{ fontSize: 28 }}>🗺️</span>
+          <span style={S.topTitle}>MONOVALE</span>
+          <span style={S.topSub}>Vale do Paraíba</span>
         </div>
-        <div style={styles.topBarActions}>
-          <span style={styles.bankerBadge}>🏦 Banco do Sr. Marinho</span>
-          <button
-            onClick={handleNewGame}
-            style={styles.newGameBtn}
-          >
+        <div style={S.topRight}>
+          <span style={S.bankerTag}>🏦 Sr. Marinho</span>
+          <button onClick={handleNewGame} style={S.newGameBtn}>
             🔄 Nova Partida
           </button>
         </div>
       </div>
 
-      {/* Main layout */}
-      <div style={styles.layout}>
-        {/* Left: Players */}
-        <div style={styles.leftPanel}>
+      {/* ── Main layout ── */}
+      <div style={S.layout}>
+
+        {/* Left panel */}
+        <div style={S.leftPanel}>
           <PlayerPanel state={gameState} />
         </div>
 
-        {/* Center: Board + Actions */}
-        <div style={styles.center}>
-          <div style={styles.boardWrapper}>
+        {/* Center: board + actions */}
+        <div style={S.center}>
+          <div style={S.boardWrapper}>
             <Board state={gameState} />
           </div>
-          <div style={styles.actionWrapper}>
+          <div style={S.actionWrapper}>
             <ActionPanel
               state={gameState}
               onRoll={() => update(rollDice)}
@@ -124,7 +98,7 @@ export default function App() {
               onResolveCard={() => update(resolveCard)}
               onPayJail={() => update(payJailFine)}
               onUseJailCard={() => update(useJailCard)}
-              onProposeTrade={(targetIndex) => update(s => proposeTrade(s, targetIndex))}
+              onProposeTrade={(idx) => update(s => proposeTrade(s, idx))}
               onBuildHouse={(pos) => update(s => buildHouse(s, pos))}
               onSellHouse={(pos) => update(s => sellHouse(s, pos))}
               onMortgage={(pos) => update(s => mortgageProperty(s, pos))}
@@ -133,18 +107,18 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right: Log */}
-        <div style={styles.rightPanel}>
+        {/* Right panel */}
+        <div style={S.rightPanel}>
           <EventLog log={gameState.log} />
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       {gameState.turnPhase === 'auction' && gameState.auction && (
         <AuctionModal
           state={gameState}
-          onBid={(playerId, amount) => update(s => placeBid(s, playerId, amount))}
-          onPass={(playerId) => update(s => passBid(s, playerId))}
+          onBid={(pid, amt) => update(s => placeBid(s, pid, amt))}
+          onPass={(pid) => update(s => passBid(s, pid))}
         />
       )}
 
@@ -157,32 +131,23 @@ export default function App() {
         />
       )}
 
-      {/* End screen */}
       {gameState.phase === 'ended' && (
         <EndScreen
           state={gameState}
-          onNewGame={() => {
-            setGameState(null);
-            localStorage.removeItem(STORAGE_KEY);
-          }}
+          onNewGame={() => { setGameState(null); localStorage.removeItem(STORAGE_KEY); }}
         />
       )}
 
-      {/* New game confirmation */}
-      {showNewGameConfirm && (
-        <div style={styles.confirmOverlay}>
-          <div style={styles.confirmModal}>
-            <div style={styles.confirmTitle}>⚠️ Nova Partida</div>
-            <p style={styles.confirmText}>
-              Tem certeza? O progresso atual será perdido.
-            </p>
-            <div style={styles.confirmActions}>
-              <button onClick={confirmNewGame} style={styles.confirmBtnYes}>
-                Sim, nova partida
-              </button>
-              <button onClick={() => setShowNewGameConfirm(false)} style={styles.confirmBtnNo}>
-                Cancelar
-              </button>
+      {/* ── New game confirmation ── */}
+      {showConfirm && (
+        <div style={S.overlay}>
+          <div style={S.confirmBox}>
+            <div style={S.confirmEmoji}>⚠️</div>
+            <div style={S.confirmTitle}>Nova Partida?</div>
+            <p style={S.confirmText}>O progresso atual será perdido.</p>
+            <div style={S.confirmBtns}>
+              <button onClick={confirmNewGame} style={S.confirmBtnYes}>Sim, nova partida</button>
+              <button onClick={() => setShowConfirm(false)} style={S.confirmBtnNo}>Cancelar</button>
             </div>
           </div>
         </div>
@@ -191,60 +156,75 @@ export default function App() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const S: Record<string, React.CSSProperties> = {
   root: {
-    minHeight: '100vh',
-    background: 'linear-gradient(160deg, #0f1a0f 0%, #1a3a2a 50%, #0f2010 100%)',
+    height: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: '"Segoe UI", system-ui, sans-serif',
-    color: '#f9fafb',
+    background: 'var(--bg)',
+    fontFamily: 'var(--font-body)',
+    overflow: 'hidden',
   },
+
+  /* ── Top bar ── */
   topBar: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '8px 16px',
-    background: 'rgba(0,0,0,0.4)',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    padding: '0 20px',
+    height: 56,
+    background: 'var(--gold-grad)',
+    boxShadow: '0 3px 0 var(--gold-dark), 0 4px 12px rgba(0,0,0,0.15)',
     flexShrink: 0,
+    zIndex: 10,
   },
-  topBarTitle: {
+  topLogo: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    fontSize: 20,
-    fontWeight: 900,
-    color: '#d4af37',
-    letterSpacing: '-0.5px',
+    gap: 10,
   },
-  topBarSub: {
+  topTitle: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 28,
+    color: 'var(--text)',
+    letterSpacing: '1.5px',
+    textShadow: '1px 1px 0 rgba(255,255,255,0.4)',
+    lineHeight: 1,
+  },
+  topSub: {
     fontSize: 12,
-    fontWeight: 500,
-    color: '#86efac',
-    marginLeft: 2,
+    fontWeight: 700,
+    color: 'var(--text)',
+    opacity: 0.6,
+    marginTop: 2,
   },
-  topBarActions: {
+  topRight: {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
   },
-  bankerBadge: {
-    fontSize: 12,
-    color: '#d4af37',
-    opacity: 0.8,
+  bankerTag: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--text)',
+    opacity: 0.7,
   },
   newGameBtn: {
-    padding: '6px 14px',
-    background: 'rgba(239,68,68,0.15)',
-    color: '#fca5a5',
-    border: '1px solid rgba(239,68,68,0.3)',
-    borderRadius: 8,
+    padding: '7px 16px',
+    background: 'var(--red-grad)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 99,
+    fontFamily: 'var(--font-body)',
+    fontWeight: 800,
     fontSize: 12,
-    fontWeight: 600,
     cursor: 'pointer',
-    fontFamily: 'inherit',
+    boxShadow: '0 3px 0 var(--red-dark)',
+    letterSpacing: '0.3px',
+    transition: 'transform 0.1s, box-shadow 0.1s',
   },
+
+  /* ── Main layout ── */
   layout: {
     flex: 1,
     display: 'flex',
@@ -253,88 +233,103 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     minHeight: 0,
   },
+
   leftPanel: {
-    width: 200,
+    width: 210,
     flexShrink: 0,
     overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
   },
+
   center: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
     alignItems: 'center',
-    overflow: 'auto',
+    overflowY: 'auto',
     minWidth: 0,
   },
+
   boardWrapper: {
     flexShrink: 0,
   },
+
   actionWrapper: {
     width: '100%',
-    maxWidth: 650,
+    maxWidth: 660,
+    paddingBottom: 8,
   },
+
   rightPanel: {
     width: 260,
     flexShrink: 0,
-    overflowY: 'hidden',
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden',
   },
-  confirmOverlay: {
+
+  /* ── Overlay / Confirm ── */
+  overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.7)',
+    background: 'rgba(0,0,0,0.6)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 3000,
+    backdropFilter: 'blur(4px)',
   },
-  confirmModal: {
-    background: '#fff',
-    borderRadius: 14,
-    padding: '24px',
+  confirmBox: {
+    background: 'var(--card)',
+    borderRadius: 'var(--radius-xl)',
+    border: '3px solid var(--border-gold)',
+    boxShadow: 'var(--shadow-lg)',
+    padding: '32px 28px',
     maxWidth: 340,
     width: '90%',
-    boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+    textAlign: 'center',
+    animation: 'pop-in 0.25s ease',
   },
+  confirmEmoji: { fontSize: 40, marginBottom: 8 },
   confirmTitle: {
-    fontSize: 20,
-    fontWeight: 800,
-    color: '#1f2937',
-    marginBottom: 10,
+    fontFamily: 'var(--font-title)',
+    fontSize: 28,
+    color: 'var(--text)',
+    marginBottom: 8,
   },
   confirmText: {
     fontSize: 14,
-    color: '#4b5563',
-    marginBottom: 16,
+    color: 'var(--text-mid)',
+    fontWeight: 600,
+    margin: '0 0 20px',
   },
-  confirmActions: {
-    display: 'flex',
-    gap: 10,
-  },
+  confirmBtns: { display: 'flex', gap: 10 },
   confirmBtnYes: {
     flex: 1,
-    padding: '10px',
-    background: '#dc2626',
+    padding: '12px',
+    background: 'var(--red-grad)',
     color: '#fff',
     border: 'none',
-    borderRadius: 8,
+    borderRadius: 'var(--radius)',
     fontSize: 13,
-    fontWeight: 700,
+    fontWeight: 800,
     cursor: 'pointer',
-    fontFamily: 'inherit',
+    boxShadow: '0 4px 0 var(--red-dark)',
+    fontFamily: 'var(--font-body)',
   },
   confirmBtnNo: {
     flex: 1,
-    padding: '10px',
-    background: '#f3f4f6',
-    color: '#374151',
-    border: 'none',
-    borderRadius: 8,
+    padding: '12px',
+    background: 'var(--card-alt)',
+    color: 'var(--text)',
+    border: '2px solid var(--border)',
+    borderRadius: 'var(--radius)',
     fontSize: 13,
-    fontWeight: 600,
+    fontWeight: 800,
     cursor: 'pointer',
-    fontFamily: 'inherit',
+    boxShadow: '0 4px 0 var(--border)',
+    fontFamily: 'var(--font-body)',
   },
 };
