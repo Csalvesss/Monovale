@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { listenRoom, submitAction, endTurn } from './service';
+import { listenRoom, submitAction, endTurn, skipTurn } from './service';
 import { rollDice, resolveSpaceAction, getSpace } from './engine';
 import type { RoomDoc, BoardPlayer } from './types';
 import { PLAYER_COLORS } from './types';
@@ -59,7 +59,13 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
   const [room, setRoom]           = useState<RoomDoc | null>(null);
   const [diceVal, setDiceVal]     = useState(1);
   const [spinning, setSpinning]   = useState(false);
-  const [animPos, setAnimPos]     = useState<Record<string, number>>({});
+  const [animPos, _setAnimPos]    = useState<Record<string, number>>({});
+  const animPosRef                = useRef<Record<string, number>>({});
+  function setAnimPos(val: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) {
+    const next = typeof val === 'function' ? val(animPosRef.current) : val;
+    animPosRef.current = next;
+    _setAnimPos(next);
+  }
   const [busy, setBusy]           = useState(false);
   const [showExit, setShowExit]   = useState(false);
   const [showSquad, setShowSquad] = useState(false);
@@ -149,9 +155,13 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
 
   const handleConfirm = useCallback(async () => {
     if (!room?.lastAction) return;
-    setAnimPos({}); // clear anim overrides
     await endTurn(roomCode, uid, room.lastAction.extraTurn);
   }, [room, roomCode, uid]);
+
+  const handleSkipTurn = useCallback(async () => {
+    if (!isMyTurn || !myPlayer?.skipsNext) return;
+    await skipTurn(roomCode, uid);
+  }, [isMyTurn, myPlayer, roomCode, uid]);
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (!room) {
@@ -283,7 +293,11 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
               {currentPlayer.name.charAt(0)}
             </div>
             <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>
-              {isMyTurn ? '🎲 Sua vez de jogar!' : `⏳ Vez de ${currentPlayer.name}`}
+              {isMyTurn && myPlayer?.skipsNext
+                ? '😴 Seu turno está perdido — confirme para continuar'
+                : isMyTurn
+                ? '🎲 Sua vez de jogar!'
+                : `⏳ Vez de ${currentPlayer.name}`}
             </p>
           </div>
         )}
@@ -310,7 +324,21 @@ export default function GameScreen({ roomCode, onExit }: { roomCode: string; onE
           }}>
             <Die value={diceVal} size={68} spinning={spinning} />
 
-            {canRoll ? (
+            {isMyTurn && room.phase === 'roll' && myPlayer?.skipsNext ? (
+              <button
+                onClick={handleSkipTurn}
+                style={{
+                  padding: '16px 28px', fontSize: 15,
+                  fontFamily: 'var(--font-display)', letterSpacing: '0.06em',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: 'rgba(71,85,105,0.4)',
+                  border: '1.5px solid rgba(148,163,184,0.3)',
+                  borderRadius: 14, color: '#94a3b8', cursor: 'pointer',
+                }}
+              >
+                😴 TURNO PERDIDO
+              </button>
+            ) : canRoll ? (
               <button
                 onClick={handleRoll}
                 className="lenda-btn-gold"
