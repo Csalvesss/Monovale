@@ -1,153 +1,183 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React from 'react';
 import type { Player } from '../../types';
 
-// ─── Formation layouts ─────────────────────────────────────────────────────────
-// Each position: [colPercent, rowPercent] within the pitch
+// ─── Slot positions (4-3-3 inspired) ─────────────────────────────────────────
 
-const FORMATION_4_3_3: Record<string, [number, number]> = {
-  GK:  [50, 88],
-  LB:  [15, 70], CB: [35, 70],
-  RB:  [85, 70],
-  CDM: [50, 70], // uses the 2nd CB slot
-  CM:  [20, 50], CAM: [50, 50], CM2: [80, 50],
-  LW:  [15, 25], ST: [50, 20], RW: [85, 25],
+const SLOT_POSITIONS: Record<string, [number, number][]> = {
+  GK:  [[50, 86]],
+  LB:  [[12, 68]],
+  CB:  [[32, 70], [68, 70]],
+  RB:  [[88, 68]],
+  CDM: [[50, 56]],
+  CM:  [[24, 46], [76, 46]],
+  CAM: [[50, 36]],
+  LW:  [[14, 20]],
+  RW:  [[86, 20]],
+  ST:  [[50, 16], [34, 16], [66, 16]],
+  CF:  [[50, 13], [33, 13], [67, 13]],
 };
 
-const POSITIONS_ORDER = ['GK', 'LB', 'CB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'ST', 'RW', 'CF'];
-
-// Position to grid slot mapping for 4-3-3
-function getSlotForPosition(pos: string, slotIndex: number): [number, number] {
-  const formations: Record<string, [number, number][]> = {
-    GK:  [[50, 88]],
-    LB:  [[12, 68]],
-    CB:  [[32, 70], [68, 70]],
-    RB:  [[88, 68]],
-    CDM: [[50, 57]],
-    CM:  [[25, 47], [75, 47]],
-    CAM: [[50, 38]],
-    LW:  [[16, 22]],
-    RW:  [[84, 22]],
-    ST:  [[50, 18], [35, 18], [65, 18]],
-    CF:  [[50, 15], [32, 15], [68, 15]],
-  };
-  const slots = formations[pos] ?? [[50, 50]];
-  return slots[slotIndex % slots.length] ?? [50, 50];
+function getSlot(pos: string, idx: number): [number, number] {
+  const slots = SLOT_POSITIONS[pos] ?? [[50, 50]];
+  return slots[idx % slots.length];
 }
 
-// ─── Mood emoji ───────────────────────────────────────────────────────────────
+// ─── OVR from attributes ──────────────────────────────────────────────────────
 
-function moodEmoji(mood: string) {
-  if (mood === 'motivated') return '😄';
-  if (mood === 'happy') return '🙂';
-  if (mood === 'neutral') return '😐';
-  return '😞';
+function computeOVR(p: Player): number {
+  const a = p.attributes;
+  const vals = [a.pace, a.shooting, a.passing, a.dribbling, a.defending, a.physical,
+                ...(a.goalkeeping !== undefined ? [a.goalkeeping] : [])];
+  return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
 }
+
+// ─── Mood helpers ─────────────────────────────────────────────────────────────
 
 function moodColor(mood: string): string {
-  if (mood === 'motivated') return 'var(--ldb-win)';
-  if (mood === 'happy') return '#60A5FA';
-  if (mood === 'neutral') return 'var(--ldb-text-muted)';
+  if (mood === 'motivated') return 'var(--ldb-pitch-bright)';
+  if (mood === 'happy')     return '#60A5FA';
+  if (mood === 'neutral')   return 'var(--ldb-text-muted)';
   return 'var(--ldb-loss)';
 }
 
-// ─── Player dot ───────────────────────────────────────────────────────────────
+// ─── Card visual gradient by legendary type ───────────────────────────────────
+
+const VISUAL_BG: Record<string, string> = {
+  gold:     'linear-gradient(160deg, #FBF5B7 0%, #D4AF37 45%, #7A5C00 100%)',
+  platinum: 'linear-gradient(160deg, #F4F4F4 0%, #B0B8C4 45%, #6B7280 100%)',
+  ruby:     'linear-gradient(160deg, #FFB3B3 0%, #DC2626 45%, #7F1D1D 100%)',
+  sapphire: 'linear-gradient(160deg, #BFDBFE 0%, #3B82F6 45%, #1E3A8A 100%)',
+};
+
+// ─── Player card "totem" ──────────────────────────────────────────────────────
 
 interface DotProps {
   player: Player;
-  x: number;   // 0-100 percent
-  y: number;   // 0-100 percent
+  x: number;
+  y: number;
   isSelected: boolean;
   onClick: () => void;
   teamColor: string;
 }
 
-function PlayerDot({ player, x, y, isSelected, onClick, teamColor }: DotProps) {
+function PlayerTotem({ player, x, y, isSelected, onClick, teamColor }: DotProps) {
   const isLegendary = player.rarity === 'legendary';
-  const mc = moodColor(player.mood);
+  const ovr = computeOVR(player);
+  const mc  = moodColor(player.mood);
+  const vis = player.legendaryCard?.visual ?? 'gold';
+
+  const cardBg = isLegendary
+    ? VISUAL_BG[vis] ?? VISUAL_BG.gold
+    : isSelected
+      ? 'linear-gradient(160deg, rgba(0,255,135,0.25), rgba(5,10,15,0.95))'
+      : 'linear-gradient(160deg, rgba(22,36,56,0.95), rgba(5,10,15,0.98))';
+
+  const cardBorder = isSelected
+    ? 'var(--ldb-pitch-bright)'
+    : isLegendary
+      ? 'var(--ldb-gold-mid)'
+      : 'rgba(255,255,255,0.18)';
+
+  const textColor = isLegendary ? '#020406' : 'var(--ldb-text)';
 
   return (
     <div
       onClick={onClick}
+      title={player.fullName}
       style={{
         position: 'absolute',
         left: `${x}%`,
         top: `${y}%`,
-        transform: 'translate(-50%, -50%)',
+        // Counter-rotate so the card stands perpendicular to the viewer
+        transform: 'translateX(-50%) translateY(-50%) rotateX(-38deg)',
+        transformOrigin: 'center bottom',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 2,
         cursor: 'pointer',
-        zIndex: isSelected ? 10 : 1,
-        transition: 'transform 200ms cubic-bezier(0.16,1,0.3,1)',
+        zIndex: isSelected ? 20 : 5,
+        transition: 'filter 250ms var(--ldb-ease-out)',
+        filter: isSelected
+          ? 'drop-shadow(0 0 10px rgba(0,255,135,0.9))'
+          : isLegendary
+            ? 'drop-shadow(0 0 6px rgba(212,175,55,0.7))'
+            : 'drop-shadow(0 3px 6px rgba(0,0,0,0.7))',
       }}
-      title={player.name}
     >
-      {/* Dot */}
+      {/* Mini FC-style card */}
       <div style={{
         width: 36,
-        height: 36,
-        borderRadius: '50%',
-        background: isLegendary
-          ? 'linear-gradient(135deg, #FFD700, #C49A00)'
-          : teamColor,
-        border: isSelected
-          ? '2px solid #fff'
-          : isLegendary
-            ? '2px solid #FFD700'
-            : `2px solid ${mc}44`,
+        height: 46,
+        background: cardBg,
+        border: `1.5px solid ${cardBorder}`,
+        borderRadius: 6,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 12,
-        fontWeight: 800,
-        color: '#fff',
-        boxShadow: isSelected
-          ? `0 0 0 2px ${teamColor}, 0 4px 12px rgba(0,0,0,0.5)`
-          : isLegendary
-            ? '0 0 12px rgba(255,215,0,0.5), 0 2px 8px rgba(0,0,0,0.4)'
-            : '0 2px 8px rgba(0,0,0,0.4)',
-        transition: 'all 200ms',
-        position: 'relative',
-        fontFamily: 'var(--ldb-font-display)',
-        letterSpacing: '0.02em',
+        justifyContent: 'space-between',
+        padding: '4px 3px 3px',
+        boxShadow: isLegendary
+          ? '0 6px 16px rgba(212,175,55,0.45), 0 2px 6px rgba(0,0,0,0.7)'
+          : '0 4px 12px rgba(0,0,0,0.7)',
       }}>
-        {player.position === 'GK' ? 'GL' : player.stars}
-        {/* Mood indicator */}
+        {/* OVR number */}
+        <span style={{
+          fontFamily: 'var(--ldb-font-display)',
+          fontSize: 15,
+          lineHeight: 1,
+          color: textColor,
+          letterSpacing: '-0.5px',
+          fontWeight: 900,
+        }}>
+          {ovr}
+        </span>
+
+        {/* Position */}
         <div style={{
-          position: 'absolute',
-          top: -4,
-          right: -4,
-          width: 12,
-          height: 12,
+          fontSize: 7,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          color: isLegendary ? 'rgba(2,4,6,0.65)' : 'var(--ldb-text-muted)',
+          lineHeight: 1,
+        }}>
+          {player.position}
+        </div>
+
+        {/* Mood dot */}
+        <div style={{
+          width: 6,
+          height: 6,
           borderRadius: '50%',
           background: mc,
-          border: '1px solid rgba(0,0,0,0.3)',
+          boxShadow: `0 0 4px ${mc}`,
         }} />
       </div>
 
       {/* Name tag */}
       <div style={{
-        background: isSelected ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.7)',
-        border: isSelected ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 4,
+        marginTop: 3,
+        background: 'rgba(2,4,6,0.88)',
+        border: isSelected ? '1px solid var(--ldb-pitch-bright)' : '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 3,
         padding: '1px 5px',
-        fontSize: 9,
+        fontSize: 8,
         fontWeight: 700,
-        color: isSelected ? '#fff' : 'rgba(255,255,255,0.8)',
+        color: isSelected ? 'var(--ldb-pitch-bright)' : 'rgba(255,255,255,0.88)',
         whiteSpace: 'nowrap',
-        maxWidth: 56,
+        maxWidth: 54,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         backdropFilter: 'blur(4px)',
+        letterSpacing: '0.02em',
       }}>
-        {player.name.split(' ').pop()}
+        {player.name.split(' ')[0]}
       </div>
     </div>
   );
 }
 
-// ─── Pitch field SVG lines ─────────────────────────────────────────────────────
+// ─── Pitch SVG lines ──────────────────────────────────────────────────────────
 
 function PitchLines() {
   return (
@@ -156,22 +186,14 @@ function PitchLines() {
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
     >
-      {/* Outer border */}
-      <rect x="3" y="3" width="94" height="94" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
-      {/* Center line */}
+      <rect x="3" y="3" width="94" height="94" fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="0.5" />
       <line x1="3" y1="50" x2="97" y2="50" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
-      {/* Center circle */}
       <circle cx="50" cy="50" r="12" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
-      {/* Center spot */}
-      <circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.08)" />
-      {/* Top penalty area */}
-      <rect x="25" y="3" width="50" height="16" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
-      {/* Top goal */}
-      <rect x="38" y="3" width="24" height="5" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
-      {/* Bottom penalty area */}
-      <rect x="25" y="81" width="50" height="16" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
-      {/* Bottom goal */}
-      <rect x="38" y="92" width="24" height="5" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
+      <circle cx="50" cy="50" r="1.2" fill="rgba(255,255,255,0.1)" />
+      <rect x="25" y="3" width="50" height="18" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
+      <rect x="38" y="3" width="24" height="6" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />
+      <rect x="25" y="79" width="50" height="18" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
+      <rect x="38" y="91" width="24" height="6" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />
     </svg>
   );
 }
@@ -186,69 +208,85 @@ interface Props {
 }
 
 export default function PitchView({ squad, selectedId, onSelect, teamColor }: Props) {
-  // Group players by position
-  const positionGroups: Record<string, Player[]> = {};
+  const posGroups: Record<string, Player[]> = {};
   for (const p of squad.slice(0, 11)) {
-    if (!positionGroups[p.position]) positionGroups[p.position] = [];
-    positionGroups[p.position].push(p);
+    if (!posGroups[p.position]) posGroups[p.position] = [];
+    posGroups[p.position].push(p);
   }
 
-  // Build dot list with positions
   const dots: { player: Player; x: number; y: number }[] = [];
-  for (const [pos, players] of Object.entries(positionGroups)) {
+  for (const [pos, players] of Object.entries(posGroups)) {
     players.forEach((p, idx) => {
-      const [x, y] = getSlotForPosition(pos, idx);
+      const [x, y] = getSlot(pos, idx);
       dots.push({ player: p, x, y });
     });
   }
 
   return (
-    <div className="ldb-pitch-bg" style={{
-      position: 'relative',
-      width: '100%',
-      aspectRatio: '0.75',
-      overflow: 'hidden',
-      borderRadius: 'var(--ldb-r-lg)',
+    /*
+     * Outer wrapper: establishes 3D perspective.
+     * paddingTop gives space for the standing cards at the top of the pitch
+     * that extend visually "above" the tilted field.
+     */
+    <div style={{
+      perspective: '700px',
+      perspectiveOrigin: '50% 90%',
+      paddingTop: 48,
+      paddingBottom: 8,
     }}>
-      {/* Field stripes */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `repeating-linear-gradient(
-          180deg,
-          transparent,
-          transparent 12.5%,
-          rgba(0,0,0,0.06) 12.5%,
-          rgba(0,0,0,0.06) 25%
-        )`,
-        pointerEvents: 'none',
-      }} />
-
-      <PitchLines />
-
-      {/* Player dots */}
-      {dots.map(({ player, x, y }) => (
-        <PlayerDot
-          key={player.id}
-          player={player}
-          x={x}
-          y={y}
-          isSelected={selectedId === player.id}
-          onClick={() => onSelect(player.id)}
-          teamColor={teamColor}
-        />
-      ))}
-
-      {/* Empty pitch message */}
-      {squad.length === 0 && (
+      <div
+        className="ldb-pitch-bg"
+        style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '0.72',
+          borderRadius: 'var(--ldb-r-lg)',
+          /* Tilt the pitch back like a real stadium view */
+          transform: 'rotateX(38deg)',
+          transformOrigin: 'bottom center',
+          transformStyle: 'preserve-3d',
+          overflow: 'visible',
+        }}
+      >
+        {/* Field stripes (clipped to pitch bounds) */}
         <div style={{
           position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'rgba(255,255,255,0.2)',
-          fontSize: 13, fontWeight: 600,
-        }}>
-          Elenco vazio
-        </div>
-      )}
+          overflow: 'hidden',
+          borderRadius: 'var(--ldb-r-lg)',
+          backgroundImage: `repeating-linear-gradient(
+            180deg,
+            transparent,
+            transparent 12.5%,
+            rgba(0,0,0,0.07) 12.5%,
+            rgba(0,0,0,0.07) 25%
+          )`,
+          pointerEvents: 'none',
+        }} />
+
+        <PitchLines />
+
+        {dots.map(({ player, x, y }) => (
+          <PlayerTotem
+            key={player.id}
+            player={player}
+            x={x}
+            y={y}
+            isSelected={selectedId === player.id}
+            onClick={() => onSelect(player.id)}
+            teamColor={teamColor}
+          />
+        ))}
+
+        {squad.length === 0 && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'rgba(255,255,255,0.2)', fontSize: 13, fontWeight: 600,
+          }}>
+            Elenco vazio
+          </div>
+        )}
+      </div>
     </div>
   );
 }
