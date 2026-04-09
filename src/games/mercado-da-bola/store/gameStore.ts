@@ -758,6 +758,13 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
   const trainPlayer = useCallback((playerId: string, cost: number) => dispatch({ type: 'TRAIN_PLAYER', playerId, cost }), []);
   const upgradeStadium = useCallback((u: StadiumUpgrade) => dispatch({ type: 'UPGRADE_STADIUM', upgrade: u }), []);
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
+  const switchTurn = useCallback(() => dispatch({ type: 'SWITCH_TURN' }), []);
+  const setManagerProfile = useCallback((profile: ManagerProfile, save: GameSave) => dispatch({ type: 'SET_MANAGER_PROFILE', profile, save }), []);
+  const readMessage = useCallback((messageId: string) => dispatch({ type: 'READ_MESSAGE', messageId }), []);
+  const respondMessage = useCallback((messageId: string, responseIndex: number) => dispatch({ type: 'RESPOND_MESSAGE', messageId, responseIndex }), []);
+  const dismissRoundResults = useCallback(() => dispatch({ type: 'DISMISS_ROUND_RESULTS' }), []);
+  const acceptOffer = useCallback((offerId: string) => dispatch({ type: 'ACCEPT_OFFER', offerId }), []);
+  const rejectOffer = useCallback((offerId: string) => dispatch({ type: 'REJECT_OFFER', offerId }), []);
   const playMatch = useCallback((fixtureIndex: number) => {
     if (!state.save) return;
     const fixture = state.save.fixtures[fixtureIndex];
@@ -787,7 +794,8 @@ export function MBProvider({ children }: { children: React.ReactNode }) {
 
   return React.createElement(
     MBContext.Provider,
-    { value: { state, dispatch, setScreen, selectPlayer, buyPlayer, sellPlayer, setSponsor, trainPlayer, upgradeStadium, playMatch, switchTurn, dismissNotification } },
+    { value: { state, dispatch, setScreen, selectPlayer, buyPlayer, sellPlayer, setSponsor, trainPlayer, upgradeStadium, playMatch, switchTurn, dismissNotification, setManagerProfile, readMessage, respondMessage, dismissRoundResults, acceptOffer, rejectOffer } },
+    children,
   );
 }
 
