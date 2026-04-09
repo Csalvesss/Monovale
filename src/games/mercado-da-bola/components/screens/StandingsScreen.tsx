@@ -4,10 +4,7 @@ import { getTeam } from '../../data/teams';
 import type { Standing, MatchFixture } from '../../types';
 import type { LeagueStanding } from '../../services/lendaService';
 import { listenLeagueStandings } from '../../services/lendaService';
-import { cn } from '../../../../lib/utils';
-import { Badge } from '../../../../components/ui/badge';
-import { Card } from '../../../../components/ui/card';
-import { BarChart2, Trophy, TrendingUp, AlertTriangle, Home, Plane, Globe } from 'lucide-react';
+import { Trophy, TrendingUp, AlertTriangle, Home, Plane, Globe, BarChart2 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,79 +38,7 @@ function getUpcomingFixtures(fixtures: MatchFixture[], myTeamId: string) {
     .slice(0, 3);
 }
 
-// ─── Table row ────────────────────────────────────────────────────────────────
-
-interface RowProps {
-  pos: number;
-  standing: Standing;
-  myTeamId: string;
-  totalTeams: number;
-  isLastPromo?: boolean;
-  isFirstRelegate?: boolean;
-}
-
-function StandingRow({ pos, standing, myTeamId, totalTeams, isLastPromo, isFirstRelegate }: RowProps) {
-  const isMe         = standing.teamId === myTeamId;
-  const isPromotion  = pos <= 4;
-  const isRelegation = pos > totalTeams - 4;
-  const team         = getTeam(standing.teamId);
-  const sg           = standing.goalsFor - standing.goalsAgainst;
-
-  const posColor = pos === 1 ? '#fde68a' : isPromotion ? '#22c55e' : isRelegation ? '#ef4444' : '#64748b';
-
-  const cell = cn(
-    'py-2.5 px-2 text-xs text-center whitespace-nowrap',
-    isMe ? 'font-bold text-slate-100' : 'text-slate-400'
-  );
-
-  return (
-    <>
-      {isLastPromo && (
-        <tr>
-          <td colSpan={10}>
-            <div className="h-px bg-emerald-500/40 my-0.5" />
-          </td>
-        </tr>
-      )}
-      {isFirstRelegate && (
-        <tr>
-          <td colSpan={10}>
-            <div className="h-px border-t border-red-500/40 border-dashed my-0.5" />
-          </td>
-        </tr>
-      )}
-      <tr className={cn(
-        'transition-colors',
-        isMe ? 'bg-blue-600/10' : isPromotion ? 'bg-emerald-600/5' : isRelegation ? 'bg-red-600/5' : ''
-      )}
-        style={isMe ? { borderLeft: '3px solid #3b82f6' } : {}}>
-        <td className={cn(cell, 'font-black')} style={{ color: posColor }}>{pos}</td>
-        <td className={cn(cell, '!text-left pl-3')}>
-          <div className="flex items-center gap-2">
-            {/* Color dot indicator */}
-            <div className="h-2 w-2 rounded-full shrink-0" style={{ background: team?.primaryColor ?? '#64748b' }} />
-            <span className={cn('truncate max-w-[90px]', isMe ? 'text-white' : 'text-slate-300')}>
-              {team?.shortName ?? standing.teamId.toUpperCase()}
-            </span>
-            {isMe && <Badge variant="default" className="text-[8px] px-1 py-0">EU</Badge>}
-          </div>
-        </td>
-        <td className={cn(cell, 'text-amber-400 font-black text-sm')}>{standing.points}</td>
-        <td className={cell}>{standing.played}</td>
-        <td className={cn(cell, 'text-emerald-400')}>{standing.won}</td>
-        <td className={cn(cell, 'text-blue-400')}>{standing.drawn}</td>
-        <td className={cn(cell, 'text-red-400')}>{standing.lost}</td>
-        <td className={cell}>{standing.goalsFor}</td>
-        <td className={cell}>{standing.goalsAgainst}</td>
-        <td className={cn(cell, 'font-bold', sg > 0 ? 'text-emerald-400' : sg < 0 ? 'text-red-400' : 'text-slate-500')}>
-          {sg > 0 ? `+${sg}` : sg}
-        </td>
-      </tr>
-    </>
-  );
-}
-
-// ─── Online league table ──────────────────────────────────────────────────────
+// ─── Online League Table ──────────────────────────────────────────────────────
 
 function OnlineLeagueTable({ leagueCode, myUid }: { leagueCode: string; myUid: string }) {
   const [standings, setStandings] = useState<LeagueStanding[]>([]);
@@ -133,30 +58,33 @@ function OnlineLeagueTable({ leagueCode, myUid }: { leagueCode: string; myUid: s
 
   if (sorted.length === 0) {
     return (
-      <Card className="p-6 flex flex-col items-center gap-2 text-center">
-        <Globe size={32} className="text-slate-600" />
-        <p className="text-sm font-bold text-slate-400">Nenhum dado ainda</p>
-        <p className="text-xs text-slate-600">Jogue uma partida para aparecer na tabela online</p>
-      </Card>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 12, padding: '40px 20px', textAlign: 'center',
+        background: 'var(--ldb-surface)', borderRadius: 14,
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <Globe size={32} color="rgba(255,255,255,0.2)" />
+        <p style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Nenhum dado ainda</p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jogue uma partida para aparecer na tabela online</p>
+      </div>
     );
   }
 
+  const thStyle: React.CSSProperties = {
+    padding: '10px 8px', fontSize: 9, fontWeight: 900,
+    textTransform: 'uppercase', letterSpacing: '0.08em',
+    color: 'rgba(255,255,255,0.35)', textAlign: 'center',
+  };
+
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+    <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="bg-slate-900 border-b border-slate-700">
+            <tr style={{ background: 'var(--ldb-deep)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               {['Pos', 'Jogador', 'P', 'J', 'V', 'E', 'D', 'SG'].map(col => (
-                <th
-                  key={col}
-                  className={cn(
-                    'py-2.5 px-2 text-[9px] font-black uppercase tracking-wider text-slate-500',
-                    col === 'Jogador' ? 'text-left pl-3' : 'text-center'
-                  )}
-                >
-                  {col}
-                </th>
+                <th key={col} style={{ ...thStyle, textAlign: col === 'Jogador' ? 'left' : 'center', paddingLeft: col === 'Jogador' ? 12 : 8 }}>{col}</th>
               ))}
             </tr>
           </thead>
@@ -165,24 +93,32 @@ function OnlineLeagueTable({ leagueCode, myUid }: { leagueCode: string; myUid: s
               const isMe = s.uid === myUid;
               const team = getTeam(s.teamId);
               const sg = s.goalsFor - s.goalsAgainst;
-              const cell = cn('py-2.5 px-2 text-xs text-center whitespace-nowrap', isMe ? 'font-bold text-slate-100' : 'text-slate-400');
+              const cellStyle: React.CSSProperties = {
+                padding: '10px 8px', fontSize: 12, textAlign: 'center', whiteSpace: 'nowrap',
+                color: isMe ? '#fff' : 'rgba(255,255,255,0.5)',
+                fontWeight: isMe ? 800 : 400,
+              };
               return (
-                <tr key={s.uid} className={cn('transition-colors', isMe ? 'bg-blue-600/10' : '')} style={isMe ? { borderLeft: '3px solid #3b82f6' } : {}}>
-                  <td className={cn(cell, 'font-black')} style={{ color: idx === 0 ? '#fde68a' : '#64748b' }}>{idx + 1}</td>
-                  <td className={cn(cell, '!text-left pl-3')}>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full shrink-0" style={{ background: team?.primaryColor ?? '#64748b' }} />
-                      <span className="truncate max-w-[80px]">{s.name}</span>
-                      {isMe && <Badge variant="default" className="text-[8px] px-1 py-0">EU</Badge>}
+                <tr key={s.uid} style={{
+                  background: isMe ? 'rgba(26,122,64,0.1)' : 'transparent',
+                  borderLeft: isMe ? '3px solid var(--ldb-pitch-bright)' : '3px solid transparent',
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}>
+                  <td style={{ ...cellStyle, fontWeight: 900, color: idx === 0 ? 'var(--ldb-gold-bright)' : 'rgba(255,255,255,0.4)' }}>{idx + 1}</td>
+                  <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: team?.primaryColor ?? '#64748b', flexShrink: 0 }} />
+                      <span style={{ maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                      {isMe && <span style={{ fontSize: 8, fontWeight: 900, background: 'var(--ldb-pitch-bright)', color: '#fff', borderRadius: 4, padding: '1px 5px' }}>EU</span>}
                     </div>
-                    <p className="text-[9px] text-slate-600 ml-4">{team?.shortName ?? s.teamId}</p>
+                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2, paddingLeft: 16 }}>{team?.shortName ?? s.teamId}</p>
                   </td>
-                  <td className={cn(cell, 'text-amber-400 font-black text-sm')}>{s.points}</td>
-                  <td className={cell}>{s.wins + s.draws + s.losses}</td>
-                  <td className={cn(cell, 'text-emerald-400')}>{s.wins}</td>
-                  <td className={cn(cell, 'text-blue-400')}>{s.draws}</td>
-                  <td className={cn(cell, 'text-red-400')}>{s.losses}</td>
-                  <td className={cn(cell, 'font-bold', sg > 0 ? 'text-emerald-400' : sg < 0 ? 'text-red-400' : 'text-slate-500')}>
+                  <td style={{ ...cellStyle, color: 'var(--ldb-gold-bright)', fontWeight: 900, fontSize: 14 }}>{s.points}</td>
+                  <td style={cellStyle}>{s.wins + s.draws + s.losses}</td>
+                  <td style={{ ...cellStyle, color: 'var(--ldb-pitch-bright)' }}>{s.wins}</td>
+                  <td style={{ ...cellStyle, color: 'rgba(100,150,255,0.9)' }}>{s.draws}</td>
+                  <td style={{ ...cellStyle, color: 'rgba(255,80,80,0.9)' }}>{s.losses}</td>
+                  <td style={{ ...cellStyle, fontWeight: 700, color: sg > 0 ? 'var(--ldb-pitch-bright)' : sg < 0 ? 'rgba(255,80,80,0.9)' : 'rgba(255,255,255,0.3)' }}>
                     {sg > 0 ? `+${sg}` : sg}
                   </td>
                 </tr>
@@ -191,7 +127,7 @@ function OnlineLeagueTable({ leagueCode, myUid }: { leagueCode: string; myUid: s
           </tbody>
         </table>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -202,7 +138,7 @@ export default function StandingsScreen() {
   const [activeTab, setActiveTab] = useState<'league' | 'online'>('league');
 
   if (!state.save) {
-    return <div className="flex h-full items-center justify-center text-slate-500">Carregando…</div>;
+    return <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>Carregando…</div>;
   }
 
   const save       = state.save;
@@ -214,220 +150,317 @@ export default function StandingsScreen() {
   const myTeam     = getTeam(myTeamId);
   const myPos      = sorted.findIndex(s => s.teamId === myTeamId) + 1;
   const myStanding = save.standings.find(s => s.teamId === myTeamId);
+  const isInPromotion  = myPos <= 4;
+  const isInRelegation = myPos > totalTeams - 4;
 
-  const isInPromotion   = myPos <= 4;
-  const isInRelegation  = myPos > totalTeams - 4;
+  const thStyle: React.CSSProperties = {
+    padding: '10px 8px', fontSize: 9, fontWeight: 900,
+    textTransform: 'uppercase', letterSpacing: '0.08em',
+    color: 'rgba(255,255,255,0.35)', textAlign: 'center',
+  };
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-8 bg-[#0f172a] min-h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px 32px' }}>
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/20 border border-blue-600/30">
-          <BarChart2 size={16} className="text-blue-400" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(26,122,64,0.15)', border: '1px solid rgba(26,122,64,0.25)',
+        }}>
+          <BarChart2 size={18} color="var(--ldb-pitch-bright)" />
         </div>
         <div>
-          <h2 className="text-lg font-black text-slate-100">Tabela do Campeonato</h2>
-          <p className="text-xs text-slate-500">
+          <h2 style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 22, letterSpacing: '0.04em', color: '#fff', margin: 0 }}>
+            TABELA DO CAMPEONATO
+          </h2>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
             Temporada {save.currentSeason} · {save.currentRound} rodadas disputadas
           </p>
         </div>
       </div>
 
-      {/* ── Tabs ── */}
+      {/* ── Tabs (only if online) ── */}
       {save.onlineLeagueCode && (
-        <div className="flex rounded-xl border border-slate-700 overflow-hidden">
-          <button
-            onClick={() => setActiveTab('league')}
-            className={cn(
-              'flex-1 py-2 text-xs font-black transition-colors',
-              activeTab === 'league' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-            )}
-          >
-            Campeonato
-          </button>
-          <button
-            onClick={() => setActiveTab('online')}
-            className={cn(
-              'flex-1 py-2 text-xs font-black flex items-center justify-center gap-1.5 transition-colors',
-              activeTab === 'online' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-            )}
-          >
-            <Globe size={11} />
-            Liga Online
-          </button>
+        <div style={{ display: 'flex', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          {[
+            { key: 'league', label: 'Campeonato' },
+            { key: 'online', label: 'Liga Online', icon: <Globe size={11} /> },
+          ].map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as typeof activeTab)}
+              style={{
+                flex: 1, padding: '10px 12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: activeTab === key ? 'var(--ldb-pitch-mid)' : 'var(--ldb-surface)',
+                color: activeTab === key ? '#fff' : 'rgba(255,255,255,0.4)',
+                border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 800, fontFamily: 'var(--ldb-font-body)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {icon}{label}
+            </button>
+          ))}
         </div>
       )}
 
       {/* ── Online tab ── */}
       {save.onlineLeagueCode && activeTab === 'online' && (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-black text-slate-300">Liga Online</p>
-            <Badge variant="secondary" className="font-mono text-xs">{save.onlineLeagueCode}</Badge>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>Liga Online</p>
+            <span style={{
+              fontSize: 12, fontFamily: 'monospace', fontWeight: 700,
+              background: 'var(--ldb-elevated)', borderRadius: 8, padding: '4px 10px',
+              color: 'var(--ldb-gold-bright)', border: '1px solid rgba(255,215,0,0.2)',
+            }}>{save.onlineLeagueCode}</span>
           </div>
           <OnlineLeagueTable leagueCode={save.onlineLeagueCode} myUid={save.playerUid ?? ''} />
         </>
       )}
 
-      {/* ── Local league tab (hidden when online tab active) ── */}
+      {/* ── Local league ── */}
       {(!save.onlineLeagueCode || activeTab === 'league') && <>
 
-      {/* ── My team summary ── */}
-      <Card className="p-4 border-blue-700/40 bg-blue-600/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-sm"
-              style={{
-                background: (myTeam?.primaryColor ?? '#3b82f6') + '22',
-                border: `2px solid ${(myTeam?.primaryColor ?? '#3b82f6')}44`,
-                color: myTeam?.primaryColor ?? '#3b82f6',
-              }}
-            >
+        {/* My team summary */}
+        <div style={{
+          borderRadius: 14, padding: 16,
+          border: '1px solid rgba(26,122,64,0.3)',
+          background: 'rgba(26,122,64,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: (myTeam?.primaryColor ?? '#1A7A40') + '22',
+              border: `2px solid ${(myTeam?.primaryColor ?? '#1A7A40')}44`,
+              fontFamily: 'var(--ldb-font-display)', fontSize: 14, letterSpacing: '0.04em',
+              color: myTeam?.primaryColor ?? 'var(--ldb-pitch-bright)',
+            }}>
               {myTeam?.shortName?.substring(0, 3) ?? '?'}
             </div>
             <div>
-              <p className="text-sm font-black text-white">{myTeam?.name ?? 'Meu Time'}</p>
-              <p className="text-xs text-blue-400">{myPos}º lugar · {myStanding?.points ?? 0} pontos</p>
+              <p style={{ fontSize: 15, fontWeight: 900, color: '#fff', margin: 0 }}>{myTeam?.name ?? 'Meu Time'}</p>
+              <p style={{ fontSize: 12, color: 'var(--ldb-pitch-bright)', marginTop: 2 }}>
+                {myPos}º lugar · {myStanding?.points ?? 0} pontos
+              </p>
             </div>
           </div>
-          <div className="text-right">
+          <div>
             {isInPromotion ? (
-              <Badge variant="success"><Trophy size={9} /> Promoção</Badge>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(26,122,64,0.2)', borderRadius: 8,
+                padding: '5px 10px', border: '1px solid rgba(26,122,64,0.4)',
+              }}>
+                <Trophy size={12} color="var(--ldb-gold-bright)" />
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ldb-gold-bright)' }}>Promoção</span>
+              </div>
             ) : isInRelegation ? (
-              <Badge variant="destructive"><AlertTriangle size={9} /> Rebaixamento</Badge>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(239,68,68,0.15)', borderRadius: 8,
+                padding: '5px 10px', border: '1px solid rgba(239,68,68,0.3)',
+              }}>
+                <AlertTriangle size={12} color="#ef4444" />
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#ef4444' }}>Rebaixamento</span>
+              </div>
             ) : (
-              <Badge variant="secondary">Meio da tabela</Badge>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.06)', borderRadius: 8,
+                padding: '5px 10px', border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <TrendingUp size={12} color="rgba(255,255,255,0.4)" />
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Meio</span>
+              </div>
             )}
           </div>
         </div>
-      </Card>
 
-      {/* ── Legend ── */}
-      <div className="flex gap-3 flex-wrap">
-        {[
-          { color: '#22c55e', label: 'Promoção (Top 4)' },
-          { color: '#ef4444', label: 'Rebaixamento (Últimos 4)' },
-          { color: '#3b82f6', label: 'Seu time' },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-sm shrink-0" style={{ background: color }} />
-            <span className="text-[10px] text-slate-500 font-medium">{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Table ── */}
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-slate-900 border-b border-slate-700">
-                {['Pos', 'Time', 'P', 'J', 'V', 'E', 'D', 'GF', 'GA', 'SG'].map(col => (
-                  <th
-                    key={col}
-                    className={cn(
-                      'py-2.5 px-2 text-[9px] font-black uppercase tracking-wider text-slate-500',
-                      col === 'Time' ? 'text-left pl-3' : 'text-center'
-                    )}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((standing, idx) => (
-                <StandingRow
-                  key={standing.teamId}
-                  pos={idx + 1}
-                  standing={standing}
-                  myTeamId={myTeamId}
-                  totalTeams={totalTeams}
-                  isLastPromo={idx === 3}
-                  isFirstRelegate={idx === totalTeams - 4}
-                />
-              ))}
-            </tbody>
-          </table>
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {[
+            { color: 'var(--ldb-pitch-bright)', label: 'Promoção (Top 4)' },
+            { color: 'rgba(255,80,80,0.9)', label: 'Rebaixamento (Últimos 4)' },
+            { color: 'var(--ldb-pitch-bright)', label: 'Seu time' },
+          ].map(({ color, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{label}</span>
+            </div>
+          ))}
         </div>
-      </Card>
 
-      {/* ── Recent results ── */}
-      {myResults.length > 0 && (
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Últimos Resultados</p>
-          <Card className="p-4">
-            <div className="flex flex-col gap-2">
+        {/* Table */}
+        <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: 'var(--ldb-deep)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {['Pos', 'Time', 'P', 'J', 'V', 'E', 'D', 'GF', 'GA', 'SG'].map(col => (
+                    <th key={col} style={{ ...thStyle, textAlign: col === 'Time' ? 'left' : 'center', paddingLeft: col === 'Time' ? 12 : 8 }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((standing, idx) => {
+                  const isMe = standing.teamId === myTeamId;
+                  const isPromotion = idx < 4;
+                  const isRelegation = idx >= totalTeams - 4;
+                  const team = getTeam(standing.teamId);
+                  const sg = standing.goalsFor - standing.goalsAgainst;
+
+                  const cellStyle: React.CSSProperties = {
+                    padding: '10px 8px', fontSize: 12, textAlign: 'center', whiteSpace: 'nowrap',
+                    color: isMe ? '#fff' : 'rgba(255,255,255,0.5)',
+                    fontWeight: isMe ? 800 : 400,
+                  };
+
+                  return (
+                    <React.Fragment key={standing.teamId}>
+                      {idx === 4 && (
+                        <tr>
+                          <td colSpan={10}>
+                            <div style={{ height: 1, background: 'rgba(26,122,64,0.4)' }} />
+                          </td>
+                        </tr>
+                      )}
+                      {idx === totalTeams - 4 && (
+                        <tr>
+                          <td colSpan={10}>
+                            <div style={{ height: 1, borderTop: '1px dashed rgba(239,68,68,0.4)' }} />
+                          </td>
+                        </tr>
+                      )}
+                      <tr style={{
+                        background: isMe
+                          ? 'rgba(26,122,64,0.1)'
+                          : isPromotion ? 'rgba(26,122,64,0.04)'
+                          : isRelegation ? 'rgba(239,68,68,0.04)' : 'transparent',
+                        borderLeft: isMe ? '3px solid var(--ldb-pitch-bright)' : '3px solid transparent',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      }}>
+                        <td style={{
+                          ...cellStyle, fontWeight: 900,
+                          color: idx === 0 ? 'var(--ldb-gold-bright)'
+                            : isPromotion ? 'var(--ldb-pitch-bright)'
+                            : isRelegation ? 'rgba(255,80,80,0.9)' : 'rgba(255,255,255,0.3)',
+                        }}>{idx + 1}</td>
+                        <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: team?.primaryColor ?? '#64748b', flexShrink: 0 }} />
+                            <span style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {team?.shortName ?? standing.teamId.toUpperCase()}
+                            </span>
+                            {isMe && <span style={{ fontSize: 8, fontWeight: 900, background: 'var(--ldb-pitch-bright)', color: '#fff', borderRadius: 4, padding: '1px 5px' }}>EU</span>}
+                          </div>
+                        </td>
+                        <td style={{ ...cellStyle, color: 'var(--ldb-gold-bright)', fontWeight: 900, fontSize: 14 }}>{standing.points}</td>
+                        <td style={cellStyle}>{standing.played}</td>
+                        <td style={{ ...cellStyle, color: 'var(--ldb-pitch-bright)' }}>{standing.won}</td>
+                        <td style={{ ...cellStyle, color: 'rgba(100,150,255,0.9)' }}>{standing.drawn}</td>
+                        <td style={{ ...cellStyle, color: 'rgba(255,80,80,0.9)' }}>{standing.lost}</td>
+                        <td style={cellStyle}>{standing.goalsFor}</td>
+                        <td style={cellStyle}>{standing.goalsAgainst}</td>
+                        <td style={{ ...cellStyle, fontWeight: 700, color: sg > 0 ? 'var(--ldb-pitch-bright)' : sg < 0 ? 'rgba(255,80,80,0.9)' : 'rgba(255,255,255,0.3)' }}>
+                          {sg > 0 ? `+${sg}` : sg}
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Recent results */}
+        {myResults.length > 0 && (
+          <div>
+            <p className="ldb-section-label" style={{ marginBottom: 12 }}>Últimos Resultados</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {myResults.map(({ fixture, label, score }) => {
                 const isHome = fixture.homeTeamId === myTeamId;
                 const oppId  = isHome ? fixture.awayTeamId : fixture.homeTeamId;
                 const opp    = getTeam(oppId);
+                const resultColor = label === 'V' ? 'var(--ldb-pitch-bright)' : label === 'D' ? 'rgba(255,80,80,0.9)' : 'rgba(100,150,255,0.9)';
                 return (
-                  <div key={`${fixture.round}-${oppId}`} className="flex items-center gap-3">
-                    <Badge
-                      variant={label === 'V' ? 'win' : label === 'D' ? 'loss' : 'draw'}
-                      className="h-7 w-7 shrink-0 rounded-lg px-0 justify-center text-xs font-black"
-                    >
-                      {label}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-200 truncate">
+                  <div key={`${fixture.round}-${oppId}`} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: 'var(--ldb-surface)', borderRadius: 12, padding: '12px 14px',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      background: resultColor + '22', border: `1px solid ${resultColor}44`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 900, color: resultColor,
+                      fontFamily: 'var(--ldb-font-display)', letterSpacing: '0.04em',
+                    }}>{label}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {isHome ? 'vs' : 'em'} {opp?.name ?? oppId}
                       </p>
-                      <p className="text-[10px] text-slate-500">Rodada {fixture.round}</p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Rodada {fixture.round}</p>
                     </div>
-                    <span className={cn(
-                      'text-sm font-black',
-                      label === 'V' ? 'text-emerald-400' : label === 'D' ? 'text-red-400' : 'text-blue-400'
-                    )}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: resultColor, fontFamily: 'var(--ldb-font-display)', letterSpacing: '0.04em' }}>
                       {score}
                     </span>
                   </div>
                 );
               })}
             </div>
-          </Card>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* ── Upcoming ── */}
-      {upcoming.length > 0 && (
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Próximas Partidas</p>
-          <Card className="p-4">
-            <div className="flex flex-col gap-3">
+        {/* Upcoming */}
+        {upcoming.length > 0 && (
+          <div>
+            <p className="ldb-section-label" style={{ marginBottom: 12 }}>Próximas Partidas</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {upcoming.map(f => {
                 const isHome = f.homeTeamId === myTeamId;
                 const oppId  = isHome ? f.awayTeamId : f.homeTeamId;
                 const opp    = getTeam(oppId);
                 return (
-                  <div key={`${f.round}-${oppId}`} className="flex items-center gap-3">
-                    <Badge variant="secondary" className="h-7 w-7 shrink-0 rounded-lg px-0 justify-center text-xs font-black">
-                      {f.round}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-200 truncate">
+                  <div key={`${f.round}-${oppId}`} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: 'var(--ldb-surface)', borderRadius: 12, padding: '12px 14px',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      background: 'var(--ldb-elevated)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.5)',
+                      fontFamily: 'var(--ldb-font-display)',
+                    }}>{f.round}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {isHome ? 'vs' : 'em'} {opp?.name ?? oppId}
                       </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                         {isHome
-                          ? <><Home size={9} className="text-emerald-400" /><span className="text-[10px] text-slate-500">Mandante</span></>
-                          : <><Plane size={9} className="text-slate-400" /><span className="text-[10px] text-slate-500">Visitante</span></>
+                          ? <><Home size={9} color="var(--ldb-pitch-bright)" /><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Mandante</span></>
+                          : <><Plane size={9} color="rgba(255,255,255,0.35)" /><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Visitante</span></>
                         }
-                        <span className="text-[10px] text-slate-600">· Rep. {opp?.reputation ?? '?'}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>· Rep. {opp?.reputation ?? '?'}</span>
                       </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </Card>
-        </div>
-      )}
+          </div>
+        )}
 
-      </> /* end local league tab */}
+      </>}
     </div>
   );
 }

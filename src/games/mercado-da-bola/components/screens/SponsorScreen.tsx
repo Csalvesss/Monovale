@@ -2,18 +2,14 @@ import React from 'react';
 import { useMB } from '../../store/gameStore';
 import { ALL_SPONSORS } from '../../data/sponsors';
 import type { Sponsor } from '../../types';
-import { cn } from '../../../../lib/utils';
-import { Badge } from '../../../../components/ui/badge';
-import { Card } from '../../../../components/ui/card';
-import { Progress } from '../../../../components/ui/progress';
-import { CheckCircle, Minus, XCircle, Lock, Star, DollarSign, TrendingUp } from 'lucide-react';
+import { CheckCircle, Minus, XCircle, Lock, Star, Handshake } from 'lucide-react';
 
 // ─── Tier config ──────────────────────────────────────────────────────────────
 
-const TIER_CONFIG: Record<number, { label: string; color: string; badgeClass: string }> = {
-  1: { label: 'Local',    color: '#94a3b8', badgeClass: 'bg-slate-600/20 text-slate-400 border border-slate-600/30' },
-  2: { label: 'Regional', color: '#3b82f6', badgeClass: 'bg-blue-600/20 text-blue-400 border border-blue-600/30' },
-  3: { label: 'Nacional', color: '#f59e0b', badgeClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/30' },
+const TIER_CONFIG: Record<number, { label: string; color: string; glow: string }> = {
+  1: { label: 'Local',    color: 'rgba(148,163,184,0.9)', glow: 'rgba(148,163,184,0.15)' },
+  2: { label: 'Regional', color: 'rgba(96,165,250,0.9)',  glow: 'rgba(96,165,250,0.12)' },
+  3: { label: 'Nacional', color: 'var(--ldb-gold-bright)', glow: 'rgba(255,215,0,0.12)' },
 };
 
 // ─── Sponsor card ─────────────────────────────────────────────────────────────
@@ -24,64 +20,97 @@ function SponsorCard({ sponsor, active, locked, onSelect }: {
   const tc = TIER_CONFIG[sponsor.tier];
 
   return (
-    <div className={cn(
-      'relative rounded-xl border transition-all',
-      active  ? 'border-blue-600/50 bg-blue-600/5' : 'border-slate-700 bg-slate-800',
-      locked  && 'opacity-50',
-    )}>
+    <div style={{
+      borderRadius: 16,
+      border: active
+        ? '1.5px solid rgba(26,122,64,0.5)'
+        : '1px solid rgba(255,255,255,0.07)',
+      background: active ? 'rgba(26,122,64,0.08)' : 'var(--ldb-surface)',
+      overflow: 'hidden',
+      opacity: locked ? 0.5 : 1,
+      transition: 'all 0.15s ease',
+    }}>
       {active && (
-        <div className="absolute right-3 top-3">
-          <Badge variant="default" className="text-[9px] font-black">ATIVO</Badge>
-        </div>
+        <div style={{
+          background: 'var(--ldb-pitch-mid)',
+          padding: '4px 12px', textAlign: 'center',
+          fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
+          color: '#fff', textTransform: 'uppercase',
+        }}>PATROCINADOR ATIVO</div>
       )}
 
-      <div className="p-4">
+      <div style={{ padding: 16 }}>
         {/* Header */}
-        <div className="flex items-start gap-3 mb-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-700 text-2xl">
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: tc.glow, border: `1px solid ${tc.color}33`,
+            fontSize: 26,
+          }}>
             {sponsor.logo}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-black text-slate-100">{sponsor.name}</p>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black', tc.badgeClass)}>
-                Tier {sponsor.tier} · {tc.label}
-              </span>
-              <span className="text-xs text-slate-500">{sponsor.industry}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 16, fontWeight: 900, color: '#fff', margin: 0 }}>{sponsor.name}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: 9, fontWeight: 900,
+                background: tc.glow, color: tc.color,
+                borderRadius: 6, padding: '2px 8px',
+                border: `1px solid ${tc.color}33`,
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>Tier {sponsor.tier} · {tc.label}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{sponsor.industry}</span>
             </div>
           </div>
         </div>
 
         {/* Fee grid */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           {[
-            { label: 'Vitória', value: sponsor.winFee,  Icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-600/10 border-emerald-600/20' },
-            { label: 'Empate',  value: sponsor.drawFee, Icon: Minus,       color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20' },
-            { label: 'Derrota', value: sponsor.lossFee, Icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-600/10 border-red-600/20' },
+            { label: 'Vitória', value: sponsor.winFee,  Icon: CheckCircle, color: 'var(--ldb-pitch-bright)', bg: 'rgba(26,122,64,0.12)' },
+            { label: 'Empate',  value: sponsor.drawFee, Icon: Minus,       color: 'rgba(255,180,50,0.9)',     bg: 'rgba(255,180,50,0.08)' },
+            { label: 'Derrota', value: sponsor.lossFee, Icon: XCircle,     color: 'rgba(255,80,80,0.9)',      bg: 'rgba(255,80,80,0.08)' },
           ].map(({ label, value, Icon, color, bg }) => (
-            <div key={label} className={cn('rounded-lg border p-2.5 text-center', bg)}>
-              <Icon size={14} className={cn('mx-auto mb-1', color)} />
-              <p className={cn('text-sm font-black', color)}>+${value}k</p>
-              <p className="text-[9px] text-slate-500 mt-0.5">{label}</p>
+            <div key={label} style={{
+              borderRadius: 10, padding: '10px 6px', textAlign: 'center',
+              background: bg, border: `1px solid ${color}22`,
+            }}>
+              <Icon size={14} color={color} style={{ margin: '0 auto 4px' }} />
+              <p style={{ fontSize: 13, fontWeight: 900, color, margin: 0, fontFamily: 'var(--ldb-font-display)', letterSpacing: '0.04em' }}>
+                +${value}k
+              </p>
+              <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{label}</p>
             </div>
           ))}
         </div>
 
         {/* Action */}
         {locked ? (
-          <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 py-2.5 text-xs text-slate-500">
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            borderRadius: 10, border: '1px solid rgba(255,255,255,0.07)',
+            background: 'var(--ldb-deep)', padding: '10px 0',
+            fontSize: 12, color: 'rgba(255,255,255,0.3)',
+          }}>
             <Lock size={12} />
             Reputação mínima: {sponsor.minReputation}
           </div>
         ) : active ? (
-          <div className="flex items-center justify-center gap-2 rounded-lg border border-blue-600/30 bg-blue-600/10 py-2.5 text-xs font-bold text-blue-400">
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            borderRadius: 10, border: '1px solid rgba(26,122,64,0.3)',
+            background: 'rgba(26,122,64,0.1)', padding: '10px 0',
+            fontSize: 12, fontWeight: 700, color: 'var(--ldb-pitch-bright)',
+          }}>
             <CheckCircle size={12} />
             Patrocínio ativo
           </div>
         ) : (
           <button
             onClick={onSelect}
-            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-black text-white hover:bg-blue-500 active:scale-[0.98] transition-all"
+            className="ldb-btn-primary"
+            style={{ width: '100%', justifyContent: 'center' }}
           >
             Fechar Patrocínio
           </button>
@@ -105,33 +134,69 @@ export default function SponsorScreen() {
   const currentSponsor = ALL_SPONSORS.find(s => s.id === save.sponsorId);
 
   return (
-    <div className="flex flex-col gap-5 p-4 pb-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '16px 16px 32px' }}>
 
       {/* ── Header ── */}
       <div>
-        <h2 className="text-xl font-black text-slate-100">Patrocínio</h2>
-        <div className="flex items-center gap-2 mt-1">
-          <Star size={13} className="text-amber-400" />
-          <span className="text-xs text-slate-400">Reputação: {reputation}</span>
-          <span className="text-slate-700">·</span>
-          <span className="text-xs text-slate-500">{currentSponsor ? currentSponsor.name : 'Sem patrocinador'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.2)',
+          }}>
+            <Handshake size={18} color="var(--ldb-gold-bright)" />
+          </div>
+          <div>
+            <h2 style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 22, letterSpacing: '0.04em', color: '#fff', margin: 0 }}>PATROCÍNIO</h2>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+              {currentSponsor ? currentSponsor.name : 'Sem patrocinador ativo'}
+            </p>
+          </div>
         </div>
-        <div className="mt-2 space-y-1">
-          <Progress value={reputation} color="linear-gradient(90deg, #f59e0b, #d97706)" />
+
+        {/* Reputation bar */}
+        <div style={{ background: 'var(--ldb-surface)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Star size={12} color="var(--ldb-gold-bright)" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Reputação</span>
+            </div>
+            <span style={{ fontSize: 16, fontWeight: 900, color: 'var(--ldb-gold-bright)', fontFamily: 'var(--ldb-font-display)', letterSpacing: '0.04em' }}>
+              {reputation}
+            </span>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: 'var(--ldb-elevated)', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: 3,
+              width: `${Math.min(100, reputation)}%`,
+              background: 'linear-gradient(90deg, var(--ldb-gold-deep), var(--ldb-gold-bright))',
+              transition: 'width 0.6s ease',
+            }} />
+          </div>
         </div>
       </div>
 
-      {/* ── Active sponsor card ── */}
+      {/* ── Active sponsor highlight ── */}
       {currentSponsor && (
-        <div className="rounded-2xl border border-blue-600/30 bg-gradient-to-br from-blue-900/40 to-purple-900/20 p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-3">Patrocínio Atual</p>
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-3xl">
+        <div style={{
+          borderRadius: 16, padding: 20,
+          background: 'linear-gradient(135deg, rgba(26,122,64,0.2) 0%, rgba(26,122,64,0.05) 100%)',
+          border: '1px solid rgba(26,122,64,0.3)',
+        }}>
+          <p className="ldb-section-label" style={{ marginBottom: 12 }}>Patrocínio Atual</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(255,255,255,0.1)', fontSize: 30,
+            }}>
               {currentSponsor.logo}
             </div>
             <div>
-              <p className="text-lg font-black text-white">{currentSponsor.name}</p>
-              <p className="text-xs text-blue-300 mt-1">
+              <p style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: 0, fontFamily: 'var(--ldb-font-display)', letterSpacing: '0.04em' }}>
+                {currentSponsor.name.toUpperCase()}
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--ldb-pitch-bright)', marginTop: 4, fontWeight: 700 }}>
                 +${currentSponsor.winFee}k (V) · +${currentSponsor.drawFee}k (E) · +${currentSponsor.lossFee}k (D)
               </p>
             </div>
@@ -145,14 +210,15 @@ export default function SponsorScreen() {
         const sponsors = ALL_SPONSORS.filter(s => s.tier === tier);
         return (
           <div key={tier}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-px flex-1 bg-slate-700" />
-              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: tc.color }}>
-                Tier {tier} · {tc.label}
-              </span>
-              <div className="h-px flex-1 bg-slate-700" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{ flex: 1, height: 1, background: `${tc.color}33` }} />
+              <span style={{
+                fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                color: tc.color,
+              }}>Tier {tier} · {tc.label}</span>
+              <div style={{ flex: 1, height: 1, background: `${tc.color}33` }} />
             </div>
-            <div className="flex flex-col gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {sponsors.map(sp => (
                 <SponsorCard
                   key={sp.id}

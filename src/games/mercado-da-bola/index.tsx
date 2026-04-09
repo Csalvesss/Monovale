@@ -14,7 +14,6 @@ import StadiumScreen from './components/screens/StadiumScreen';
 import PlayerDetailScreen from './components/screens/PlayerDetailScreen';
 import TurnHandoffScreen from './components/screens/TurnHandoffScreen';
 import OnlineLobbyScreen from './components/screens/OnlineLobbyScreen';
-import OnboardingScreen from './components/screens/OnboardingScreen';
 import InboxScreen from './components/screens/InboxScreen';
 
 interface Props {
