@@ -5,7 +5,7 @@ import type { MBScreen } from '../../types';
 import {
   Home, Users, ArrowLeftRight, Swords, BarChart2, Rss,
   DollarSign, Building2, Star, X, Trophy,
-  ChevronLeft, Settings, Trash2, CloudCheck,
+  ChevronLeft, Settings, Trash2, CloudCheck, MessageSquare,
 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { AlertDialog } from '../../../../components/ui/dialog';
@@ -14,17 +14,19 @@ interface NavItem {
   screen: MBScreen;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
+  badge?: boolean;
 }
 
 const NAV: NavItem[] = [
-  { screen: 'home',      icon: Home,          label: 'Início'     },
-  { screen: 'squad',     icon: Users,         label: 'Elenco'     },
-  { screen: 'market',    icon: ArrowLeftRight, label: 'Mercado'   },
-  { screen: 'match',     icon: Swords,        label: 'Partida'    },
-  { screen: 'standings', icon: BarChart2,     label: 'Tabela'     },
-  { screen: 'social',    icon: Rss,           label: 'Social'     },
-  { screen: 'sponsor',   icon: DollarSign,    label: 'Patrocínio' },
-  { screen: 'stadium',   icon: Building2,     label: 'Estádio'    },
+  { screen: 'home',      icon: Home,           label: 'Início'     },
+  { screen: 'squad',     icon: Users,          label: 'Elenco'     },
+  { screen: 'market',    icon: ArrowLeftRight, label: 'Mercado'    },
+  { screen: 'match',     icon: Swords,         label: 'Partida'    },
+  { screen: 'standings', icon: BarChart2,      label: 'Tabela'     },
+  { screen: 'inbox',     icon: MessageSquare,  label: 'Inbox', badge: true },
+  { screen: 'social',    icon: Rss,            label: 'Social'     },
+  { screen: 'sponsor',   icon: DollarSign,     label: 'Patrocínio' },
+  { screen: 'stadium',   icon: Building2,      label: 'Estádio'    },
 ];
 
 const NOTIF_STYLES: Record<string, { bar: string; text: string; icon: typeof Star | null }> = {
@@ -39,6 +41,8 @@ export default function GameLayout({ children, onBack }: { children: React.React
   const { notification, screen: currentScreen } = state;
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const unreadMessages = state.save?.unreadMessages ?? 0;
+  const pendingOffers = state.save?.pendingOffers.filter(o => o.status === 'pending').length ?? 0;
 
   useEffect(() => {
     if (!notification) return;
@@ -109,18 +113,28 @@ export default function GameLayout({ children, onBack }: { children: React.React
             const Icon = item.icon;
             const isActive = currentScreen === item.screen ||
               (item.screen === 'squad' && currentScreen === 'player-detail');
+            const badgeCount = item.screen === 'inbox'
+              ? unreadMessages + pendingOffers
+              : 0;
             return (
               <button
                 key={item.screen}
                 onClick={() => setScreen(item.screen)}
                 className={cn(
-                  'flex min-w-[60px] flex-col items-center justify-center gap-1 px-3 py-2.5 transition-all duration-150 border-t-2',
+                  'relative flex min-w-[60px] flex-col items-center justify-center gap-1 px-3 py-2.5 transition-all duration-150 border-t-2',
                   isActive
                     ? 'border-blue-500 bg-blue-600/10 text-blue-400'
                     : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800'
                 )}
               >
-                <Icon size={18} />
+                <div className="relative">
+                  <Icon size={18} />
+                  {badgeCount > 0 && (
+                    <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center px-0.5">
+                      {badgeCount > 9 ? '9+' : badgeCount}
+                    </div>
+                  )}
+                </div>
                 <span className="text-[9px] font-bold tracking-wide whitespace-nowrap">{item.label}</span>
               </button>
             );

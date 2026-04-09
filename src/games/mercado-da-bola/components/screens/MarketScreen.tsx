@@ -5,7 +5,9 @@ import StatBar from '../ui/StatBar';
 import RatingBadge from '../ui/RatingBadge';
 import MoneyDisplay from '../ui/MoneyDisplay';
 import { POSITION_COLORS, POSITION_VARIANT } from '../ui/PlayerCard';
-import type { Player, Position } from '../../types';
+import type { Player, Position, TransferOffer } from '../../types';
+import { getTeam } from '../../data/teams';
+import TeamBadge from '../ui/TeamBadge';
 import { cn } from '../../../../lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/tabs';
 import { Input } from '../../../../components/ui/input';
@@ -13,11 +15,119 @@ import { Select } from '../../../../components/ui/select';
 import { Badge } from '../../../../components/ui/badge';
 import { Card } from '../../../../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../../../../components/ui/dialog';
-import { Search, ShoppingCart, DollarSign, Users, TrendingUp, Star } from 'lucide-react';
+import { Search, ShoppingCart, DollarSign, Users, TrendingUp, Star, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 const POSITIONS: Position[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST', 'CF'];
 
 function fmt(n: number) { return new Intl.NumberFormat('pt-BR').format(n); }
+
+// ─── Incoming Offer Card ─────────────────────────────────────────────────────
+
+function IncomingOfferCard({ offer }: { offer: TransferOffer }) {
+  const { state, acceptOffer, rejectOffer } = useMB();
+  const save = state.save!;
+  const targetPlayer = save.mySquad.find(p => p.id === offer.playerId);
+  const fromTeam = getTeam(offer.fromTeamId);
+
+  if (!targetPlayer || offer.status !== 'pending') return null;
+
+  return (
+    <div style={{
+      background: '#1e293b', borderRadius: 14,
+      border: '1px solid rgba(234,179,8,0.3)',
+      overflow: 'hidden',
+    }}>
+      {/* Alert bar */}
+      <div style={{
+        background: 'rgba(234,179,8,0.1)', padding: '8px 14px',
+        display: 'flex', alignItems: 'center', gap: 8,
+        borderBottom: '1px solid rgba(234,179,8,0.2)',
+      }}>
+        <AlertCircle size={13} color="#eab308" />
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#eab308' }}>
+          PROPOSTA RECEBIDA
+        </span>
+        <span style={{ fontSize: 10, color: '#64748b', marginLeft: 'auto' }}>
+          Rodada {offer.round}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Teams */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {fromTeam && <TeamBadge team={fromTeam} size={32} />}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#f1f5f9' }}>
+              {fromTeam?.name ?? offer.fromTeamId}
+            </div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>quer contratar:</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#fde68a' }}>
+              ${new Intl.NumberFormat('pt-BR').format(offer.offerAmount)}k
+            </div>
+          </div>
+        </div>
+
+        {/* Player target */}
+        <div style={{
+          background: '#0f172a', borderRadius: 10, padding: '10px 12px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          border: '1px solid #334155',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: (POSITION_COLORS[targetPlayer.position] ?? '#94a3b8') + '22',
+            border: `1px solid ${(POSITION_COLORS[targetPlayer.position] ?? '#94a3b8')}44`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 900, color: POSITION_COLORS[targetPlayer.position] ?? '#94a3b8',
+          }}>
+            {targetPlayer.position}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {targetPlayer.flag} {targetPlayer.name}
+            </div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>
+              {'★'.repeat(targetPlayer.stars)} · {targetPlayer.age} anos
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: 10, color: '#64748b' }}>
+            <div>Val. mercado</div>
+            <div style={{ color: '#94a3b8', fontWeight: 700 }}>${new Intl.NumberFormat('pt-BR').format(targetPlayer.marketValue)}k</div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => rejectOffer(offer.id)}
+            style={{
+              flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.3)',
+              background: 'rgba(239,68,68,0.08)', color: '#f87171', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', fontFamily: 'var(--font-body)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <XCircle size={14} /> Recusar
+          </button>
+          <button
+            onClick={() => acceptOffer(offer.id)}
+            style={{
+              flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(16,185,129,0.3)',
+              background: 'rgba(16,185,129,0.08)', color: '#10b981', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', fontFamily: 'var(--font-body)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <CheckCircle size={14} /> Aceitar ${new Intl.NumberFormat('pt-BR').format(offer.offerAmount)}k
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function MarketScreen() {
   const { state, buyPlayer, sellPlayer } = useMB();
@@ -105,8 +215,25 @@ export default function MarketScreen() {
          ['DRI', previewAttrs?.dribbling ?? 0, '#8b5cf6'], ['DEF', previewAttrs?.defending ?? 0, '#3b82f6']]
     : [];
 
+  const pendingOffers = save.pendingOffers.filter(o => o.status === 'pending');
+
   return (
     <div className="flex flex-col gap-4 p-4 pb-8">
+
+      {/* ── Incoming offers ── */}
+      {pendingOffers.length > 0 && (
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-amber-500/80 mb-2 flex items-center gap-2">
+            <AlertCircle size={11} className="text-amber-500" />
+            Propostas Recebidas ({pendingOffers.length})
+          </div>
+          <div className="flex flex-col gap-2">
+            {pendingOffers.map(offer => (
+              <IncomingOfferCard key={offer.id} offer={offer} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <Card className="p-4">

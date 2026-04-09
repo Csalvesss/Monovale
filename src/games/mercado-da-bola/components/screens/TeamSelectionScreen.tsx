@@ -159,6 +159,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
       pendingOffers: [], seasonHistory: [], totalRoundsPlayed: 0,
       mode: 'solo', currentTurn: 1, playerProfiles: null,
       randomSeed: Math.floor(Math.random() * 1_000_000),
+      playerMessages: [], unreadMessages: 0,
     };
     dispatch({ type: 'START_NEW_GAME', save });
   }
@@ -220,6 +221,7 @@ export default function TeamSelectionScreen({ onBack }: Props) {
       currentTurn: 1,
       playerProfiles: [p1Profile, p2Profile],
       randomSeed: Math.floor(Math.random() * 1_000_000),
+      playerMessages: [], unreadMessages: 0,
     };
     dispatch({ type: 'START_NEW_GAME', save });
   }

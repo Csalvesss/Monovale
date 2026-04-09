@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMB } from '../../store/gameStore';
 import { calcDefenseTokens, getTeamRating } from '../../utils/matchEngine';
-import { getTeam } from '../../data/teams';
+import { getTeam, ALL_TEAMS } from '../../data/teams';
 import TeamBadge from '../ui/TeamBadge';
 import MoneyDisplay from '../ui/MoneyDisplay';
 import MatchEvent from '../ui/MatchEvent';
 import type { EventType } from '../ui/MatchEvent';
+import type { RoundResultSummary } from '../../types';
 import { Badge } from '../../../../components/ui/badge';
 import { Card } from '../../../../components/ui/card';
 import { Tooltip } from '../../../../components/ui/tooltip';
@@ -13,7 +14,7 @@ import { cn } from '../../../../lib/utils';
 import {
   Play, Trophy, TrendingUp, Target, Shield,
   Smile, DollarSign, Minus, Home, Plane,
-  AlertTriangle, Medal, ChevronRight, Swords,
+  AlertTriangle, Medal, ChevronRight, Swords, X, BarChart2,
 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,6 +45,114 @@ function classifyLine(line: string): EventType {
   if (line.includes('adversário') || line.includes('sofre') || line.includes('sofreu')) return 'opponent_goal';
   if (line.includes('ataque') || line.includes('Ataque') || line.includes('chute')) return 'attack';
   return 'info';
+}
+
+// ─── Round Results Modal ──────────────────────────────────────────────────────
+
+function RoundResultsModal({ summary, onClose }: { summary: RoundResultSummary; onClose: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 50,
+      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'flex-end', padding: 0,
+    }}>
+      <div style={{
+        width: '100%', maxHeight: '80dvh', overflowY: 'auto',
+        background: '#0f172a', borderRadius: '20px 20px 0 0',
+        border: '1px solid #334155', borderBottom: 'none',
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 20px 12px', borderBottom: '1px solid #1e293b', position: 'sticky', top: 0,
+          background: '#0f172a',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <BarChart2 size={16} color="#3b82f6" />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 900, color: '#f1f5f9' }}>Resultados da Rodada {summary.round}</div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>{summary.fixtures.length} partidas disputadas</div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: 8, border: '1px solid #334155',
+              background: '#1e293b', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={14} color="#94a3b8" />
+          </button>
+        </div>
+
+        {/* Fixtures list */}
+        <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {summary.fixtures.map((f, i) => {
+            const homeTeam = getTeam(f.homeTeamId);
+            const awayTeam = getTeam(f.awayTeamId);
+            const homeWon = f.homeGoals > f.awayGoals;
+            const awayWon = f.awayGoals > f.homeGoals;
+            const draw = f.homeGoals === f.awayGoals;
+            return (
+              <div
+                key={i}
+                style={{
+                  background: '#1e293b', borderRadius: 12, padding: '12px 14px',
+                  border: '1px solid #334155',
+                  display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+                  alignItems: 'center', gap: 12,
+                }}
+              >
+                {/* Home team */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {homeTeam && <TeamBadge team={homeTeam} size={28} />}
+                  <span style={{
+                    fontSize: 12, fontWeight: homeWon ? 800 : 500,
+                    color: homeWon ? '#f1f5f9' : '#64748b',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {homeTeam?.shortName ?? f.homeTeamId}
+                  </span>
+                </div>
+
+                {/* Score */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: 18, fontWeight: 900,
+                    color: homeWon ? '#f1f5f9' : '#64748b',
+                  }}>{f.homeGoals}</span>
+                  <span style={{ fontSize: 12, color: '#475569', fontWeight: 700 }}>×</span>
+                  <span style={{
+                    fontSize: 18, fontWeight: 900,
+                    color: awayWon ? '#f1f5f9' : '#64748b',
+                  }}>{f.awayGoals}</span>
+                </div>
+
+                {/* Away team */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: awayWon ? 800 : 500,
+                    color: awayWon ? '#f1f5f9' : '#64748b', textAlign: 'right',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {awayTeam?.shortName ?? f.awayTeamId}
+                  </span>
+                  {awayTeam && <TeamBadge team={awayTeam} size={28} />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── Pre-match panel ──────────────────────────────────────────────────────────
@@ -215,6 +324,7 @@ function PostMatchView() {
   const save = state.save!;
   const matchData = state.lastMatchResult!;
   const { result, narrative } = matchData;
+  const [showingRoundResults, setShowingRoundResults] = useState(false);
 
   const lastPlayedFixture = [...save.fixtures].reverse().find(f => f.played);
   const myTeamId = save.myTeamId;
@@ -352,6 +462,24 @@ function PostMatchView() {
         </Card>
       )}
 
+      {/* ── Round results button ── */}
+      {revealed >= narrative.length && save.lastRoundResults && save.lastRoundResults.fixtures.length > 1 && (
+        <Card className="p-4 animate-fade-up border-blue-700/30 bg-blue-600/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-black text-slate-100">Outros resultados da rodada</p>
+              <p className="text-xs text-slate-500">{save.lastRoundResults.fixtures.length - 1} outras partidas foram disputadas</p>
+            </div>
+            <button
+              onClick={() => setShowingRoundResults(true)}
+              className="flex items-center gap-2 rounded-xl bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-bold text-blue-400 hover:bg-blue-600/30 transition-colors"
+            >
+              <BarChart2 size={14} /> Ver
+            </button>
+          </div>
+        </Card>
+      )}
+
       {/* ── Action buttons ── */}
       {revealed >= narrative.length && (() => {
         const isMulti = save.mode === 'local-multi';
@@ -377,6 +505,14 @@ function PostMatchView() {
           </div>
         );
       })()}
+
+      {/* ── Round results modal ── */}
+      {showingRoundResults && save.lastRoundResults && (
+        <RoundResultsModal
+          summary={save.lastRoundResults}
+          onClose={() => setShowingRoundResults(false)}
+        />
+      )}
     </div>
   );
 }

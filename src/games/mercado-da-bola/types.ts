@@ -1,6 +1,68 @@
 // ─── Enums / Unions ───────────────────────────────────────────────────────────
 
 export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LW' | 'RW' | 'ST' | 'CF';
+
+// ─── Manager Profile ──────────────────────────────────────────────────────────
+
+export type ManagerStyle = 'attacking' | 'balanced' | 'defensive' | 'counter' | 'possession';
+
+export interface ManagerProfile {
+  name: string;
+  nationality: string;
+  nationalityFlag: string;
+  nickname: string;
+  style: ManagerStyle;
+  avatarIndex: number;
+}
+
+// ─── Player Message ───────────────────────────────────────────────────────────
+
+export type PlayerMessageType =
+  | 'bench_streak'
+  | 'goal_streak'
+  | 'injury_return'
+  | 'contract_expiring'
+  | 'transfer_interest'
+  | 'general'
+  | 'squad_unhappy';
+
+export type PlayerMessageMood = 'muito_feliz' | 'feliz' | 'normal' | 'insatisfeito' | 'triste' | 'com_raiva';
+
+export interface PlayerMessageResponse {
+  text: string;
+  moralDelta: number;
+  loyaltyDelta: number;
+  pressureDelta?: number;
+}
+
+export interface PlayerMessage {
+  id: string;
+  playerId: string;
+  playerName: string;
+  playerFlag: string;
+  content: string;
+  mood: PlayerMessageMood;
+  type: PlayerMessageType;
+  read: boolean;
+  round: number;
+  timestamp: number;
+  responses: PlayerMessageResponse[];
+  responded?: boolean;
+}
+
+// ─── Round Result Summary ─────────────────────────────────────────────────────
+
+export interface RoundFixtureResult {
+  homeTeamId: string;
+  awayTeamId: string;
+  homeGoals: number;
+  awayGoals: number;
+}
+
+export interface RoundResultSummary {
+  round: number;
+  fixtures: RoundFixtureResult[];
+}
 export type StarRating = 1 | 2 | 3 | 4 | 5;
 export type PlayerRarity = 'normal' | 'legendary';
 export type LifestyleLevel = 'poor' | 'modest' | 'comfortable' | 'luxury' | 'superstar';
@@ -209,6 +271,7 @@ export interface FinancialRecord {
 
 export type MBScreen =
   | 'team-select'
+  | 'onboarding'
   | 'home'
   | 'squad'
   | 'market'
@@ -219,7 +282,8 @@ export type MBScreen =
   | 'stadium'
   | 'player-detail'
   | 'turn-handoff'
-  | 'online-lobby';
+  | 'online-lobby'
+  | 'inbox';
 
 // ─── Multiplayer ──────────────────────────────────────────────────────────────
 
@@ -267,10 +331,15 @@ export interface GameSave {
   mode: 'solo' | 'local-multi' | 'online';
   currentTurn: 1 | 2;
   playerProfiles: [PlayerProfile, PlayerProfile] | null;
-  // Match simulation variety (prevents always-same result with seed=7)
+  // Match simulation variety
   randomSeed: number;
   // Online league
   onlineLeagueCode?: string;
   playerUid?: string;
   playerDisplayName?: string;
+  // Manager & messaging
+  managerProfile?: ManagerProfile;
+  playerMessages: PlayerMessage[];
+  lastRoundResults?: RoundResultSummary;
+  unreadMessages: number;
 }
