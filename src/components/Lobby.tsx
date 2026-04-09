@@ -248,7 +248,7 @@ export default function Lobby({ onStart, onBack }: Props) {
 
 const S: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: '100vh',
+    height: '100%',
     background: 'var(--bg)',
     display: 'flex',
     flexDirection: 'column',

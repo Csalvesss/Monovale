@@ -164,7 +164,7 @@ function StatCard({ emoji, label, value, color }: { emoji: string; label: string
 
 const S: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: '100vh',
+    height: '100%',
     background: 'var(--bg)',
     display: 'flex',
     flexDirection: 'column',
