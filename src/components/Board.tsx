@@ -448,7 +448,7 @@ function CellContent({
     );
   }
 
-  // Vertical cells (left/right)
+  // Vertical cells (left/right) — rotate entire content box, no writingMode
   return (
     <div style={{
       display: 'flex',
@@ -457,34 +457,35 @@ function CellContent({
       position: 'relative',
     }}>
       <div style={bandStyle} />
-      <div style={{
-        writingMode: 'vertical-lr',
-        transform: side === 'left' ? 'rotate(180deg)' : 'none',
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        gap: 2,
-        padding: '3px 0',
-        position: 'relative',
-      }}>
-        {space.icon && <span style={{ fontSize: 15, lineHeight: 1 }}>{space.icon}</span>}
-        <span style={{ ...nameStyle, maxWidth: undefined, wordBreak: 'normal', hyphens: 'none', overflowWrap: 'break-word' }}>
-          {space.name}
-        </span>
-        {space.price     !== undefined && <span style={priceStyle}>R${space.price}</span>}
-        {space.taxAmount !== undefined && <span style={{ ...priceStyle, color: '#dc2626' }}>R${space.taxAmount}</span>}
-        {ownerPawn && (
-          <div style={{
-            width: 8, height: 8,
-            borderRadius: '50%',
-            background: ownerPawn.color,
-            border: '1.5px solid white',
-            marginTop: 2,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-          }} />
-        )}
+      {/* Content area: rotate(90deg) for right, rotate(-90deg) for left.
+          Box before rotation is CELL_W × (CELL_W-16); after rotation it
+          fills the (CELL_W-16) × CELL_W content area exactly. */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <div style={{
+          width: CELL_W,
+          height: CELL_W - 16,
+          flexShrink: 0,
+          transform: `rotate(${side === 'right' ? 90 : -90}deg)`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          padding: '2px 4px',
+          boxSizing: 'border-box',
+        }}>
+          {space.icon && <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{space.icon}</span>}
+          <span style={nameStyle}>{space.name}</span>
+          {space.price     !== undefined && <span style={priceStyle}>R${space.price}</span>}
+          {space.taxAmount !== undefined && <span style={{ ...priceStyle, color: '#dc2626' }}>R${space.taxAmount}</span>}
+          {ownerPawn && (
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: ownerPawn.color, border: '1.5px solid white',
+              marginTop: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+            }} />
+          )}
+        </div>
       </div>
       <PlayerTokens players={players} size="sm" vertical />
       {propState?.mortgaged && (
@@ -494,7 +495,7 @@ function CellContent({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1,
         }}>
-          <span style={{ fontSize: 7, color: '#6b7280', fontWeight: 700, writingMode: 'vertical-lr' }}>HIP</span>
+          <span style={{ fontSize: 7, color: '#6b7280', fontWeight: 700 }}>HIP</span>
         </div>
       )}
     </div>
