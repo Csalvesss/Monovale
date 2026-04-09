@@ -43,7 +43,7 @@ export default function Board({ state, onSpaceClick }: Props) {
   // ── Pawn step-by-step animation ──
   const [visualPositions, setVisualPositions] = useState<Record<string, number>>(() => {
     const m: Record<string, number> = {};
-    state.players.forEach(p => { m[p.id] = p.position; });
+    (state.players ?? []).forEach(p => { m[p.id] = p.position; });
     return m;
   });
   const lastPosRef    = useRef<Record<string, number>>({});
@@ -55,12 +55,12 @@ export default function Board({ state, onSpaceClick }: Props) {
   }
 
   // Stable key: changes whenever any player position changes
-  const posKey = state.players.map(p => `${p.id}:${p.position}`).join(',');
+  const posKey = (state.players ?? []).map(p => `${p.id}:${p.position}`).join(',');
 
   useEffect(() => {
     cancelAnim();
 
-    for (const player of state.players) {
+    for (const player of (state.players ?? [])) {
       const from = lastPosRef.current[player.id] ?? player.position;
       const to   = player.position;
       lastPosRef.current[player.id] = to;
@@ -90,7 +90,7 @@ export default function Board({ state, onSpaceClick }: Props) {
 
   // Build per-position map using visual positions
   const playersByPos: Record<number, typeof state.players> = {};
-  for (const p of state.players) {
+  for (const p of (state.players ?? [])) {
     if (p.bankrupt) continue;
     const vp = visualPositions[p.id] ?? p.position;
     if (!playersByPos[vp]) playersByPos[vp] = [];
@@ -100,7 +100,7 @@ export default function Board({ state, onSpaceClick }: Props) {
   const cells: React.ReactNode[] = [];
 
   for (let pos = 0; pos < 40; pos++) {
-    const space      = state.spaces[pos];
+    const space      = (state.spaces ?? [])[pos];
     const { row, col } = positionToGrid(pos);
     const side       = getBoardSide(pos);
     const propState  = state.properties[pos];
@@ -127,10 +127,11 @@ export default function Board({ state, onSpaceClick }: Props) {
     );
   }
 
-  // Center area
-  const diceRolled = state.dice[0] > 0;
-  const diceTotal  = state.dice[0] + state.dice[1];
-  const currentPlayer = state.players[state.currentPlayerIndex];
+  // Center area — guard against null/undefined state (old localStorage saves)
+  const dice         = state.dice ?? [0, 0];
+  const diceRolled   = dice[0] > 0;
+  const diceTotal    = dice[0] + dice[1];
+  const currentPlayer = state.players?.[state.currentPlayerIndex] ?? null;
 
   cells.push(
     <div
@@ -179,7 +180,7 @@ export default function Board({ state, onSpaceClick }: Props) {
       {/* Dice display */}
       {diceRolled && (
         <div
-          key={state.dice.join('+')}
+          key={dice.join('+')}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -190,9 +191,9 @@ export default function Board({ state, onSpaceClick }: Props) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Die value={state.dice[0]} />
+            <Die value={dice[0]} />
             <div style={{ width: 6, height: 2, background: 'rgba(255,255,255,0.4)', borderRadius: 1 }} />
-            <Die value={state.dice[1]} />
+            <Die value={dice[1]} />
           </div>
           <div style={{
             background: 'rgba(255,255,255,0.15)',
@@ -205,7 +206,7 @@ export default function Board({ state, onSpaceClick }: Props) {
             letterSpacing: '0.5px',
           }}>
             = {diceTotal}
-            {state.dice[0] === state.dice[1] && (
+            {dice[0] === dice[1] && (
               <span style={{ marginLeft: 6, fontSize: 11, color: '#fcd34d' }}>par!</span>
             )}
           </div>

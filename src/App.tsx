@@ -93,7 +93,17 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as GameState;
-        if (parsed.phase === 'playing') return parsed;
+        // Validate required fields — discard stale saves from older versions
+        if (
+          parsed.phase === 'playing' &&
+          Array.isArray(parsed.players) &&
+          Array.isArray(parsed.spaces) &&
+          Array.isArray(parsed.dice)
+        ) {
+          return parsed;
+        }
+        // Stale/incompatible save — remove it
+        localStorage.removeItem(STORAGE_KEY);
       }
     } catch { /* ignore */ }
     return null;
