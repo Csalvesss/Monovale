@@ -207,6 +207,26 @@ export default function OnlineLobbyScreen({ onBack }: Props) {
   const allReady = league ? league.players.every(p => p.ready) : false;
   const myEntry = league?.players.find(p => p.uid === uid);
 
+  // Guard: must be logged in (all hooks already called above)
+  if (!user) {
+    return (
+      <div className="flex flex-col min-h-dvh bg-[#0f172a] text-slate-100 items-center justify-center gap-4 p-6">
+        <WifiOff size={48} className="text-slate-600" />
+        <div className="text-center">
+          <p className="text-lg font-black text-slate-200">Login necessário</p>
+          <p className="text-sm text-slate-500 mt-1">Faça login no Monovale para jogar online.</p>
+        </div>
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-6 py-3 text-sm font-bold text-slate-300 hover:bg-slate-700 transition-colors"
+        >
+          <ChevronLeft size={16} />
+          Voltar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-dvh bg-[#0f172a] text-slate-100">
 

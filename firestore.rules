@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // User profiles
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Monovale — lobby rooms
+    match /rooms/{code} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Monovale — active games
+    match /games/{gameId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Monovale — finished game results
+    match /gameResults/{resultId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Lenda da Bola — online league rooms
+    match /lenda-leagues/{code} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Lenda da Bola — per-player career saves + standings
+    match /lenda-saves/{saveId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
