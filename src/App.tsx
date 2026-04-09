@@ -249,10 +249,10 @@ export default function App() {
       <div style={S.loadingPage}>
         <div style={S.loadingCard}>
           <svg width="48" height="48" viewBox="0 0 40 40" fill="none" style={{ marginBottom: 16 }}>
-            <rect width="40" height="40" rx="12" fill="var(--green)" />
-            <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+            <rect width="40" height="40" rx="12" fill="#B5294E" />
+            <text x="20" y="27" textAnchor="middle" fontSize="22" fill="white">🍈</text>
           </svg>
-          <div style={S.loadingTitle}>Monovale</div>
+          <div style={S.loadingTitle}>Guava Games</div>
           <div style={S.loadingSpinner} />
         </div>
       </div>
@@ -486,7 +486,7 @@ const S: Record<string, React.CSSProperties> = {
   loadingPage: { minHeight: '100dvh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)' },
   loadingCard: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '48px 56px', textAlign: 'center' },
   loadingTitle: { fontFamily: 'var(--font-title)', fontSize: 28, fontWeight: 800, color: 'var(--text)', marginBottom: 20, letterSpacing: '-0.3px' },
-  loadingSpinner: { width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--green)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' },
+  loadingSpinner: { width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid #B5294E', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' },
 
   root: { height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', fontFamily: 'var(--font-body)', overflow: 'hidden' },
   topBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52, background: 'linear-gradient(90deg, #065F46, #059669)', boxShadow: '0 1px 0 rgba(0,0,0,0.15)', flexShrink: 0, zIndex: 10 },
