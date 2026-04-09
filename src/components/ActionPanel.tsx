@@ -218,6 +218,12 @@ function Btn({ label, color, size = 'md', disabled, onClick }: {
 
 // ─── ManageProperties ────────────────────────────────────────────────────────
 
+function HouseIcons({ houses, hotel }: { houses: number; hotel: boolean }) {
+  if (hotel) return <span style={{ fontSize: 13 }}>🏨</span>;
+  if (houses === 0) return null;
+  return <span style={{ fontSize: 11, letterSpacing: 1 }}>{'🏠'.repeat(houses)}</span>;
+}
+
 function ManageProperties({
   state, ownedPositions, selectedProp, onSelectProp,
   onBuildHouse, onSellHouse, onMortgage, onUnmortgage,
@@ -244,45 +250,63 @@ function ManageProperties({
         const groupPos = space.group ? (GROUP_POSITIONS[space.group] ?? []) : [];
         const hasMonopoly = groupPos.length > 0 &&
           groupPos.every(p => state.properties[p]?.ownerId === player.id);
+
+        // Even building: can only build on the property with the fewest houses
+        const minHousesInGroup = groupPos.reduce(
+          (min, p) => Math.min(min, state.properties[p]?.houses ?? 0), Infinity
+        );
         const canBuild = hasMonopoly && space.type === 'property' &&
-          !ps.mortgaged && !ps.hotel && player.money >= (space.housePrice ?? Infinity);
+          !ps.mortgaged && !ps.hotel &&
+          ps.houses <= minHousesInGroup &&
+          player.money >= (space.housePrice ?? Infinity);
         const canSell = ps.houses > 0 || ps.hotel;
         const canMortgage = !ps.mortgaged && ps.houses === 0 && !ps.hotel;
         const canUnmort = ps.mortgaged && player.money >= Math.floor((space.price ?? 0) * 0.55);
 
+        const nextLabel = ps.houses === 4 ? 'Hotel' : `Casa ${ps.houses + 1}`;
+
         return (
           <div key={pos}>
+            {/* Main row — always visible */}
             <div
-              onClick={() => onSelectProp(isSelected ? null : pos)}
-              style={{
-                ...M.row,
-                borderLeft: `3px solid ${color}`,
-                background: isSelected ? `${color}12` : 'transparent',
-              }}
+              style={{ ...M.row, borderLeft: `3px solid ${color}` }}
             >
               <span style={M.rowName}>{space.name}</span>
-              {ps.hotel && <span style={M.buildTag}>Hotel</span>}
-              {ps.houses > 0 && <span style={M.buildTag}>{ps.houses} casa{ps.houses > 1 ? 's' : ''}</span>}
-              {ps.mortgaged && <span style={M.hipTag}>Hipotecada</span>}
-              <span style={{ color: 'var(--text-light)', fontSize: 11 }}>{isSelected ? '▲' : '▼'}</span>
+
+              <HouseIcons houses={ps.houses} hotel={ps.hotel} />
+              {ps.mortgaged && <span style={M.hipTag}>Hip.</span>}
+
+              {/* Build / sell inline buttons */}
+              {canBuild && (
+                <MiniBtn
+                  label={`🏗️ ${nextLabel} R$${space.housePrice}`}
+                  bg="var(--green)"
+                  onClick={() => onBuildHouse(pos)}
+                />
+              )}
+              {canSell && (
+                <MiniBtn
+                  label={`↩ R$${Math.floor((space.housePrice ?? 0) / 2)}`}
+                  bg="#d97706"
+                  onClick={() => onSellHouse(pos)}
+                />
+              )}
+
+              {/* Expand for mortgage/redeem */}
+              {(canMortgage || canUnmort) && (
+                <button
+                  onClick={() => onSelectProp(isSelected ? null : pos)}
+                  style={M.moreBtn}
+                  title="Mais opções"
+                >
+                  {isSelected ? '▲' : '⋯'}
+                </button>
+              )}
             </div>
 
-            {isSelected && (
+            {/* Expanded: mortgage / redeem */}
+            {isSelected && (canMortgage || canUnmort) && (
               <div style={M.actions}>
-                {canBuild && (
-                  <MiniBtn
-                    label={`Construir R$${space.housePrice}`}
-                    bg="var(--green)"
-                    onClick={() => onBuildHouse(pos)}
-                  />
-                )}
-                {canSell && (
-                  <MiniBtn
-                    label={`Vender R$${Math.floor((space.housePrice ?? 0) / 2)}`}
-                    bg="#d97706"
-                    onClick={() => onSellHouse(pos)}
-                  />
-                )}
                 {canMortgage && (
                   <MiniBtn
                     label={`Hipotecar R$${Math.floor((space.price ?? 0) / 2)}`}
@@ -296,11 +320,6 @@ function ManageProperties({
                     bg="var(--green-dark)"
                     onClick={() => onUnmortgage(pos)}
                   />
-                )}
-                {!canBuild && !canSell && !canMortgage && !canUnmort && (
-                  <span style={{ fontSize: 11, color: 'var(--text-light)', padding: '4px 8px', fontStyle: 'italic' }}>
-                    Nenhuma ação disponível
-                  </span>
                 )}
               </div>
             )}
@@ -466,17 +485,16 @@ const M: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius)',
     border: '1px solid var(--border)',
     overflow: 'hidden',
-    maxHeight: 220,
+    maxHeight: 280,
     overflowY: 'auto',
   },
   row: {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '8px 12px',
-    cursor: 'pointer',
+    padding: '7px 10px',
     borderBottom: '1px solid var(--border)',
-    transition: 'background 0.1s',
+    flexWrap: 'wrap',
   },
   rowName: {
     flex: 1,
@@ -500,6 +518,16 @@ const M: Record<string, React.CSSProperties> = {
     background: 'var(--border)',
     padding: '1px 6px',
     borderRadius: 99,
+  },
+  moreBtn: {
+    padding: '2px 7px',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: 6,
+    fontSize: 11,
+    color: 'var(--text-light)',
+    cursor: 'pointer',
+    flexShrink: 0,
   },
   actions: {
     display: 'flex',
