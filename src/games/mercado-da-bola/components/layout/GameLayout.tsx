@@ -59,7 +59,7 @@ function SettingsMenu({
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        background: 'rgba(5,10,14,0.75)', backdropFilter: 'blur(8px)',
+        background: 'rgba(2,4,6,0.8)', backdropFilter: 'blur(12px)',
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       }}
       onClick={onClose}
@@ -67,9 +67,12 @@ function SettingsMenu({
       <div
         style={{
           width: '100%', maxWidth: 440,
-          background: 'var(--ldb-void)',
+          background: 'rgba(2,4,6,0.92)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
           borderRadius: '24px 24px 0 0',
-          border: '1px solid var(--ldb-border-mid)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderTop: '1px solid rgba(255,255,255,0.15)',
           borderBottom: 'none',
           padding: '24px 20px 36px',
           animation: 'ldb-slide-up 0.3s var(--ldb-ease-out)',
@@ -102,7 +105,7 @@ function SettingsMenu({
           background: 'rgba(26,122,64,0.1)', border: '1px solid rgba(26,122,64,0.25)',
           borderRadius: 'var(--ldb-r-md)', padding: '12px 16px', marginBottom: 12,
         }}>
-          <CloudCheck size={18} style={{ color: 'var(--ldb-text-success)', flexShrink: 0 }} />
+          <CloudCheck size={18} strokeWidth={1.5} style={{ color: 'var(--ldb-text-success)', flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ldb-text-success)' }}>Salvo automaticamente</div>
             <div style={{ fontSize: 11, color: 'var(--ldb-text-muted)', marginTop: 2 }}>Seu progresso é salvo a cada ação</div>
@@ -121,7 +124,7 @@ function SettingsMenu({
             transition: 'background 200ms',
           }}
         >
-          <ChevronLeft size={16} style={{ color: 'var(--ldb-text-muted)' }} />
+          <ChevronLeft size={16} strokeWidth={1.5} style={{ color: 'var(--ldb-text-muted)' }} />
           Sair para o Hub
         </button>
 
@@ -136,7 +139,7 @@ function SettingsMenu({
             fontWeight: 600, fontSize: 14,
           }}
         >
-          <Trash2 size={16} />
+          <Trash2 size={16} strokeWidth={1.5} />
           Excluir save
         </button>
       </div>
@@ -151,11 +154,11 @@ function DeleteConfirm({ open, onClose, onConfirm }: { open: boolean; onClose: (
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 70,
-      background: 'rgba(5,10,14,0.85)', backdropFilter: 'blur(8px)',
+      background: 'rgba(2,4,6,0.88)', backdropFilter: 'blur(16px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div style={{
-        background: 'var(--ldb-surface)', border: '1px solid var(--ldb-border-mid)',
+        background: '#0A0F14', border: '1px solid rgba(255,255,255,0.12)',
         borderRadius: 'var(--ldb-r-lg)', padding: '28px 24px',
         maxWidth: 320, width: '100%', textAlign: 'center',
         animation: 'ldb-scale-in 0.25s var(--ldb-ease-out)',
@@ -217,15 +220,22 @@ export default function GameLayout({ children, onBack }: { children: React.React
   }
 
   const notifColors: Record<string, { bg: string; border: string; color: string }> = {
-    success:   { bg: 'rgba(26,122,64,0.15)',  border: 'rgba(26,122,64,0.35)',  color: 'var(--ldb-text-success)' },
+    success:   { bg: 'rgba(0,255,135,0.10)',   border: 'rgba(0,255,135,0.3)',   color: 'var(--ldb-pitch-bright)' },
     error:     { bg: 'rgba(255,85,85,0.12)',   border: 'rgba(255,85,85,0.35)',  color: 'var(--ldb-loss)'         },
-    info:      { bg: 'rgba(15,30,46,0.9)',     border: 'var(--ldb-border-mid)', color: 'var(--ldb-text)'         },
-    legendary: { bg: 'rgba(120,90,0,0.25)',    border: 'var(--ldb-border-gold)', color: 'var(--ldb-gold-bright)' },
+    info:      { bg: 'rgba(15,20,25,0.85)',    border: 'var(--ldb-border-mid)', color: 'var(--ldb-text)'         },
+    legendary: { bg: 'rgba(212,175,55,0.12)',  border: 'var(--ldb-border-gold)', color: 'var(--ldb-text-gold)'  },
   };
   const nc = notifColors[notification?.type ?? 'info'];
 
   return (
-    <div className="ldb-game" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
+    <div
+      className="ldb-game"
+      style={{
+        display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden',
+        background: 'radial-gradient(circle at 50% -20%, #0a2e1a 0%, var(--ldb-void) 70%)',
+        backgroundAttachment: 'fixed',
+      }}
+    >
 
       {/* ── Top bar ── */}
       <header className="ldb-topbar">
@@ -242,19 +252,19 @@ export default function GameLayout({ children, onBack }: { children: React.React
           }}
         >
           {isPlayerDetail
-            ? <><ChevronLeft size={14} />Elenco</>
-            : <><Settings size={13} />Menu</>}
+            ? <><ChevronLeft size={14} strokeWidth={1.5} />Elenco</>
+            : <><Settings size={13} strokeWidth={1.5} />Menu</>}
         </button>
 
         {/* Center: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8,
-            background: 'linear-gradient(135deg, var(--ldb-pitch-bright), var(--ldb-pitch-dark))',
-            border: '1px solid rgba(26,122,64,0.5)',
+            background: 'linear-gradient(135deg, var(--ldb-pitch-bright), var(--ldb-pitch-mid))',
+            border: '1px solid rgba(0,255,135,0.35)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Trophy size={14} style={{ color: 'var(--ldb-gold-bright)' }} />
+            <Trophy size={14} strokeWidth={1.5} style={{ color: 'var(--ldb-text-gold)' }} />
           </div>
           <span style={{
             fontFamily: 'var(--ldb-font-display)', fontSize: 18, letterSpacing: '0.06em',
@@ -268,13 +278,13 @@ export default function GameLayout({ children, onBack }: { children: React.React
         {state.save ? (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)',
+            background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)',
             borderRadius: 'var(--ldb-r-sm)', padding: '6px 12px',
           }}>
-            <span style={{ fontSize: 10, color: 'var(--ldb-gold-mid)' }}>$</span>
+            <span style={{ fontSize: 10, color: 'var(--ldb-text-gold)' }}>$</span>
             <span style={{
               fontFamily: 'var(--ldb-font-display)', fontSize: 15, letterSpacing: '0.04em',
-              color: 'var(--ldb-gold-bright)',
+              color: 'var(--ldb-text-gold)',
             }}>
               {budgetK}k
             </span>
@@ -306,7 +316,7 @@ export default function GameLayout({ children, onBack }: { children: React.React
               className={`ldb-nav-item${isActive ? ' active' : ''}`}
             >
               <div style={{ position: 'relative' }}>
-                <Icon size={17} />
+                <Icon size={17} strokeWidth={1.5} />
                 {badgeCount > 0 && (
                   <div className="ldb-nav-badge">{badgeCount > 9 ? '9+' : badgeCount}</div>
                 )}
@@ -333,12 +343,12 @@ export default function GameLayout({ children, onBack }: { children: React.React
           }}
         >
           {notification.type === 'legendary' && (
-            <Star size={16} style={{ color: 'var(--ldb-gold-bright)', flexShrink: 0 }} className="ldb-anim-pulsate" />
+            <Star size={16} strokeWidth={1.5} style={{ color: 'var(--ldb-text-gold)', flexShrink: 0 }} className="ldb-anim-pulsate" />
           )}
           <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: nc.color }}>
             {notification.message}
           </span>
-          <X size={13} style={{ color: 'var(--ldb-text-muted)', flexShrink: 0 }} />
+          <X size={13} strokeWidth={1.5} style={{ color: 'var(--ldb-text-muted)', flexShrink: 0 }} />
         </div>
       )}
 
