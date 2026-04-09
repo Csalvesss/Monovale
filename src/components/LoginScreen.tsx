@@ -31,118 +31,159 @@ export default function LoginScreen() {
       if (msg.includes('email-already-in-use')) setError('E-mail já cadastrado. Faça login.');
       else if (msg.includes('wrong-password') || msg.includes('invalid-credential')) setError('E-mail ou senha incorretos.');
       else if (msg.includes('user-not-found')) setError('Usuário não encontrado.');
-      else if (msg.includes('weak-password')) setError('Senha muito fraca (mínimo 6 caracteres).');
+      else if (msg.includes('weak-password')) setError('Senha fraca — mínimo 6 caracteres.');
       else setError(msg);
     } finally {
       setLoading(false);
     }
   }
 
+  const selectedPawn = PAWNS.find(p => p.id === pawnId) ?? PAWNS[0];
+
   return (
     <div style={S.page}>
-      {/* ── Hero ── */}
-      <div style={S.hero}>
-        <span style={S.heroEmoji}>🗺️</span>
-        <h1 style={S.heroTitle}>MONOVALE</h1>
-        <p style={S.heroSub}>Monopoly do Vale do Paraíba</p>
-        <p style={S.heroBanker}>🏦 Banco do Sr. Marinho</p>
+      {/* ── Left brand panel ── */}
+      <div style={S.brand}>
+        <div style={S.brandInner}>
+          <div style={S.logo}>
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="12" fill="white" fillOpacity="0.15"/>
+              <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9"/>
+            </svg>
+            <span style={S.logoText}>Monovale</span>
+          </div>
+          <h1 style={S.brandTitle}>Monopoly do<br/>Vale do Paraíba</h1>
+          <p style={S.brandSub}>Compre, construa e domine as cidades do Vale. O Banco do Sr. Marinho está esperando.</p>
+          <div style={S.brandFeatures}>
+            {['Até 8 jogadores', 'Salas online', 'Estatísticas pessoais'].map(f => (
+              <div key={f} style={S.feature}>
+                <span style={S.featureDot} />
+                {f}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* ── Card ── */}
-      <div style={S.card}>
-        {/* Mode tabs */}
-        <div style={S.tabs}>
-          <button
-            style={{ ...S.tab, ...(mode === 'login' ? S.tabActive : {}) }}
-            onClick={() => { setMode('login'); setError(''); }}
-          >
-            Entrar
-          </button>
-          <button
-            style={{ ...S.tab, ...(mode === 'register' ? S.tabActive : {}) }}
-            onClick={() => { setMode('register'); setError(''); }}
-          >
-            Criar Conta
-          </button>
-        </div>
+      {/* ── Right form panel ── */}
+      <div style={S.formPanel}>
+        <div style={S.formCard}>
+          <h2 style={S.formTitle}>
+            {mode === 'login' ? 'Entrar na conta' : 'Criar conta'}
+          </h2>
+          <p style={S.formSub}>
+            {mode === 'login'
+              ? 'Bem-vindo de volta!'
+              : 'Junte-se ao Monovale'}
+          </p>
 
-        <form onSubmit={handleSubmit} style={S.form}>
-          {mode === 'register' && (
-            <>
-              <label style={S.label}>Seu nome no jogo</label>
+          {/* Tabs */}
+          <div style={S.tabs}>
+            <button
+              style={{ ...S.tab, ...(mode === 'login' ? S.tabActive : {}) }}
+              onClick={() => { setMode('login'); setError(''); }}
+            >
+              Entrar
+            </button>
+            <button
+              style={{ ...S.tab, ...(mode === 'register' ? S.tabActive : {}) }}
+              onClick={() => { setMode('register'); setError(''); }}
+            >
+              Criar conta
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} style={S.form}>
+            {mode === 'register' && (
+              <>
+                <div style={S.field}>
+                  <label style={S.label}>Nome no jogo</label>
+                  <input
+                    style={S.input}
+                    type="text"
+                    placeholder="Como você quer ser chamado"
+                    value={name}
+                    maxLength={20}
+                    onChange={e => setName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div style={S.field}>
+                  <label style={S.label}>Peão favorito</label>
+                  <div style={S.pawnRow}>
+                    {PAWNS.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        title={p.name}
+                        onClick={() => setPawnId(p.id)}
+                        style={{
+                          ...S.pawnBtn,
+                          ...(pawnId === p.id ? { background: p.color, borderColor: p.color } : {}),
+                        }}
+                      >
+                        {p.emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <span style={{ ...S.label, fontSize: 12, color: selectedPawn.color, fontWeight: 600, marginTop: 4 }}>
+                    {selectedPawn.name}
+                  </span>
+                </div>
+              </>
+            )}
+
+            <div style={S.field}>
+              <label style={S.label}>E-mail</label>
               <input
                 style={S.input}
-                type="text"
-                placeholder="Ex: João do Vale"
-                value={name}
-                maxLength={20}
-                onChange={e => setName(e.target.value)}
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
+            </div>
 
-              <label style={S.label}>Escolha seu peão favorito</label>
-              <div style={S.pawnGrid}>
-                {PAWNS.map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    title={p.name}
-                    onClick={() => setPawnId(p.id)}
-                    style={{
-                      ...S.pawnBtn,
-                      ...(pawnId === p.id ? { ...S.pawnBtnSel, background: p.color } : {}),
-                    }}
-                  >
-                    {p.emoji}
-                  </button>
-                ))}
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-mid)', margin: '0 0 12px', fontWeight: 600 }}>
-                {PAWNS.find(p => p.id === pawnId)?.name}
-              </p>
-            </>
-          )}
+            <div style={S.field}>
+              <label style={S.label}>Senha</label>
+              <input
+                style={S.input}
+                type="password"
+                placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : ''}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+              />
+            </div>
 
-          <label style={S.label}>E-mail</label>
-          <input
-            style={S.input}
-            type="email"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
+            {error && <div style={S.errorBox}>{error}</div>}
 
-          <label style={S.label}>Senha</label>
-          <input
-            style={S.input}
-            type="password"
-            placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            minLength={6}
-            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-          />
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ ...S.submitBtn, ...(loading ? S.submitBtnLoading : {}) }}
+            >
+              {loading
+                ? 'Aguarde...'
+                : mode === 'login' ? 'Entrar' : 'Criar conta'}
+            </button>
+          </form>
 
-          {error && <div style={S.error}>{error}</div>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ ...S.submitBtn, ...(loading ? S.submitBtnLoading : {}) }}
-          >
-            {loading ? '⏳ Aguarde...' : mode === 'login' ? '🎲 ENTRAR' : '🚀 CRIAR CONTA'}
-          </button>
-        </form>
-
-        <p style={S.switch}>
-          {mode === 'login'
-            ? <>Não tem conta? <span style={S.switchLink} onClick={() => { setMode('register'); setError(''); }}>Criar agora</span></>
-            : <>Já tem conta? <span style={S.switchLink} onClick={() => { setMode('login'); setError(''); }}>Fazer login</span></>
-          }
-        </p>
+          <p style={S.switchText}>
+            {mode === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
+            <button
+              style={S.switchLink}
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
+            >
+              {mode === 'login' ? 'Criar agora' : 'Fazer login'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -151,149 +192,199 @@ export default function LoginScreen() {
 const S: Record<string, React.CSSProperties> = {
   page: {
     minHeight: '100%',
-    background: 'var(--bg)',
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
     fontFamily: 'var(--font-body)',
+    background: 'var(--bg)',
+  },
+
+  /* Brand left panel */
+  brand: {
+    display: 'none' as const,
+    flex: '0 0 420px',
+    background: 'linear-gradient(160deg, #065F46 0%, #047857 50%, #059669 100%)',
+    padding: '48px 40px',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    position: 'relative' as const,
+    overflow: 'hidden',
+  },
+  brandInner: { position: 'relative' as const, zIndex: 1 },
+  logo: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 },
+  logoText: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 22,
+    fontWeight: 800,
+    color: '#fff',
+    letterSpacing: '-0.3px',
+  },
+  brandTitle: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 40,
+    fontWeight: 900,
+    color: '#fff',
+    margin: '0 0 16px',
+    lineHeight: 1.15,
+    letterSpacing: '-0.5px',
+  },
+  brandSub: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 1.6,
+    margin: '0 0 36px',
+  },
+  brandFeatures: { display: 'flex', flexDirection: 'column', gap: 10 },
+  feature: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' },
+  featureDot: { width: 8, height: 8, borderRadius: '50%', background: '#34D399', flexShrink: 0 },
+
+  /* Form right panel */
+  formPanel: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px 16px',
     overflowY: 'auto',
   },
-  hero: {
-    width: '100%',
-    background: 'var(--gold-grad)',
-    padding: '32px 24px 28px',
-    textAlign: 'center',
-    boxShadow: '0 4px 0 var(--gold-dark), 0 6px 20px rgba(0,0,0,0.15)',
-  },
-  heroEmoji: { fontSize: 56, lineHeight: 1, display: 'block', marginBottom: 8 },
-  heroTitle: {
-    fontFamily: 'var(--font-title)',
-    fontSize: 52,
-    color: 'var(--text)',
-    margin: '0 0 4px',
-    letterSpacing: '2px',
-    textShadow: '2px 2px 0 rgba(255,255,255,0.4)',
-  },
-  heroSub: { fontSize: 15, fontWeight: 700, color: 'var(--text)', opacity: 0.7, margin: '0 0 4px' },
-  heroBanker: { fontSize: 13, fontWeight: 600, color: 'var(--text)', opacity: 0.55, margin: 0 },
-
-  card: {
+  formCard: {
     background: 'var(--card)',
     borderRadius: 'var(--radius-xl)',
-    border: '3px solid var(--border-gold)',
     boxShadow: 'var(--shadow-lg)',
-    padding: '0 0 24px',
+    padding: '36px 32px',
     width: '100%',
     maxWidth: 420,
-    margin: '28px 16px 40px',
-    overflow: 'hidden',
+    border: '1px solid var(--border)',
+  },
+  formTitle: {
+    fontFamily: 'var(--font-title)',
+    fontSize: 26,
+    fontWeight: 800,
+    color: 'var(--text)',
+    margin: '0 0 4px',
+    letterSpacing: '-0.3px',
+  },
+  formSub: {
+    fontSize: 14,
+    color: 'var(--text-mid)',
+    margin: '0 0 24px',
   },
 
   tabs: {
     display: 'flex',
-    borderBottom: '2px solid var(--border)',
+    background: 'var(--card-alt)',
+    borderRadius: 'var(--radius)',
+    padding: 4,
+    gap: 4,
     marginBottom: 24,
+    border: '1px solid var(--border)',
   },
   tab: {
     flex: 1,
-    padding: '14px',
-    background: 'var(--card-alt)',
+    padding: '9px',
+    background: 'transparent',
     border: 'none',
-    fontFamily: 'var(--font-title)',
-    fontSize: 18,
+    borderRadius: '8px',
+    fontSize: 14,
+    fontWeight: 600,
     color: 'var(--text-mid)',
     cursor: 'pointer',
-    letterSpacing: '0.5px',
     transition: 'all 0.15s',
+    fontFamily: 'var(--font-body)',
   },
   tabActive: {
     background: 'var(--card)',
     color: 'var(--text)',
-    borderBottom: '3px solid var(--gold)',
+    fontWeight: 700,
+    boxShadow: '0 1px 4px rgba(15,23,42,0.1)',
   },
 
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '0 24px',
-  },
+  form: { display: 'flex', flexDirection: 'column', gap: 0 },
+  field: { display: 'flex', flexDirection: 'column', marginBottom: 16 },
   label: {
-    fontSize: 12,
-    fontWeight: 800,
+    fontSize: 13,
+    fontWeight: 600,
     color: 'var(--text-mid)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
     marginBottom: 6,
   },
   input: {
     padding: '11px 14px',
     borderRadius: 'var(--radius)',
-    border: '2px solid var(--border)',
+    border: '1.5px solid var(--border)',
     fontSize: 15,
-    fontWeight: 600,
+    fontWeight: 500,
     fontFamily: 'var(--font-body)',
-    background: 'var(--white)',
+    background: 'var(--card)',
     color: 'var(--text)',
     outline: 'none',
-    marginBottom: 14,
-    transition: 'border-color 0.15s',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
   },
 
-  pawnGrid: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 },
+  pawnRow: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   pawnBtn: {
-    width: 38, height: 38,
+    width: 40, height: 40,
     borderRadius: 10,
-    border: '2px solid var(--border)',
-    background: 'var(--white)',
+    border: '1.5px solid var(--border)',
+    background: 'var(--card-alt)',
     fontSize: 20,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0,
-    boxShadow: '0 2px 0 var(--border)',
     transition: 'all 0.12s',
   },
-  pawnBtnSel: {
-    transform: 'translateY(-2px) scale(1.1)',
-    boxShadow: '0 4px 0 rgba(0,0,0,0.2)',
-    border: '2px solid rgba(255,255,255,0.4)',
-  },
 
-  error: {
-    background: '#fef2f2',
-    border: '2px solid #fecaca',
+  errorBox: {
+    background: '#FEF2F2',
+    border: '1px solid #FECACA',
     borderRadius: 'var(--radius)',
     padding: '10px 14px',
     fontSize: 13,
-    fontWeight: 700,
+    fontWeight: 600,
     color: 'var(--red)',
-    marginBottom: 14,
+    marginBottom: 16,
   },
 
   submitBtn: {
-    padding: '15px',
+    padding: '13px',
     background: 'var(--green-grad)',
     color: '#fff',
     border: 'none',
-    borderRadius: 'var(--radius-lg)',
-    fontFamily: 'var(--font-title)',
-    fontSize: 20,
-    letterSpacing: '1px',
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 15,
+    fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 5px 0 var(--green-dark)',
-    transition: 'transform 0.1s, box-shadow 0.1s',
+    boxShadow: '0 4px 14px rgba(5,150,105,0.35)',
+    transition: 'opacity 0.15s, transform 0.1s',
     marginBottom: 4,
+    letterSpacing: '0.2px',
   },
   submitBtnLoading: {
-    background: 'linear-gradient(135deg,#d1d5db,#9ca3af)',
-    boxShadow: '0 5px 0 #6b7280',
+    background: 'var(--border)',
+    boxShadow: 'none',
     cursor: 'not-allowed',
+    color: 'var(--text-mid)',
   },
 
-  switch: { fontSize: 13, color: 'var(--text-mid)', textAlign: 'center', marginTop: 16, padding: '0 24px' },
+  switchText: {
+    fontSize: 13,
+    color: 'var(--text-mid)',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 0,
+  },
   switchLink: {
-    color: 'var(--green-dark)',
-    fontWeight: 800,
+    background: 'none',
+    border: 'none',
+    color: 'var(--green)',
+    fontWeight: 700,
     cursor: 'pointer',
+    fontSize: 13,
+    fontFamily: 'var(--font-body)',
+    padding: 0,
     textDecoration: 'underline',
   },
 };
+
+// Show brand panel on wide screens
+if (typeof window !== 'undefined' && window.innerWidth >= 960) {
+  S.brand.display = 'flex';
+}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Map, RefreshCw, LayoutGrid, Users, FileText, Key } from 'lucide-react';
 import Lobby from './components/Lobby';
 import Board from './components/Board';
 import PlayerPanel from './components/PlayerPanel';
@@ -51,27 +52,27 @@ function ScaledBoard({ state, scale }: { state: GameState; scale: number }) {
 }
 
 function MobileTabBar({ active, onChange }: { active: MobileTab; onChange: (t: MobileTab) => void }) {
-  const tabs: { id: MobileTab; icon: string; label: string }[] = [
-    { id: 'board',   icon: '🗺️', label: 'Tabuleiro' },
-    { id: 'players', icon: '👥', label: 'Jogadores'  },
-    { id: 'log',     icon: '📋', label: 'Registro'   },
+  const tabs: { id: MobileTab; Icon: React.FC<{ size?: number; color?: string }>; label: string }[] = [
+    { id: 'board',   Icon: LayoutGrid, label: 'Tabuleiro' },
+    { id: 'players', Icon: Users,      label: 'Jogadores'  },
+    { id: 'log',     Icon: FileText,   label: 'Registro'   },
   ];
   return (
     <div style={TB.bar}>
       {tabs.map(t => (
         <button key={t.id} onClick={() => onChange(t.id)} style={{ ...TB.btn, ...(active === t.id ? TB.active : {}) }}>
-          <span style={{ fontSize: 22 }}>{t.icon}</span>
-          <span style={TB.label}>{t.label}</span>
+          <t.Icon size={20} color={active === t.id ? 'var(--green)' : 'var(--text-mid)'} />
+          <span style={{ ...TB.label, ...(active === t.id ? { color: 'var(--green)' } : {}) }}>{t.label}</span>
         </button>
       ))}
     </div>
   );
 }
 const TB: Record<string, React.CSSProperties> = {
-  bar: { display: 'flex', background: 'var(--card)', borderTop: '2px solid var(--border-gold)', flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)' },
-  btn: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '8px 4px', background: 'none', border: 'none', cursor: 'pointer' },
-  active: { background: 'var(--card-alt)', borderTop: '3px solid var(--gold)' },
-  label: { fontSize: 10, fontWeight: 800, color: 'var(--text-mid)', letterSpacing: '0.3px' },
+  bar: { display: 'flex', background: 'var(--card)', borderTop: '1px solid var(--border)', flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)' },
+  btn: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '10px 4px', background: 'none', border: 'none', cursor: 'pointer', transition: 'background 0.15s' },
+  active: { background: 'rgba(5,150,105,0.06)' },
+  label: { fontSize: 10, fontWeight: 700, color: 'var(--text-mid)', letterSpacing: '0.3px' },
 };
 
 export default function App() {
@@ -227,8 +228,11 @@ export default function App() {
     return (
       <div style={S.loadingPage}>
         <div style={S.loadingCard}>
-          <div style={{ fontSize: 56, marginBottom: 8, lineHeight: 1 }}>🗺️</div>
-          <div style={S.loadingTitle}>MONOVALE</div>
+          <svg width="48" height="48" viewBox="0 0 40 40" fill="none" style={{ marginBottom: 16 }}>
+            <rect width="40" height="40" rx="12" fill="var(--green)" />
+            <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+          </svg>
+          <div style={S.loadingTitle}>Monovale</div>
           <div style={S.loadingSpinner} />
         </div>
       </div>
@@ -242,7 +246,9 @@ export default function App() {
     return (
       <div style={S.loadingPage}>
         <div style={S.loadingCard}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
           <div style={S.loadingTitle}>Erro ao carregar perfil</div>
           <p style={{ color: 'var(--text-mid)', fontWeight: 600, fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
             Verifique as Regras do Firestore<br />
@@ -319,7 +325,9 @@ export default function App() {
       {showConfirm && (
         <div style={S.overlay}>
           <div style={S.confirmBox}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
             <div style={S.confirmTitle}>Nova Partida?</div>
             <p style={S.confirmText}>O progresso atual será perdido.</p>
             <div style={S.confirmBtns}>
@@ -335,15 +343,23 @@ export default function App() {
   const topBar = (
     <div style={S.topBar}>
       <div style={S.topLogo}>
-        <span style={{ fontSize: isMobile ? 22 : 28 }}>🗺️</span>
-        <span style={{ ...S.topTitle, fontSize: isMobile ? 22 : 28 }}>MONOVALE</span>
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" style={{ flexShrink: 0 }}>
+          <rect width="40" height="40" rx="10" fill="white" fillOpacity="0.15" />
+          <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+        </svg>
+        <span style={{ ...S.topTitle, fontSize: isMobile ? 18 : 22 }}>Monovale</span>
         {!isMobile && <span style={S.topSub}>Vale do Paraíba</span>}
-        {roomCode && <span style={S.roomCodeBadge}>🔑 {roomCode}</span>}
+        {roomCode && (
+          <span style={S.roomCodeBadge}>
+            <Key size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> {roomCode}
+          </span>
+        )}
       </div>
       <div style={S.topRight}>
-        {!isMobile && <span style={S.bankerTag}>🏦 Sr. Marinho</span>}
+        {!isMobile && <span style={S.bankerTag}>Banco Sr. Marinho</span>}
         <button onClick={() => gameState?.phase === 'playing' ? setShowConfirm(true) : clearGame()} style={S.newGameBtn}>
-          {isMobile ? '🔄' : '🔄 Sair'}
+          <RefreshCw size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: isMobile ? 0 : 5 }} />
+          {!isMobile && 'Sair'}
         </button>
       </div>
     </div>
@@ -426,19 +442,19 @@ export default function App() {
 
 const S: Record<string, React.CSSProperties> = {
   loadingPage: { minHeight: '100dvh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)' },
-  loadingCard: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '3px solid var(--border-gold)', boxShadow: 'var(--shadow-lg)', padding: '40px 56px', textAlign: 'center' },
-  loadingTitle: { fontFamily: 'var(--font-title)', fontSize: 36, color: 'var(--text)', letterSpacing: '2px', marginBottom: 20 },
-  loadingSpinner: { width: 36, height: 36, border: '4px solid var(--border)', borderTop: '4px solid var(--gold)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' },
+  loadingCard: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '48px 56px', textAlign: 'center' },
+  loadingTitle: { fontFamily: 'var(--font-title)', fontSize: 28, fontWeight: 800, color: 'var(--text)', marginBottom: 20, letterSpacing: '-0.3px' },
+  loadingSpinner: { width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--green)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' },
 
   root: { height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', fontFamily: 'var(--font-body)', overflow: 'hidden' },
-  topBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52, background: 'var(--gold-grad)', boxShadow: '0 3px 0 var(--gold-dark)', flexShrink: 0, zIndex: 10 },
+  topBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52, background: 'linear-gradient(90deg, #065F46, #059669)', boxShadow: '0 1px 0 rgba(0,0,0,0.15)', flexShrink: 0, zIndex: 10 },
   topLogo: { display: 'flex', alignItems: 'center', gap: 8 },
-  topTitle: { fontFamily: 'var(--font-title)', color: 'var(--text)', letterSpacing: '1.5px', textShadow: '1px 1px 0 rgba(255,255,255,0.4)', lineHeight: 1 },
-  topSub: { fontSize: 12, fontWeight: 700, color: 'var(--text)', opacity: 0.6 },
-  roomCodeBadge: { fontSize: 12, fontWeight: 800, background: 'rgba(0,0,0,0.15)', borderRadius: 99, padding: '3px 10px', color: 'var(--text)' },
+  topTitle: { fontFamily: 'var(--font-title)', color: '#fff', fontWeight: 800, letterSpacing: '-0.2px', lineHeight: 1 },
+  topSub: { fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.65)' },
+  roomCodeBadge: { fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '3px 10px', color: '#fff', letterSpacing: '1px' },
   topRight: { display: 'flex', alignItems: 'center', gap: 10 },
-  bankerTag: { fontSize: 13, fontWeight: 700, color: 'var(--text)', opacity: 0.7 },
-  newGameBtn: { padding: '7px 14px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 99, fontFamily: 'var(--font-body)', fontWeight: 800, fontSize: 12, cursor: 'pointer', boxShadow: '0 3px 0 var(--red-dark)' },
+  bankerTag: { fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.65)' },
+  newGameBtn: { padding: '7px 14px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 99, fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
 
   layout: { flex: 1, display: 'flex', gap: 10, padding: '10px', overflow: 'hidden', minHeight: 0 },
   leftPanel: { width: 210, flexShrink: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' },
@@ -447,13 +463,13 @@ const S: Record<string, React.CSSProperties> = {
   actionWrapper: { width: '100%', maxWidth: 800, paddingBottom: 8 },
   rightPanel: { width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
 
-  waitingBanner: { padding: '12px 16px', background: 'var(--card)', border: '2px solid var(--border-gold)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, color: 'var(--text-mid)', textAlign: 'center', marginBottom: 8 },
+  waitingBanner: { padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600, color: 'var(--text-mid)', textAlign: 'center', marginBottom: 8 },
 
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, backdropFilter: 'blur(4px)', padding: 16 },
-  confirmBox: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '3px solid var(--border-gold)', boxShadow: 'var(--shadow-lg)', padding: '32px 28px', maxWidth: 340, width: '100%', textAlign: 'center', animation: 'pop-in 0.25s ease' },
-  confirmTitle: { fontFamily: 'var(--font-title)', fontSize: 28, color: 'var(--text)', marginBottom: 8 },
-  confirmText: { fontSize: 14, color: 'var(--text-mid)', fontWeight: 600, margin: '0 0 20px' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, backdropFilter: 'blur(6px)', padding: 16 },
+  confirmBox: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '32px 28px', maxWidth: 340, width: '100%', textAlign: 'center', animation: 'pop-in 0.25s ease' },
+  confirmTitle: { fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 8 },
+  confirmText: { fontSize: 14, color: 'var(--text-mid)', fontWeight: 500, margin: '0 0 20px' },
   confirmBtns: { display: 'flex', gap: 10 },
-  confirmBtnYes: { flex: 1, padding: '14px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 0 var(--red-dark)', fontFamily: 'var(--font-body)' },
-  confirmBtnNo: { flex: 1, padding: '14px', background: 'var(--card-alt)', color: 'var(--text)', border: '2px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 0 var(--border)', fontFamily: 'var(--font-body)' },
+  confirmBtnYes: { flex: 1, padding: '13px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBtnNo: { flex: 1, padding: '13px', background: 'var(--card-alt)', color: 'var(--text)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
 };
