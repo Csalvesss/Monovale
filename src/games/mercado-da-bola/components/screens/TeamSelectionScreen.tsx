@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMB } from '../../store/gameStore';
 import { ALL_TEAMS } from '../../data/teams';
 import { LEAGUES } from '../../constants';
 import { getAvailablePlayers } from '../../data/players';
 import TeamBadge from '../ui/TeamBadge';
-import { cn } from '../../../../lib/utils';
+import gsap from 'gsap';
 import type { LeagueId, Team, GameSave, Stadium, PlayerProfile } from '../../types';
-import { Users, User, Globe, ChevronLeft, Trophy, DollarSign, ArrowRight, Check } from 'lucide-react';
+import { Users, User, Globe, ChevronLeft, Trophy, ArrowRight, Check, Zap } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ function makeStadium(team: Team): Stadium {
   };
 }
 
-// ─── Team picker ──────────────────────────────────────────────────────────────
+// ─── Team Picker ──────────────────────────────────────────────────────────────
 
 function TeamPicker({
   selected, onSelect, disabledTeamId, lockLeague,
@@ -52,40 +52,44 @@ function TeamPicker({
 }) {
   const [leagueFilter, setLeagueFilter] = useState<LeagueId | 'all'>(lockLeague ?? 'all');
 
-  const filteredTeams = (leagueFilter === 'all' ? ALL_TEAMS : ALL_TEAMS.filter(t => t.leagueId === leagueFilter))
-    .filter(t => t.id !== disabledTeamId);
+  const filteredTeams = (leagueFilter === 'all'
+    ? ALL_TEAMS
+    : ALL_TEAMS.filter(t => t.leagueId === leagueFilter)
+  ).filter(t => t.id !== disabledTeamId);
 
   return (
     <div>
-      {/* League filter */}
       {!lockLeague && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, marginBottom: 16 }}>
           <button
             onClick={() => setLeagueFilter('all')}
-            className={cn(
-              'shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition-colors',
-              leagueFilter === 'all'
-                ? 'bg-emerald-600 border-emerald-500 text-white'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200',
-            )}
+            className="ldb-badge"
+            style={{
+              flexShrink: 0,
+              background: leagueFilter === 'all' ? 'var(--ldb-pitch-mid)' : 'var(--ldb-elevated)',
+              color: leagueFilter === 'all' ? '#fff' : 'rgba(255,255,255,0.5)',
+              border: leagueFilter === 'all' ? '1px solid var(--ldb-pitch-bright)' : '1px solid rgba(255,255,255,0.08)',
+              cursor: 'pointer',
+            }}
           >Todos</button>
           {LEAGUES.map(lg => (
             <button
               key={lg.id}
               onClick={() => setLeagueFilter(lg.id)}
-              className={cn(
-                'shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition-colors',
-                leagueFilter === lg.id
-                  ? 'bg-emerald-600 border-emerald-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200',
-              )}
+              className="ldb-badge"
+              style={{
+                flexShrink: 0,
+                background: leagueFilter === lg.id ? 'var(--ldb-pitch-mid)' : 'var(--ldb-elevated)',
+                color: leagueFilter === lg.id ? '#fff' : 'rgba(255,255,255,0.5)',
+                border: leagueFilter === lg.id ? '1px solid var(--ldb-pitch-bright)' : '1px solid rgba(255,255,255,0.08)',
+                cursor: 'pointer',
+              }}
             >{lg.flag} {lg.name}</button>
           ))}
         </div>
       )}
 
-      {/* Team grid */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {filteredTeams.map(team => {
           const league = LEAGUES.find(l => l.id === team.leagueId);
           const isSelected = selected?.id === team.id;
@@ -93,22 +97,43 @@ function TeamPicker({
             <button
               key={team.id}
               onClick={() => onSelect(isSelected ? null : team)}
-              className={cn(
-                'flex flex-col items-center gap-2 rounded-xl border p-3 transition-all',
-                isSelected
-                  ? 'border-emerald-500 bg-emerald-600/10'
-                  : 'border-slate-700 bg-slate-800 hover:border-slate-600',
-              )}
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+                borderRadius: 12,
+                padding: '14px 10px',
+                border: isSelected
+                  ? '1.5px solid var(--ldb-pitch-bright)'
+                  : '1px solid rgba(255,255,255,0.07)',
+                background: isSelected ? 'rgba(26,122,64,0.12)' : 'var(--ldb-surface)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
             >
               {isSelected && (
-                <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
-                  <Check size={11} className="text-white" />
+                <div style={{
+                  position: 'absolute', top: 8, right: 8,
+                  width: 20, height: 20,
+                  borderRadius: '50%',
+                  background: 'var(--ldb-pitch-bright)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Check size={11} color="#fff" />
                 </div>
               )}
               <TeamBadge team={team} size={44} />
-              <div className="text-center">
-                <p className="text-xs font-black text-slate-100 leading-tight">{team.name}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">{league?.flag} Rep. {team.reputation}</p>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{
+                  fontSize: 11, fontWeight: 900,
+                  color: isSelected ? '#fff' : 'rgba(255,255,255,0.85)',
+                  lineHeight: 1.3, fontFamily: 'var(--ldb-font-body)',
+                }}>{team.name}</p>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+                  {league?.flag} Rep. {team.reputation}
+                </p>
               </div>
             </button>
           );
@@ -122,11 +147,13 @@ function TeamPicker({
 
 type Mode = 'solo' | 'local-multi';
 type Step = 'mode' | 'p1' | 'p2' | 'confirm';
-
 interface Props { onBack: () => void; }
 
 export default function TeamSelectionScreen({ onBack }: Props) {
   const { dispatch, setScreen } = useMB();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
 
   const [mode, setMode] = useState<Mode | null>(null);
   const [step, setStep] = useState<Step>('mode');
@@ -134,6 +161,13 @@ export default function TeamSelectionScreen({ onBack }: Props) {
   const [p2Name, setP2Name] = useState('Jogador 2');
   const [p1Team, setP1Team] = useState<Team | null>(null);
   const [p2Team, setP2Team] = useState<Team | null>(null);
+
+  useEffect(() => {
+    if (!heroRef.current || !cardsRef.current) return;
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.fromTo(heroRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5 });
+    tl.fromTo(cardsRef.current.children, { opacity: 0, y: 20 }, { opacity: 1, y: 0, stagger: 0.08, duration: 0.4 }, '-=0.2');
+  }, [step]);
 
   // ── Confirm solo ──────────────────────────────────────────────────────────
   function handleSoloConfirm() {
@@ -201,7 +235,6 @@ export default function TeamSelectionScreen({ onBack }: Props) {
       currentRound: 1, currentSeason: 1, seasonHistory: [], totalRoundsPlayed: 0,
     };
 
-    // Active player is P1 — load their data into main GameSave fields
     const save: GameSave = {
       version: '1.0',
       timestamp: Date.now(),
@@ -226,91 +259,179 @@ export default function TeamSelectionScreen({ onBack }: Props) {
     dispatch({ type: 'START_NEW_GAME', save });
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ── Back handler ──────────────────────────────────────────────────────────
+  function handleBack() {
+    if (step === 'mode') { onBack(); return; }
+    if (step === 'p1') setStep('mode');
+    else if (step === 'p2') setStep('p1');
+    else if (step === 'confirm') setStep(mode === 'local-multi' ? 'p2' : 'p1');
+  }
 
   return (
-    <div className="flex flex-col min-h-dvh bg-[#0f172a] text-slate-100">
-
-      {/* Header */}
-      <div className="bg-gradient-to-b from-[#0d2240] to-[#0f172a] border-b border-slate-800 px-4 pt-safe-top pt-6 pb-5">
-        <div className="flex items-center gap-3 mb-4">
+    <div
+      ref={containerRef}
+      className="ldb-game"
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--ldb-void)',
+        color: '#fff',
+      }}
+    >
+      {/* ── Header ── */}
+      <div
+        ref={heroRef}
+        style={{
+          background: 'linear-gradient(180deg, rgba(26,122,64,0.15) 0%, transparent 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          padding: '24px 20px 20px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button
-            onClick={step === 'mode' ? onBack : () => {
-              if (step === 'p1') setStep('mode');
-              else if (step === 'p2') setStep('p1');
-              else if (step === 'confirm') setStep(mode === 'local-multi' ? 'p2' : 'p1');
+            onClick={handleBack}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              borderRadius: 8, padding: '6px 12px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--ldb-surface)',
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
             }}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-colors"
           >
             <ChevronLeft size={14} />
             {step === 'mode' ? 'Sair' : 'Voltar'}
           </button>
-          <div className="flex items-center gap-2">
-            <Trophy size={16} className="text-blue-400" />
-            <span className="font-black text-[15px]" style={{ fontFamily: 'var(--font-title)' }}>
-              Lenda da Bola
-            </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Trophy size={16} color="var(--ldb-gold-bright)" />
+            <span style={{
+              fontFamily: 'var(--ldb-font-display)',
+              fontSize: 20, letterSpacing: '0.08em',
+              color: '#fff',
+            }}>LENDA DA BOLA</span>
           </div>
         </div>
-        <h2 className="text-xl font-black text-slate-100">
-          {step === 'mode' && 'Como quer jogar?'}
-          {step === 'p1' && (mode === 'local-multi' ? `${p1Name || 'Jogador 1'}: Escolha seu time` : 'Escolha seu time')}
-          {step === 'p2' && `${p2Name || 'Jogador 2'}: Escolha seu time`}
-          {step === 'confirm' && 'Pronto para começar!'}
+
+        <h2 style={{
+          fontFamily: 'var(--ldb-font-display)',
+          fontSize: 28, letterSpacing: '0.04em',
+          color: '#fff', margin: 0,
+        }}>
+          {step === 'mode' && 'COMO QUER JOGAR?'}
+          {step === 'p1' && (mode === 'local-multi' ? `${(p1Name || 'JOGADOR 1').toUpperCase()}: ESCOLHA SEU TIME` : 'ESCOLHA SEU TIME')}
+          {step === 'p2' && `${(p2Name || 'JOGADOR 2').toUpperCase()}: ESCOLHA SEU TIME`}
+          {step === 'confirm' && 'PRONTO PARA COMEÇAR!'}
         </h2>
+
         {step === 'p2' && p1Team && (
-          <p className="text-xs text-slate-500 mt-1">
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
             Mesma liga do {p1Team.name} · {LEAGUES.find(l => l.id === p1Team.leagueId)?.name}
           </p>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 pb-32">
+      {/* ── Content ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 120px' }}>
 
         {/* ── Mode selection ── */}
         {step === 'mode' && (
-          <div className="flex flex-col gap-4 max-w-sm mx-auto pt-4">
+          <div ref={cardsRef} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 400, margin: '0 auto', paddingTop: 8 }}>
+            {/* Solo */}
             <button
               onClick={() => { setMode('solo'); setStep('p1'); }}
-              className="flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800 p-5 hover:border-blue-500/50 hover:bg-blue-600/5 transition-all text-left"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 16,
+                borderRadius: 16, padding: '18px 20px',
+                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'var(--ldb-surface)',
+                textAlign: 'left', cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600/20 border border-blue-600/30">
-                <User size={22} className="text-blue-400" />
+              <div style={{
+                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(26,122,64,0.2)',
+                border: '1px solid rgba(26,122,64,0.3)',
+              }}>
+                <User size={22} color="var(--ldb-pitch-bright)" />
               </div>
-              <div>
-                <p className="text-[15px] font-black text-slate-100">Solo</p>
-                <p className="text-xs text-slate-500 mt-0.5">Gerencie seu time contra a IA</p>
+              <div style={{ flex: 1 }}>
+                <p style={{
+                  fontFamily: 'var(--ldb-font-display)',
+                  fontSize: 22, letterSpacing: '0.04em', color: '#fff', margin: 0,
+                }}>SOLO</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                  Gerencie seu time contra a IA
+                </p>
               </div>
-              <ArrowRight size={16} className="ml-auto text-slate-600" />
+              <ArrowRight size={18} color="rgba(255,255,255,0.3)" />
             </button>
 
+            {/* Local Multi */}
             <button
               onClick={() => { setMode('local-multi'); setStep('p1'); }}
-              className="flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800 p-5 hover:border-purple-500/50 hover:bg-purple-600/5 transition-all text-left"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 16,
+                borderRadius: 16, padding: '18px 20px',
+                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'var(--ldb-surface)',
+                textAlign: 'left', cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-600/20 border border-purple-600/30">
-                <Users size={22} className="text-purple-400" />
+              <div style={{
+                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(168,85,247,0.2)',
+                border: '1px solid rgba(168,85,247,0.3)',
+              }}>
+                <Users size={22} color="#a855f7" />
               </div>
-              <div>
-                <p className="text-[15px] font-black text-slate-100">Jogar com Amigo</p>
-                <p className="text-xs text-slate-500 mt-0.5">2 jogadores, mesmo dispositivo</p>
+              <div style={{ flex: 1 }}>
+                <p style={{
+                  fontFamily: 'var(--ldb-font-display)',
+                  fontSize: 22, letterSpacing: '0.04em', color: '#fff', margin: 0,
+                }}>JOGAR COM AMIGO</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                  2 jogadores, mesmo dispositivo
+                </p>
               </div>
-              <ArrowRight size={16} className="ml-auto text-slate-600" />
+              <ArrowRight size={18} color="rgba(255,255,255,0.3)" />
             </button>
 
+            {/* Online */}
             <button
               onClick={() => setScreen('online-lobby')}
-              className="flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800 p-5 hover:border-emerald-500/50 hover:bg-emerald-600/5 transition-all text-left"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 16,
+                borderRadius: 16, padding: '18px 20px',
+                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'var(--ldb-surface)',
+                textAlign: 'left', cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600/20 border border-emerald-600/30">
-                <Globe size={22} className="text-emerald-400" />
+              <div style={{
+                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,215,0,0.15)',
+                border: '1px solid rgba(255,215,0,0.2)',
+              }}>
+                <Globe size={22} color="var(--ldb-gold-bright)" />
               </div>
-              <div>
-                <p className="text-[15px] font-black text-slate-100">Jogar Online</p>
-                <p className="text-xs text-slate-500 mt-0.5">Liga com amigos em outros dispositivos</p>
+              <div style={{ flex: 1 }}>
+                <p style={{
+                  fontFamily: 'var(--ldb-font-display)',
+                  fontSize: 22, letterSpacing: '0.04em', color: '#fff', margin: 0,
+                }}>JOGAR ONLINE</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                  Liga com amigos em outros dispositivos
+                </p>
               </div>
-              <ArrowRight size={16} className="ml-auto text-slate-600" />
+              <ArrowRight size={18} color="rgba(255,255,255,0.3)" />
             </button>
           </div>
         )}
@@ -319,13 +440,24 @@ export default function TeamSelectionScreen({ onBack }: Props) {
         {step === 'p1' && (
           <div>
             {mode === 'local-multi' && (
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-400 mb-1.5">Nome do Jogador 1</label>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{
+                  display: 'block', fontSize: 11, fontWeight: 700,
+                  color: 'rgba(255,255,255,0.45)',
+                  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
+                }}>Nome do Jogador 1</label>
                 <input
                   value={p1Name}
                   onChange={e => setP1Name(e.target.value)}
                   maxLength={20}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-bold text-slate-100 focus:border-blue-500 focus:outline-none"
+                  style={{
+                    width: '100%', borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--ldb-surface)',
+                    padding: '12px 16px',
+                    fontSize: 14, fontWeight: 700, color: '#fff',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
                   placeholder="Jogador 1"
                 />
               </div>
@@ -337,13 +469,24 @@ export default function TeamSelectionScreen({ onBack }: Props) {
         {/* ── Player 2 setup ── */}
         {step === 'p2' && (
           <div>
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Nome do Jogador 2</label>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{
+                display: 'block', fontSize: 11, fontWeight: 700,
+                color: 'rgba(255,255,255,0.45)',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
+              }}>Nome do Jogador 2</label>
               <input
                 value={p2Name}
                 onChange={e => setP2Name(e.target.value)}
                 maxLength={20}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-bold text-slate-100 focus:border-purple-500 focus:outline-none"
+                style={{
+                  width: '100%', borderRadius: 12,
+                  border: '1px solid rgba(168,85,247,0.3)',
+                  background: 'var(--ldb-surface)',
+                  padding: '12px 16px',
+                  fontSize: 14, fontWeight: 700, color: '#fff',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
                 placeholder="Jogador 2"
               />
             </div>
@@ -358,18 +501,19 @@ export default function TeamSelectionScreen({ onBack }: Props) {
 
         {/* ── Confirm screen ── */}
         {step === 'confirm' && (
-          <div className="flex flex-col gap-4 max-w-sm mx-auto pt-2">
+          <div ref={cardsRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 400, margin: '0 auto', paddingTop: 8 }}>
             {mode === 'solo' && p1Team && (
-              <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5 flex items-center gap-4">
+              <div className="ldb-card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20 }}>
                 <TeamBadge team={p1Team} size={56} />
                 <div>
-                  <p className="text-lg font-black text-slate-100">{p1Team.name}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <DollarSign size={12} className="text-amber-400" />
-                    <span className="text-sm font-bold text-amber-400">
-                      ${(500 + p1Team.reputation * 5).toLocaleString('pt-BR')}k iniciais
-                    </span>
-                  </div>
+                  <p style={{
+                    fontFamily: 'var(--ldb-font-display)',
+                    fontSize: 24, letterSpacing: '0.04em',
+                    color: '#fff', margin: 0,
+                  }}>{p1Team.name.toUpperCase()}</p>
+                  <p style={{ fontSize: 13, color: 'var(--ldb-gold-bright)', fontWeight: 700, marginTop: 4 }}>
+                    ${(500 + p1Team.reputation * 5).toLocaleString('pt-BR')}k iniciais
+                  </p>
                 </div>
               </div>
             )}
@@ -380,39 +524,73 @@ export default function TeamSelectionScreen({ onBack }: Props) {
                   { name: p1Name || 'Jogador 1', team: p1Team, color: '#3b82f6', label: 'J1' },
                   { name: p2Name || 'Jogador 2', team: p2Team, color: '#a855f7', label: 'J2' },
                 ].map(({ name, team, color, label }) => (
-                  <div key={label} className="rounded-2xl border border-slate-700 bg-slate-800 p-4 flex items-center gap-4">
-                    <div
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                      style={{ background: color }}
-                    >{label}</div>
+                  <div key={label} className="ldb-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                      background: color,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 900, color: '#fff',
+                    }}>{label}</div>
                     <TeamBadge team={team} size={44} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-slate-100 truncate">{name}</p>
-                      <p className="text-xs text-slate-500">{team.name}</p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{team.name}</p>
                     </div>
-                    <span className="text-xs font-bold text-amber-400 shrink-0">
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ldb-gold-bright)', flexShrink: 0 }}>
                       ${(500 + team.reputation * 5).toLocaleString('pt-BR')}k
                     </span>
                   </div>
                 ))}
-                <div className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center text-xs text-slate-500">
+
+                <div style={{
+                  borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)',
+                  background: 'var(--ldb-surface)', padding: '12px 16px',
+                  textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.4)',
+                }}>
                   {LEAGUES.find(l => l.id === p1Team.leagueId)?.flag} Mesma liga · Turnos alternados
                 </div>
               </>
             )}
+
+            {/* Game features summary */}
+            <div style={{
+              borderRadius: 12, border: '1px solid rgba(26,122,64,0.25)',
+              background: 'rgba(26,122,64,0.08)', padding: 16,
+            }}>
+              <p style={{
+                fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12,
+              }}>O que te espera</p>
+              {[
+                '18 rodadas de campeonato por temporada',
+                'Sistema de lenda (cartas especiais raras)',
+                'Mercado de transferências dinâmico',
+                'Evolução de jogadores e XP',
+              ].map(feat => (
+                <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Zap size={11} color="var(--ldb-gold-bright)" />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{feat}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Sticky footer ── */}
+      {/* ── Sticky footer CTA ── */}
       {step !== 'mode' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 px-4 py-4 pb-safe-bottom">
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          background: 'linear-gradient(0deg, var(--ldb-void) 60%, transparent)',
+          padding: '20px 20px 32px',
+        }}>
           {step === 'p1' && p1Team && (
             <button
+              className="ldb-btn-primary"
               onClick={() => mode === 'local-multi' ? setStep('p2') : setStep('confirm')}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-black text-white hover:bg-blue-500 transition-colors"
+              style={{ width: '100%', justifyContent: 'center', gap: 8, fontSize: 15 }}
             >
-              {p1Team.name}
+              {p1Team.name.toUpperCase()}
               <ArrowRight size={16} />
             </button>
           )}
@@ -420,25 +598,28 @@ export default function TeamSelectionScreen({ onBack }: Props) {
           {step === 'p2' && p2Team && (
             <button
               onClick={() => setStep('confirm')}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-purple-600 py-3.5 text-sm font-black text-white hover:bg-purple-500 transition-colors"
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                borderRadius: 12, padding: '14px 24px',
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                border: 'none', color: '#fff',
+                fontSize: 15, fontWeight: 800, cursor: 'pointer',
+                fontFamily: 'var(--ldb-font-display)', letterSpacing: '0.04em',
+              }}
             >
-              {p2Team.name}
+              {p2Team.name.toUpperCase()}
               <ArrowRight size={16} />
             </button>
           )}
 
           {step === 'confirm' && (
             <button
+              className="ldb-btn-gold"
               onClick={() => mode === 'local-multi' ? handleMultiConfirm() : handleSoloConfirm()}
-              className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-black text-white transition-colors"
-              style={{
-                background: mode === 'local-multi'
-                  ? 'linear-gradient(135deg, #3b82f6, #a855f7)'
-                  : 'linear-gradient(135deg, #059669, #065f46)',
-              }}
+              style={{ width: '100%', justifyContent: 'center', gap: 10, fontSize: 16 }}
             >
-              <Trophy size={16} />
-              Começar!
+              <Trophy size={18} />
+              COMEÇAR TEMPORADA!
             </button>
           )}
         </div>

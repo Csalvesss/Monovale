@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMB } from '../../store/gameStore';
 import { SAVE_KEY } from '../../constants';
 import type { MBScreen } from '../../types';
+import '../../styles/game.css';
 import {
-  Home, Users, ArrowLeftRight, Swords, BarChart2, Rss,
-  DollarSign, Building2, Star, X, Trophy,
-  ChevronLeft, Settings, Trash2, CloudCheck, MessageSquare,
+  Home, Users, ArrowLeftRight, Swords, BarChart2, DollarSign,
+  Building2, MessageSquare, Rss, ChevronLeft, Trash2, CloudCheck,
+  X, Trophy, Settings, Star,
 } from 'lucide-react';
-import { cn } from '../../../../lib/utils';
-import { AlertDialog } from '../../../../components/ui/dialog';
+
+// ─── Nav items ────────────────────────────────────────────────────────────────
 
 interface NavItem {
   screen: MBScreen;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number }>;
   label: string;
-  badge?: boolean;
+  hasBadge?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -23,203 +24,334 @@ const NAV: NavItem[] = [
   { screen: 'market',    icon: ArrowLeftRight, label: 'Mercado'    },
   { screen: 'match',     icon: Swords,         label: 'Partida'    },
   { screen: 'standings', icon: BarChart2,      label: 'Tabela'     },
-  { screen: 'inbox',     icon: MessageSquare,  label: 'Inbox', badge: true },
+  { screen: 'inbox',     icon: MessageSquare,  label: 'Inbox', hasBadge: true },
   { screen: 'social',    icon: Rss,            label: 'Social'     },
   { screen: 'sponsor',   icon: DollarSign,     label: 'Patrocínio' },
   { screen: 'stadium',   icon: Building2,      label: 'Estádio'    },
 ];
 
-const NOTIF_STYLES: Record<string, { bar: string; text: string; icon: typeof Star | null }> = {
-  success:   { bar: 'bg-emerald-600/20 border-emerald-600/40', text: 'text-emerald-300', icon: null },
-  error:     { bar: 'bg-red-600/20 border-red-600/40',         text: 'text-red-300',     icon: null },
-  info:      { bar: 'bg-blue-600/20 border-blue-600/40',       text: 'text-blue-300',    icon: null },
-  legendary: { bar: 'bg-amber-600/20 border-amber-600/40',     text: 'text-amber-300',   icon: Star },
-};
+// ─── Ticker Bar ───────────────────────────────────────────────────────────────
+
+function TickerBar({ news }: { news: { content: string; type: string }[] }) {
+  if (!news.length) return null;
+  const items = [...news, ...news]; // duplicate for seamless loop
+  return (
+    <div className="ldb-ticker-wrap">
+      <div className="ldb-ticker-inner">
+        {items.map((n, i) => (
+          <span key={i} className="ldb-ticker-item">
+            <span style={{ fontSize: 10, opacity: 0.5 }}>⚽</span>
+            {n.content.slice(0, 60)}{n.content.length > 60 ? '…' : ''}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings Menu ────────────────────────────────────────────────────────────
+
+function SettingsMenu({
+  open, onClose, onBack, onDelete,
+}: { open: boolean; onClose: () => void; onBack: () => void; onDelete: () => void }) {
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 60,
+        background: 'rgba(5,10,14,0.75)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: '100%', maxWidth: 440,
+          background: 'var(--ldb-void)',
+          borderRadius: '24px 24px 0 0',
+          border: '1px solid var(--ldb-border-mid)',
+          borderBottom: 'none',
+          padding: '24px 20px 36px',
+          animation: 'ldb-slide-up 0.3s var(--ldb-ease-out)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div style={{ width: 40, height: 4, borderRadius: 99, background: 'var(--ldb-border-em)', margin: '0 auto 20px' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <span style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 22, letterSpacing: '0.04em', color: 'var(--ldb-text)' }}>
+            MENU
+          </span>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'rgba(255,255,255,0.06)', border: '1px solid var(--ldb-border)',
+              color: 'var(--ldb-text-muted)', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Auto-save */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'rgba(26,122,64,0.1)', border: '1px solid rgba(26,122,64,0.25)',
+          borderRadius: 'var(--ldb-r-md)', padding: '12px 16px', marginBottom: 12,
+        }}>
+          <CloudCheck size={18} style={{ color: 'var(--ldb-text-success)', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ldb-text-success)' }}>Salvo automaticamente</div>
+            <div style={{ fontSize: 11, color: 'var(--ldb-text-muted)', marginTop: 2 }}>Seu progresso é salvo a cada ação</div>
+          </div>
+        </div>
+
+        {/* Exit */}
+        <button
+          onClick={() => { onClose(); onBack(); }}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            background: 'var(--ldb-surface)', border: '1px solid var(--ldb-border)',
+            borderRadius: 'var(--ldb-r-md)', padding: '14px 16px', cursor: 'pointer',
+            color: 'var(--ldb-text)', fontFamily: 'var(--ldb-font-body)',
+            fontWeight: 600, fontSize: 14, marginBottom: 10,
+            transition: 'background 200ms',
+          }}
+        >
+          <ChevronLeft size={16} style={{ color: 'var(--ldb-text-muted)' }} />
+          Sair para o Hub
+        </button>
+
+        {/* Delete */}
+        <button
+          onClick={() => { onClose(); onDelete(); }}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            background: 'rgba(255,85,85,0.08)', border: '1px solid rgba(255,85,85,0.25)',
+            borderRadius: 'var(--ldb-r-md)', padding: '14px 16px', cursor: 'pointer',
+            color: 'var(--ldb-loss)', fontFamily: 'var(--ldb-font-body)',
+            fontWeight: 600, fontSize: 14,
+          }}
+        >
+          <Trash2 size={16} />
+          Excluir save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete Confirm ───────────────────────────────────────────────────────────
+
+function DeleteConfirm({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
+  if (!open) return null;
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 70,
+      background: 'rgba(5,10,14,0.85)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <div style={{
+        background: 'var(--ldb-surface)', border: '1px solid var(--ldb-border-mid)',
+        borderRadius: 'var(--ldb-r-lg)', padding: '28px 24px',
+        maxWidth: 320, width: '100%', textAlign: 'center',
+        animation: 'ldb-scale-in 0.25s var(--ldb-ease-out)',
+      }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+        <div style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 22, letterSpacing: '0.04em', color: 'var(--ldb-text)', marginBottom: 8 }}>
+          EXCLUIR SAVE?
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--ldb-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
+          Todo o progresso será perdido permanentemente.
+        </p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="ldb-btn-ghost" onClick={onClose} style={{ flex: 1, padding: '12px' }}>Cancelar</button>
+          <button
+            onClick={onConfirm}
+            style={{
+              flex: 1, padding: '12px', background: 'rgba(255,85,85,0.2)',
+              border: '1px solid rgba(255,85,85,0.4)', borderRadius: 'var(--ldb-r-md)',
+              color: 'var(--ldb-loss)', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+              fontFamily: 'var(--ldb-font-body)',
+            }}
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Layout ──────────────────────────────────────────────────────────────
 
 export default function GameLayout({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
   const { state, setScreen, dismissNotification } = useMB();
   const { notification, screen: currentScreen } = state;
   const [menuOpen, setMenuOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const unreadMessages = state.save?.unreadMessages ?? 0;
-  const pendingOffers = state.save?.pendingOffers.filter(o => o.status === 'pending').length ?? 0;
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const notifRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const unreadMessages = state.save?.unreadMessages ?? 0;
+  const pendingOffers  = state.save?.pendingOffers.filter(o => o.status === 'pending').length ?? 0;
+  const budget         = state.save?.budget ?? 0;
+  const budgetK        = new Intl.NumberFormat('pt-BR').format(budget);
+  const newsItems      = (state.save?.newsFeed ?? []).slice(0, 8).map(n => ({ content: n.content, type: n.type }));
+  const isPlayerDetail = currentScreen === 'player-detail';
+
+  // Auto-dismiss notifications
   useEffect(() => {
     if (!notification) return;
-    const t = setTimeout(dismissNotification, notification.type === 'legendary' ? 8000 : 3000);
-    return () => clearTimeout(t);
+    if (notifRef.current) clearTimeout(notifRef.current);
+    notifRef.current = setTimeout(dismissNotification, notification.type === 'legendary' ? 8000 : 3500);
+    return () => { if (notifRef.current) clearTimeout(notifRef.current); };
   }, [notification, dismissNotification]);
-
-  const isPlayerDetail = currentScreen === 'player-detail';
-  const ns = NOTIF_STYLES[notification?.type ?? 'info'];
-
-  const budget = state.save?.budget ?? 0;
-  const budgetFormatted = new Intl.NumberFormat('pt-BR').format(budget);
 
   function handleDeleteSave() {
     localStorage.removeItem(SAVE_KEY);
-    setDeleteConfirmOpen(false);
+    setDeleteOpen(false);
     onBack();
   }
 
+  const notifColors: Record<string, { bg: string; border: string; color: string }> = {
+    success:   { bg: 'rgba(26,122,64,0.15)',  border: 'rgba(26,122,64,0.35)',  color: 'var(--ldb-text-success)' },
+    error:     { bg: 'rgba(255,85,85,0.12)',   border: 'rgba(255,85,85,0.35)',  color: 'var(--ldb-loss)'         },
+    info:      { bg: 'rgba(15,30,46,0.9)',     border: 'var(--ldb-border-mid)', color: 'var(--ldb-text)'         },
+    legendary: { bg: 'rgba(120,90,0,0.25)',    border: 'var(--ldb-border-gold)', color: 'var(--ldb-gold-bright)' },
+  };
+  const nc = notifColors[notification?.type ?? 'info'];
+
   return (
-    <div className="flex flex-col h-dvh bg-[#0f172a] font-sans text-slate-100 overflow-hidden">
+    <div className="ldb-game" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
 
       {/* ── Top bar ── */}
-      <header className="flex h-[52px] shrink-0 items-center justify-between bg-gradient-to-r from-slate-900 to-[#1e3a5f] border-b border-slate-700/50 px-4 z-20">
+      <header className="ldb-topbar">
+        {/* Left: back/menu */}
         <button
-          onClick={isPlayerDetail ? () => state.save && setScreen('squad') : () => setMenuOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-bold text-white/80 hover:bg-white/10 transition-colors"
+          onClick={isPlayerDetail ? () => setScreen('squad') : () => setMenuOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid var(--ldb-border)',
+            borderRadius: 'var(--ldb-r-sm)', padding: '6px 12px',
+            color: 'var(--ldb-text-muted)', cursor: 'pointer',
+            fontFamily: 'var(--ldb-font-body)', fontWeight: 600, fontSize: 12,
+            transition: 'all 200ms',
+          }}
         >
-          {isPlayerDetail ? <><ChevronLeft size={14} />Elenco</> : <><Settings size={14} />Menu</>}
+          {isPlayerDetail
+            ? <><ChevronLeft size={14} />Elenco</>
+            : <><Settings size={13} />Menu</>}
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600/20 border border-blue-600/30">
-            <Trophy size={14} className="text-blue-400" />
+        {/* Center: Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'linear-gradient(135deg, var(--ldb-pitch-bright), var(--ldb-pitch-dark))',
+            border: '1px solid rgba(26,122,64,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Trophy size={14} style={{ color: 'var(--ldb-gold-bright)' }} />
           </div>
-          <span className="font-black text-[15px] text-white tracking-tight"
-            style={{ fontFamily: 'var(--font-title)' }}>
-            Lenda da Bola
+          <span style={{
+            fontFamily: 'var(--ldb-font-display)', fontSize: 18, letterSpacing: '0.06em',
+            color: 'var(--ldb-text)',
+          }}>
+            LENDA DA BOLA
           </span>
         </div>
 
-        <div className="flex flex-col items-end gap-0.5">
-          {state.save ? (
-            <div className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5">
-              <DollarSign size={12} className="text-amber-400" />
-              <span className="text-xs font-black text-amber-400">${budgetFormatted}k</span>
-            </div>
-          ) : (
-            <div className="w-[72px]" />
-          )}
-          {state.save?.mode === 'local-multi' && state.save.playerProfiles && (
-            <span className="text-[9px] font-bold text-slate-500">
-              {state.save.playerProfiles[state.save.currentTurn - 1].name}
+        {/* Right: Budget */}
+        {state.save ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)',
+            borderRadius: 'var(--ldb-r-sm)', padding: '6px 12px',
+          }}>
+            <span style={{ fontSize: 10, color: 'var(--ldb-gold-mid)' }}>$</span>
+            <span style={{
+              fontFamily: 'var(--ldb-font-display)', fontSize: 15, letterSpacing: '0.04em',
+              color: 'var(--ldb-gold-bright)',
+            }}>
+              {budgetK}k
             </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div style={{ width: 80 }} />
+        )}
       </header>
 
       {/* ── Content ── */}
-      <main className="flex-1 overflow-y-auto relative">
+      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
         {children}
       </main>
 
+      {/* ── News ticker ── */}
+      {newsItems.length > 0 && <TickerBar news={newsItems} />}
+
       {/* ── Bottom nav ── */}
-      <nav className="shrink-0 border-t border-slate-700/50 bg-slate-900 z-20 overflow-x-auto">
-        <div className="flex min-w-max">
-          {NAV.map(item => {
-            const Icon = item.icon;
-            const isActive = currentScreen === item.screen ||
-              (item.screen === 'squad' && currentScreen === 'player-detail');
-            const badgeCount = item.screen === 'inbox'
-              ? unreadMessages + pendingOffers
-              : 0;
-            return (
-              <button
-                key={item.screen}
-                onClick={() => setScreen(item.screen)}
-                className={cn(
-                  'relative flex min-w-[60px] flex-col items-center justify-center gap-1 px-3 py-2.5 transition-all duration-150 border-t-2',
-                  isActive
-                    ? 'border-blue-500 bg-blue-600/10 text-blue-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+      <nav className="ldb-nav">
+        {NAV.map(item => {
+          const Icon = item.icon;
+          const isActive = currentScreen === item.screen ||
+            (item.screen === 'squad' && currentScreen === 'player-detail');
+          const badgeCount = item.screen === 'inbox' ? unreadMessages + pendingOffers : 0;
+          return (
+            <button
+              key={item.screen}
+              onClick={() => setScreen(item.screen)}
+              className={`ldb-nav-item${isActive ? ' active' : ''}`}
+            >
+              <div style={{ position: 'relative' }}>
+                <Icon size={17} />
+                {badgeCount > 0 && (
+                  <div className="ldb-nav-badge">{badgeCount > 9 ? '9+' : badgeCount}</div>
                 )}
-              >
-                <div className="relative">
-                  <Icon size={18} />
-                  {badgeCount > 0 && (
-                    <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center px-0.5">
-                      {badgeCount > 9 ? '9+' : badgeCount}
-                    </div>
-                  )}
-                </div>
-                <span className="text-[9px] font-bold tracking-wide whitespace-nowrap">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+              </div>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* ── Notification toast ── */}
+      {/* ── Toast notification ── */}
       {notification && (
         <div
           onClick={dismissNotification}
-          className={cn(
-            'fixed bottom-[72px] left-1/2 z-50 -translate-x-1/2 cursor-pointer',
-            'w-[calc(100%-32px)] max-w-sm rounded-2xl border px-4 py-3',
-            'flex items-center gap-3 shadow-2xl shadow-black/50',
-            'animate-pop-in',
-            ns.bar
-          )}
+          style={{
+            position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 50, width: 'calc(100% - 32px)', maxWidth: 400,
+            background: nc.bg, border: `1px solid ${nc.border}`,
+            borderRadius: 'var(--ldb-r-md)', padding: '14px 16px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            backdropFilter: 'blur(12px)', cursor: 'pointer',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            animation: 'ldb-slide-up 0.3s var(--ldb-ease-out)',
+          }}
         >
           {notification.type === 'legendary' && (
-            <Star size={18} className="text-amber-400 fill-amber-400 shrink-0 animate-pulse" />
+            <Star size={16} style={{ color: 'var(--ldb-gold-bright)', flexShrink: 0 }} className="ldb-anim-pulsate" />
           )}
-          <p className={cn('flex-1 text-sm font-bold', ns.text)}>{notification.message}</p>
-          <X size={14} className="shrink-0 text-slate-400 hover:text-slate-200" />
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: nc.color }}>
+            {notification.message}
+          </span>
+          <X size={13} style={{ color: 'var(--ldb-text-muted)', flexShrink: 0 }} />
         </div>
       )}
 
-      {/* ── Settings menu overlay ── */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setMenuOpen(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-t-3xl bg-slate-900 border-t border-slate-700 p-6 pb-10 animate-fade-up"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <p className="text-lg font-black text-slate-100">Menu</p>
-              <button
-                onClick={() => setMenuOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-slate-400 hover:text-slate-200"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Auto-save indicator */}
-            <div className="mb-4 flex items-center gap-3 rounded-xl bg-emerald-600/10 border border-emerald-600/20 px-4 py-3">
-              <CloudCheck size={18} className="text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-emerald-300">Salvo automaticamente</p>
-                <p className="text-xs text-slate-500 mt-0.5">Seu progresso é salvo a cada ação</p>
-              </div>
-            </div>
-
-            {/* Exit without deleting */}
-            <button
-              onClick={() => { setMenuOpen(false); onBack(); }}
-              className="w-full flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3.5 text-sm font-bold text-slate-200 hover:bg-slate-700 transition-colors mb-3"
-            >
-              <ChevronLeft size={16} className="text-slate-400" />
-              Sair para o Hub
-            </button>
-
-            {/* Delete save */}
-            <button
-              onClick={() => { setMenuOpen(false); setDeleteConfirmOpen(true); }}
-              className="w-full flex items-center gap-3 rounded-xl border border-red-700/40 bg-red-600/10 px-4 py-3.5 text-sm font-bold text-red-400 hover:bg-red-600/20 transition-colors"
-            >
-              <Trash2 size={16} />
-              Excluir partida salva
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Delete save confirmation ── */}
-      <AlertDialog
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        title="Excluir partida?"
-        description="Isso apagará permanentemente seu progresso. Esta ação não pode ser desfeita."
-        confirmLabel="Excluir"
-        variant="destructive"
+      {/* ── Modals ── */}
+      <SettingsMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onBack={onBack}
+        onDelete={() => setDeleteOpen(true)}
+      />
+      <DeleteConfirm
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
         onConfirm={handleDeleteSave}
       />
     </div>

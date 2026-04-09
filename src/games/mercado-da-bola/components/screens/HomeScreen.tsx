@@ -1,44 +1,45 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useMB } from '../../store/gameStore';
 import { getTeam } from '../../data/teams';
-import TeamBadge from '../ui/TeamBadge';
-import MoneyDisplay from '../ui/MoneyDisplay';
-import type { FinancialRecord, MatchFixture, NewsPost } from '../../types';
+import type { MatchFixture } from '../../types';
 import { LEGENDARY_BASE_CHANCE, LEGENDARY_MAX_CHANCE } from '../../constants';
-import { cn } from '../../../../lib/utils';
+import { gsap } from 'gsap';
 import {
-  BarChart2, Users, Trophy, Play,
-  TrendingUp, Home, Plane, DollarSign,
-  Heart, MessageCircle, Newspaper, ArrowLeftRight,
-  Star, Shirt, RefreshCw,
+  Play, Trophy, TrendingUp, Users, Home as HomeIcon,
+  Plane, BarChart2, Star, DollarSign, ArrowRight,
+  ChevronRight,
 } from 'lucide-react';
-import { Card } from '../../../../components/ui/card';
-import { Badge } from '../../../../components/ui/badge';
-import { Progress } from '../../../../components/ui/progress';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number) { return new Intl.NumberFormat('pt-BR').format(n); }
 
-const NEWS_ICONS: Record<string, typeof Newspaper> = {
-  transfer: ArrowLeftRight,
-  match:    Trophy,
-  sponsor:  DollarSign,
-  player:   Users,
-  legendary: Star,
-  stadium:  Home,
-  general:  Newspaper,
-};
+// ─── Stat card ────────────────────────────────────────────────────────────────
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function StatCard({
+  label, value, sub, accentColor, delay = 0,
+}: { label: string; value: string; sub?: string; accentColor: string; delay?: number }) {
   return (
-    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
-      {children}
+    <div
+      className="ldb-card ldb-anim-fade-in"
+      style={{ padding: '16px', animationDelay: `${delay}ms`, flex: 1 }}
+    >
+      <div style={{
+        fontFamily: 'var(--ldb-font-display)', fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
+        letterSpacing: '0.03em', color: accentColor, lineHeight: 1, marginBottom: 4,
+      }}>
+        {value}
+      </div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--ldb-text-muted)', marginBottom: 2 }}>{sub}</div>}
+      <div style={{
+        fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+        textTransform: 'uppercase', color: 'var(--ldb-text-muted)',
+      }}>
+        {label}
+      </div>
     </div>
   );
 }
 
-// ─── Result Pill ──────────────────────────────────────────────────────────────
+// ─── Result pill ──────────────────────────────────────────────────────────────
 
 function ResultPill({ fixture, myTeamId }: { fixture: MatchFixture; myTeamId: string }) {
   const r = fixture.result!;
@@ -50,302 +51,393 @@ function ResultPill({ fixture, myTeamId }: { fixture: MatchFixture; myTeamId: st
   const won = myGoals > opGoals;
   const drew = myGoals === opGoals;
 
-  const outcomeVariant = won ? 'win' : drew ? 'draw' : 'loss';
-  const outcomeLabel   = won ? 'V' : drew ? 'E' : 'D';
+  const resultColor = won ? 'var(--ldb-win)' : drew ? 'var(--ldb-draw)' : 'var(--ldb-loss)';
+  const resultLabel = won ? 'V' : drew ? 'E' : 'D';
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 p-3 hover:border-slate-600 transition-colors">
-      <Badge variant={outcomeVariant} className="h-7 w-7 shrink-0 rounded-lg px-0 justify-center text-xs font-black">
-        {outcomeLabel}
-      </Badge>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-bold text-slate-100 truncate">
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      background: 'var(--ldb-surface)', border: '1px solid var(--ldb-border)',
+      borderRadius: 'var(--ldb-r-md)', padding: '12px 14px',
+      transition: 'border-color 200ms',
+    }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+        background: won ? 'rgba(0,229,122,0.15)' : drew ? 'rgba(255,215,0,0.12)' : 'rgba(255,85,85,0.12)',
+        border: `1px solid ${resultColor}44`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--ldb-font-display)', fontSize: 14, color: resultColor,
+        letterSpacing: '0.05em',
+      }}>
+        {resultLabel}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ldb-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {isHome ? 'vs' : 'em'} {opTeam?.shortName ?? opTeamId}
-        </p>
-        <p className="text-[10px] text-slate-500">Rodada {fixture.round}</p>
-      </div>
-      <span className="shrink-0 text-[15px] font-black text-slate-100">
-        {myGoals} <span className="text-slate-600">x</span> {opGoals}
-      </span>
-    </div>
-  );
-}
-
-// ─── News Card ────────────────────────────────────────────────────────────────
-
-function NewsCard({ post }: { post: NewsPost }) {
-  const Icon = NEWS_ICONS[post.type] ?? Newspaper;
-
-  const platformColor: Record<string, string> = {
-    instagram: 'border-l-pink-500',
-    twitter:   'border-l-sky-500',
-    report:    'border-l-blue-500',
-  };
-  const borderColor = platformColor[post.platform] ?? 'border-l-slate-600';
-
-  return (
-    <div className={cn('flex gap-3 rounded-xl border border-slate-700 bg-slate-800 p-3 border-l-4', borderColor)}>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-700">
-        <Icon size={14} className="text-slate-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[11px] font-bold text-slate-400">{post.author}</span>
-          {post.authorHandle && <span className="text-[10px] text-slate-600">{post.authorHandle}</span>}
         </div>
-        <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{post.content}</p>
-        <div className="flex gap-3 mt-1.5">
-          <span className="flex items-center gap-1 text-[10px] text-slate-500">
-            <Heart size={9} /> {fmt(post.likes)}
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-slate-500">
-            <MessageCircle size={9} /> {post.comments}
-          </span>
-        </div>
+        <div style={{ fontSize: 10, color: 'var(--ldb-text-muted)' }}>Rd.{fixture.round}</div>
+      </div>
+      <div style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 18, letterSpacing: '0.05em', color: 'var(--ldb-text)', flexShrink: 0 }}>
+        {myGoals}<span style={{ color: 'var(--ldb-text-muted)', margin: '0 2px' }}>×</span>{opGoals}
       </div>
     </div>
   );
 }
 
-// ─── Finance Row ──────────────────────────────────────────────────────────────
+// ─── Next match card ──────────────────────────────────────────────────────────
 
-function FinanceRow({ record }: { record: FinancialRecord }) {
-  const isPositive = record.amount >= 0;
-  const CAT_ICONS: Record<string, typeof DollarSign> = {
-    wage: Shirt, transfer: ArrowLeftRight, sponsor: DollarSign,
-    ticket: Star, training: TrendingUp, stadium: Home, other: RefreshCw,
-  };
-  const Icon = CAT_ICONS[record.category] ?? RefreshCw;
-
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-slate-700/50 last:border-0">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-700/50">
-        <Icon size={12} className="text-slate-400" />
-      </div>
-      <p className="flex-1 min-w-0 text-xs text-slate-400 truncate">{record.description}</p>
-      <MoneyDisplay amount={record.amount} showSign size="sm" />
-    </div>
-  );
-}
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  icon: Icon, label, value, sub, color = '#3b82f6',
-}: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string; value: string; sub?: string; color?: string;
+function NextMatchCard({ fixture, myTeamId, onPlay }: {
+  fixture: MatchFixture; myTeamId: string; onPlay: () => void;
 }) {
+  const isHome = fixture.homeTeamId === myTeamId;
+  const myTeam = getTeam(myTeamId);
+  const opTeamId = isHome ? fixture.awayTeamId : fixture.homeTeamId;
+  const opTeam = getTeam(opTeamId);
+
+  const accentColor = myTeam?.primaryColor ?? 'var(--ldb-pitch-bright)';
+
   return (
-    <Card className="p-4 flex flex-col gap-2 hover:scale-105 transition-transform cursor-default">
-      <div className="flex items-center justify-between">
-        <Icon size={16} style={{ color }} />
+    <div style={{
+      background: `linear-gradient(135deg, ${accentColor}18, var(--ldb-surface))`,
+      border: `1px solid ${accentColor}40`,
+      borderRadius: 'var(--ldb-r-lg)',
+      padding: '20px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Accent bar */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: accentColor, opacity: 0.6 }} />
+
+      {/* Teams */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+        {/* My team */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 40, lineHeight: 1 }}>{myTeam?.badge ?? '⚽'}</div>
+          <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ldb-text)', textAlign: 'center' }}>
+            {myTeam?.shortName}
+          </span>
+          <span className="ldb-badge" style={{
+            background: isHome ? 'rgba(26,122,64,0.15)' : 'rgba(255,255,255,0.06)',
+            borderColor: isHome ? 'rgba(26,122,64,0.3)' : 'var(--ldb-border)',
+            color: isHome ? 'var(--ldb-text-success)' : 'var(--ldb-text-muted)',
+            fontSize: 10,
+          }}>
+            {isHome ? <><HomeIcon size={9} /> Casa</> : <><Plane size={9} /> Fora</>}
+          </span>
+        </div>
+
+        {/* VS */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <div style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 26, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>VS</div>
+          <div style={{ fontSize: 10, color: 'var(--ldb-text-muted)', fontWeight: 700 }}>Rd.{fixture.round}</div>
+        </div>
+
+        {/* Opponent */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 40, lineHeight: 1 }}>{opTeam?.badge ?? '⚽'}</div>
+          <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ldb-text)', textAlign: 'center' }}>
+            {opTeam?.shortName}
+          </span>
+          <span className="ldb-badge ldb-badge-muted" style={{ fontSize: 10 }}>
+            Rep. {opTeam?.reputation}
+          </span>
+        </div>
       </div>
-      <div>
-        <div className="text-xl font-black text-slate-100 leading-none">{value}</div>
-        {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
-      </div>
-      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">{label}</div>
-    </Card>
+
+      {/* Play button */}
+      <button className="ldb-btn-primary" onClick={onPlay} style={{ width: '100%', fontSize: 14, padding: '13px 20px' }}>
+        <Play size={15} />
+        Jogar Agora
+        <ChevronRight size={14} />
+      </button>
+    </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Legendary bar ────────────────────────────────────────────────────────────
+
+function LegendaryBar({ chance, maxChance, count }: { chance: number; maxChance: number; count: number }) {
+  const pct = (chance / maxChance) * 100;
+  return (
+    <div style={{ padding: '16px', background: 'var(--ldb-surface)', borderRadius: 'var(--ldb-r-lg)', border: '1px solid var(--ldb-border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Star size={14} style={{ color: 'var(--ldb-gold-bright)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ldb-text)' }}>Carta Lendária</span>
+        </div>
+        <span style={{ fontFamily: 'var(--ldb-font-display)', fontSize: 16, color: 'var(--ldb-gold-bright)', letterSpacing: '0.04em' }}>
+          {(chance * 100).toFixed(2)}%
+        </span>
+      </div>
+      <div className="ldb-progress">
+        <div className="ldb-progress-fill" style={{
+          width: `${pct}%`,
+          background: 'linear-gradient(90deg, var(--ldb-gold-mid), var(--ldb-gold-bright))',
+        }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--ldb-text-muted)' }}>
+        <span>{count} carta{count !== 1 ? 's' : ''} obtida{count !== 1 ? 's' : ''}</span>
+        <span>Máx. {(maxChance * 100).toFixed(0)}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const { state, setScreen } = useMB();
   const { save } = state;
+  const heroRef  = useRef<HTMLDivElement>(null);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const matchRef = useRef<HTMLDivElement>(null);
+  const restRef  = useRef<HTMLDivElement>(null);
+
+  // GSAP entrance animation
+  useEffect(() => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    if (heroRef.current)  tl.fromTo(heroRef.current,  { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5 });
+    if (statsRef.current) tl.fromTo(statsRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4 }, '-=0.25');
+    if (matchRef.current) tl.fromTo(matchRef.current, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4 }, '-=0.2');
+    if (restRef.current)  tl.fromTo(restRef.current,  { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35 }, '-=0.2');
+    return () => { tl.kill(); };
+  }, []);
 
   if (!save) return null;
 
   const myTeam = getTeam(save.myTeamId);
+  const primaryColor = myTeam?.primaryColor ?? '#1A7A40';
 
   const sortedStandings = [...save.standings].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
-    const gdA = a.goalsFor - a.goalsAgainst;
-    const gdB = b.goalsFor - b.goalsAgainst;
-    if (gdB !== gdA) return gdB - gdA;
-    return b.goalsFor - a.goalsFor;
+    return (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst);
   });
   const myPosition = sortedStandings.findIndex(s => s.teamId === save.myTeamId) + 1;
   const myStanding = save.standings.find(s => s.teamId === save.myTeamId);
+  const totalGames = (myStanding?.won ?? 0) + (myStanding?.drawn ?? 0) + (myStanding?.lost ?? 0);
+  const winPct = totalGames > 0 ? Math.round(((myStanding?.won ?? 0) / totalGames) * 100) : 0;
 
-  const nextFixtureIdx = save.fixtures.findIndex(
+  const nextFixture = save.fixtures.find(
     f => !f.played && (f.homeTeamId === save.myTeamId || f.awayTeamId === save.myTeamId)
-  );
-  const nextFixture = nextFixtureIdx >= 0 ? save.fixtures[nextFixtureIdx] : null;
-  const nextOpponentId = nextFixture
-    ? (nextFixture.homeTeamId === save.myTeamId ? nextFixture.awayTeamId : nextFixture.homeTeamId)
-    : null;
-  const nextOpponent = nextOpponentId ? getTeam(nextOpponentId) : null;
-  const nextIsHome = nextFixture ? nextFixture.homeTeamId === save.myTeamId : false;
+  ) ?? null;
 
   const recentResults = save.fixtures
     .filter(f => f.played && f.result && (f.homeTeamId === save.myTeamId || f.awayTeamId === save.myTeamId))
     .slice(-3)
     .reverse();
 
-  const recentNews = save.newsFeed.slice(0, 3);
   const legendaryChance = Math.min(LEGENDARY_MAX_CHANCE, LEGENDARY_BASE_CHANCE + save.legendaryChanceBonus);
-  const legendaryPct = (legendaryChance / LEGENDARY_MAX_CHANCE) * 100;
-  const recentFinances = save.finances.slice(0, 3);
 
-  const positionColor = myPosition <= 4 ? '#22c55e' : myPosition <= 10 ? '#eab308' : '#ef4444';
-
-  // Calc win probability
-  const totalGames = (myStanding?.won ?? 0) + (myStanding?.drawn ?? 0) + (myStanding?.lost ?? 0);
-  const winPct = totalGames > 0 ? Math.round(((myStanding?.won ?? 0) / totalGames) * 100) : 0;
+  const positionColor = myPosition <= 4 ? 'var(--ldb-win)' : myPosition <= 10 ? 'var(--ldb-draw)' : 'var(--ldb-loss)';
 
   return (
-    <div className="flex flex-col gap-5 p-4 pb-8">
+    <div style={{ padding: '16px', paddingBottom: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* ── Club header ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-800 to-[#0f172a]"
-        style={{ borderLeftWidth: 4, borderLeftColor: myTeam?.primaryColor ?? '#3b82f6' }}>
-        <div className="flex items-center gap-4 p-4">
-          {myTeam ? <TeamBadge team={myTeam} size={56} /> : <div className="h-14 w-14 rounded-xl bg-slate-700" />}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black text-slate-100 leading-tight truncate"
-              style={{ fontFamily: 'var(--font-title)' }}>
+      {/* ── Hero / Club header ── */}
+      <div ref={heroRef} style={{ opacity: 0 }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${primaryColor}22 0%, var(--ldb-surface) 60%)`,
+          border: `1px solid ${primaryColor}40`,
+          borderRadius: 'var(--ldb-r-lg)',
+          borderLeft: `3px solid ${primaryColor}`,
+          padding: '18px 20px',
+          display: 'flex', alignItems: 'center', gap: 16,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Decorative field lines */}
+          <div style={{
+            position: 'absolute', right: -20, top: -20, width: 140, height: 140,
+            borderRadius: '50%', border: `1px solid ${primaryColor}15`, pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', right: 10, top: 10, width: 80, height: 80,
+            borderRadius: '50%', border: `1px solid ${primaryColor}12`, pointerEvents: 'none',
+          }} />
+
+          {/* Badge */}
+          <div style={{
+            fontSize: 52, lineHeight: 1, flexShrink: 0,
+            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))',
+          }}>
+            {myTeam?.badge ?? '⚽'}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{
+              fontFamily: 'var(--ldb-font-display)', fontSize: 'clamp(18px, 5vw, 26px)',
+              letterSpacing: '0.04em', color: 'var(--ldb-text)', margin: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
               {myTeam?.name ?? 'Meu Time'}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary">Temporada {save.currentSeason}</Badge>
-              <Badge variant="secondary">Rodada {save.currentRound}</Badge>
+            <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+              <span className="ldb-badge ldb-badge-muted">Temp. {save.currentSeason}</span>
+              <span className="ldb-badge ldb-badge-muted">Rd. {save.currentRound}</span>
+              {save.mode === 'local-multi' && save.playerProfiles && (
+                <span className="ldb-badge ldb-badge-green">
+                  {save.playerProfiles[save.currentTurn - 1]?.name}
+                </span>
+              )}
             </div>
           </div>
-          <div className="text-right shrink-0">
-            <MoneyDisplay amount={save.budget} size="md" showIcon />
-            <div className="text-[9px] text-slate-500 mt-0.5">orçamento</div>
+
+          {/* Budget */}
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: 9, color: 'var(--ldb-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>orçamento</div>
+            <div style={{
+              fontFamily: 'var(--ldb-font-display)', fontSize: 20,
+              color: 'var(--ldb-gold-bright)', letterSpacing: '0.04em',
+            }}>
+              ${fmt(save.budget)}k
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Quick stats grid ── */}
-      <div>
-        <SectionTitle>Visão Geral</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
+      {/* ── Stats grid ── */}
+      <div ref={statsRef} style={{ opacity: 0 }}>
+        <div className="ldb-section-label" style={{ marginBottom: 10 }}>Visão Geral</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <StatCard
-            icon={BarChart2} label="Posição"
+            label="Posição" delay={0}
             value={myPosition ? `${myPosition}°` : '—'}
             sub={`${myStanding?.points ?? 0} pts`}
-            color={positionColor}
+            accentColor={positionColor}
           />
           <StatCard
-            icon={Trophy} label="Vitórias"
+            label="Vitórias" delay={80}
             value={String(myStanding?.won ?? 0)}
             sub={`${myStanding?.drawn ?? 0}E · ${myStanding?.lost ?? 0}D`}
-            color="#22c55e"
+            accentColor="var(--ldb-win)"
           />
           <StatCard
-            icon={Users} label="Elenco"
+            label="Elenco" delay={160}
             value={String(save.mySquad.length)}
             sub="jogadores"
-            color="#3b82f6"
+            accentColor="var(--ldb-text-mid)"
           />
           <StatCard
-            icon={TrendingUp} label="Aproveitamento"
+            label="Aproveitamento" delay={240}
             value={`${winPct}%`}
-            sub={`${totalGames} jogos`}
-            color="#a855f7"
+            sub={`${totalGames} jogo${totalGames !== 1 ? 's' : ''}`}
+            accentColor="var(--ldb-xp)"
           />
         </div>
       </div>
 
-      {/* ── Next match card ── */}
-      {nextFixture && nextOpponent && myTeam && (
-        <div>
-          <SectionTitle>Próxima Partida</SectionTitle>
-          <div className="rounded-2xl border border-blue-700/40 bg-gradient-to-br from-[#1e3a5f] to-slate-800 p-4">
-            {/* Teams */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex-1 flex flex-col items-center gap-2">
-                <TeamBadge team={myTeam} size={48} />
-                <span className="text-xs font-black text-slate-100">{myTeam.shortName}</span>
-                <Badge variant={nextIsHome ? 'success' : 'secondary'}>
-                  {nextIsHome ? <><Home size={9} /> Casa</> : <><Plane size={9} /> Fora</>}
-                </Badge>
-              </div>
+      {/* ── Next match ── */}
+      {nextFixture && (
+        <div ref={matchRef} style={{ opacity: 0 }}>
+          <div className="ldb-section-label" style={{ marginBottom: 10 }}>Próxima Partida</div>
+          <NextMatchCard
+            fixture={nextFixture}
+            myTeamId={save.myTeamId}
+            onPlay={() => setScreen('match')}
+          />
+        </div>
+      )}
 
-              <div className="flex flex-col items-center gap-1 shrink-0">
-                <span className="text-2xl font-black text-slate-600">VS</span>
-                <span className="text-[10px] font-bold text-slate-500">Rd.{nextFixture.round}</span>
-              </div>
+      {/* ── Rest of content ── */}
+      <div ref={restRef} style={{ opacity: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              <div className="flex-1 flex flex-col items-center gap-2">
-                <TeamBadge team={nextOpponent} size={48} />
-                <span className="text-xs font-black text-slate-100">{nextOpponent.shortName}</span>
-                <Badge variant="secondary">Rep. {nextOpponent.reputation}</Badge>
-              </div>
+        {/* Recent results */}
+        {recentResults.length > 0 && (
+          <div>
+            <div className="ldb-section-label" style={{ marginBottom: 10 }}>Resultados Recentes</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recentResults.map((f, i) => (
+                <ResultPill key={i} fixture={f} myTeamId={save.myTeamId} />
+              ))}
             </div>
-
-            <button
-              onClick={() => setScreen('match')}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-black text-white hover:bg-blue-500 active:scale-[0.98] transition-all shadow-lg shadow-blue-600/30"
-            >
-              <Play size={16} />
-              Jogar Agora
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Recent results ── */}
-      {recentResults.length > 0 && (
+        {/* Legendary chance */}
         <div>
-          <SectionTitle>Resultados Recentes</SectionTitle>
-          <div className="flex flex-col gap-2">
-            {recentResults.map((f, i) => (
-              <ResultPill key={i} fixture={f} myTeamId={save.myTeamId} />
-            ))}
-          </div>
+          <div className="ldb-section-label" style={{ marginBottom: 10 }}>Carta Lendária</div>
+          <LegendaryBar
+            chance={legendaryChance}
+            maxChance={LEGENDARY_MAX_CHANCE}
+            count={save.legendaryCardsOwned.length}
+          />
         </div>
-      )}
 
-      {/* ── Recent news ── */}
-      {recentNews.length > 0 && (
-        <div>
-          <SectionTitle>Notícias Recentes</SectionTitle>
-          <div className="flex flex-col gap-2.5">
-            {recentNews.map(post => (
-              <NewsCard key={post.id} post={post} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Legendary chance ── */}
-      <div>
-        <SectionTitle>Chance de Carta Lendária</SectionTitle>
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Star size={16} className="text-amber-400 fill-amber-400" />
-              <span className="text-sm font-bold text-slate-100">Carta Lendária</span>
+        {/* Recent news */}
+        {save.newsFeed.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div className="ldb-section-label">Notícias</div>
+              <button
+                onClick={() => setScreen('social')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--ldb-text-muted)', fontSize: 11, fontWeight: 600,
+                  padding: '2px 0',
+                }}
+              >
+                Ver todas <ArrowRight size={11} />
+              </button>
             </div>
-            <span className="text-sm font-black text-amber-400">
-              {(legendaryChance * 100).toFixed(2)}%
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {save.newsFeed.slice(0, 3).map((post, i) => (
+                <div key={post.id} style={{
+                  background: 'var(--ldb-surface)', border: '1px solid var(--ldb-border)',
+                  borderRadius: 'var(--ldb-r-md)', padding: '12px 14px',
+                  borderLeft: `3px solid ${post.isMyTeam ? 'var(--ldb-pitch-bright)' : 'rgba(255,255,255,0.08)'}`,
+                }}>
+                  <div style={{ fontSize: 12, color: 'var(--ldb-text-muted)', marginBottom: 4 }}>{post.author}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ldb-text)', lineHeight: 1.5 }}>
+                    {post.content.slice(0, 80)}{post.content.length > 80 ? '…' : ''}
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                    <span style={{ fontSize: 10, color: 'var(--ldb-text-muted)' }}>❤️ {fmt(post.likes)}</span>
+                    <span style={{ fontSize: 10, color: 'var(--ldb-text-muted)' }}>💬 {post.comments}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <Progress value={legendaryPct} color="linear-gradient(90deg, #f59e0b, #d97706)" />
-          <div className="flex justify-between mt-2 text-[10px] text-slate-500">
-            <span>{save.legendaryCardsOwned.length} carta(s) lendária(s) obtida(s)</span>
-            <span>Máx. {(LEGENDARY_MAX_CHANCE * 100).toFixed(0)}%</span>
+        )}
+
+        {/* Finances summary */}
+        {save.finances.length > 0 && (
+          <div>
+            <div className="ldb-section-label" style={{ marginBottom: 10 }}>Movimentações Recentes</div>
+            <div style={{ background: 'var(--ldb-surface)', border: '1px solid var(--ldb-border)', borderRadius: 'var(--ldb-r-lg)', overflow: 'hidden' }}>
+              {save.finances.slice(0, 3).map((rec, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 16px',
+                  borderBottom: i < 2 ? '1px solid var(--ldb-border)' : 'none',
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: rec.amount >= 0 ? 'rgba(0,229,122,0.1)' : 'rgba(255,85,85,0.1)',
+                    border: `1px solid ${rec.amount >= 0 ? 'rgba(0,229,122,0.2)' : 'rgba(255,85,85,0.2)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14,
+                  }}>
+                    {rec.amount >= 0 ? '📈' : '📉'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: 'var(--ldb-text)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {rec.description}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--ldb-text-muted)', textTransform: 'capitalize' }}>{rec.category}</div>
+                  </div>
+                  <div style={{
+                    fontFamily: 'var(--ldb-font-display)', fontSize: 15, letterSpacing: '0.03em', flexShrink: 0,
+                    color: rec.amount >= 0 ? 'var(--ldb-win)' : 'var(--ldb-loss)',
+                  }}>
+                    {rec.amount >= 0 ? '+' : ''}{fmt(rec.amount)}k
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </Card>
+        )}
       </div>
-
-      {/* ── Finances ── */}
-      {recentFinances.length > 0 && (
-        <div>
-          <SectionTitle>Movimentações Financeiras</SectionTitle>
-          <Card className="px-4 py-2">
-            {recentFinances.map((r, i) => (
-              <FinanceRow key={i} record={r} />
-            ))}
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
