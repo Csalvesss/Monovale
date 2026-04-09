@@ -148,7 +148,7 @@ export const LEGENDARY_PLAYERS: Player[] = [
     attributes: { pace: 80, shooting: 88, passing: 92, dribbling: 90, defending: 44, physical: 76 },
     mood: 'motivated', moodPoints: 100, lifestyle: 'superstar', lifestyleExpenses: 500,
     xp: 9999, level: 10, potentialBoost: 0, rarity: 'legendary',
-    legendaryCard: { visual: 'gold', boostMultiplier: 1.17, lore: 'O Retorno Divino. Ballon d'Or de 2007, foi o último a interromper o duopólio Messi-CR7. Elegante, veloz e preciso como poucos.', era: 'Champions League 2006/07' },
+    legendaryCard: { visual: 'gold', boostMultiplier: 1.17, lore: 'O Retorno Divino. Bola de Ouro de 2007, foi o último a interromper o duopólio Messi-CR7. Elegante, veloz e preciso como poucos.', era: 'Champions League 2006/07' },
     defenseTokens: 5, injured: false, injuredForRounds: 0, suspended: false,
     imageUrl: avatar('Kaka2007'),
   },
