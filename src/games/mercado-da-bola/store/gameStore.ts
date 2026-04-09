@@ -57,7 +57,6 @@ type Action =
 
 function reducer(state: MBState, action: Action): MBState {
   switch (action.type) {
-    case 'LOAD_SAVE':
     case 'LOAD_SAVE': {
       const migratedSave: GameSave = {
         mode: 'solo',
@@ -216,13 +215,83 @@ function reducer(state: MBState, action: Action): MBState {
       persistSave(action.save);
       return { ...state, save: action.save };
 
-  | { type: 'SWITCH_TURN' }
-  | { type: 'SET_MANAGER_PROFILE'; profile: ManagerProfile; save: GameSave }
-  | { type: 'READ_MESSAGE'; messageId: string }
-  | { type: 'RESPOND_MESSAGE'; messageId: string; responseIndex: number }
-  | { type: 'DISMISS_ROUND_RESULTS' }
-  | { type: 'ACCEPT_OFFER'; offerId: string }
-  | { type: 'REJECT_OFFER'; offerId: string };
+    case 'SWITCH_TURN': {
+      if (!state.save) return state;
+      const nextTurn: 1 | 2 = state.save.currentTurn === 1 ? 2 : 1;
+      const updatedSave = { ...state.save, currentTurn: nextTurn };
+      persistSave(updatedSave);
+      return { ...state, save: updatedSave, screen: 'turn-handoff' };
+    }
+
+    case 'SET_MANAGER_PROFILE': {
+      persistSave(action.save);
+      return { ...state, save: action.save, screen: 'home' };
+    }
+
+    case 'READ_MESSAGE': {
+      if (!state.save) return state;
+      const msgs = state.save.playerMessages.map(m =>
+        m.id === action.messageId ? { ...m, read: true } : m
+      );
+      const unread = msgs.filter(m => !m.read).length;
+      const updatedSave = { ...state.save, playerMessages: msgs, unreadMessages: unread };
+      persistSave(updatedSave);
+      return { ...state, save: updatedSave };
+    }
+
+    case 'RESPOND_MESSAGE': {
+      if (!state.save) return state;
+      const msgs = state.save.playerMessages.map(m => {
+        if (m.id !== action.messageId) return m;
+        const resp = m.responses[action.responseIndex];
+        return { ...m, responded: true, read: true };
+      });
+      // Apply mood/loyalty deltas to the player
+      const msg = state.save.playerMessages.find(m => m.id === action.messageId);
+      let squad = state.save.mySquad;
+      if (msg) {
+        const resp = msg.responses[action.responseIndex];
+        if (resp) {
+          squad = squad.map(p => {
+            if (p.id !== msg.playerId) return p;
+            const newMoodPts = Math.max(0, Math.min(100, p.moodPoints + resp.moralDelta));
+            return { ...p, moodPoints: newMoodPts };
+          });
+        }
+      }
+      const unread = msgs.filter(m => !m.read).length;
+      const updatedSave = { ...state.save, playerMessages: msgs, mySquad: squad, unreadMessages: unread };
+      persistSave(updatedSave);
+      return { ...state, save: updatedSave };
+    }
+
+    case 'DISMISS_ROUND_RESULTS':
+      return { ...state, showRoundResults: false };
+
+    case 'ACCEPT_OFFER': {
+      if (!state.save) return state;
+      const offer = state.save.pendingOffers.find(o => o.id === action.offerId);
+      if (!offer) return state;
+      const player = state.save.mySquad.find(p => p.id === offer.playerId);
+      if (!player) return state;
+      const newSquad = state.save.mySquad.filter(p => p.id !== offer.playerId);
+      const newAllPlayers = state.save.allPlayers.map(p =>
+        p.id === offer.playerId ? { ...p, currentTeamId: offer.fromTeamId } : p
+      );
+      const newBudget = state.save.budget + offer.offerAmount;
+      const newOffers = state.save.pendingOffers.filter(o => o.id !== action.offerId);
+      const updatedSave = { ...state.save, mySquad: newSquad, allPlayers: newAllPlayers, budget: newBudget, pendingOffers: newOffers };
+      persistSave(updatedSave);
+      return { ...state, save: updatedSave };
+    }
+
+    case 'REJECT_OFFER': {
+      if (!state.save) return state;
+      const newOffers = state.save.pendingOffers.filter(o => o.id !== action.offerId);
+      const updatedSave = { ...state.save, pendingOffers: newOffers };
+      persistSave(updatedSave);
+      return { ...state, save: updatedSave };
+    }
 
     default:
       return state;
