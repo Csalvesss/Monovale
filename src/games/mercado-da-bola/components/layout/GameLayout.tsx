@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMB } from '../../store/gameStore';
+import { SAVE_KEY } from '../../constants';
 import type { MBScreen } from '../../types';
 import {
   Home, Users, ArrowLeftRight, Swords, BarChart2, Rss,
-  DollarSign, Building2, Star, X, Trophy, TrendingUp,
-  ChevronLeft,
+  DollarSign, Building2, Star, X, Trophy,
+  ChevronLeft, Settings, Trash2, CloudCheck,
 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
+import { AlertDialog } from '../../../../components/ui/dialog';
 
 interface NavItem {
   screen: MBScreen;
@@ -35,6 +37,8 @@ const NOTIF_STYLES: Record<string, { bar: string; text: string; icon: typeof Sta
 export default function GameLayout({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
   const { state, setScreen, dismissNotification } = useMB();
   const { notification, screen: currentScreen } = state;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!notification) return;
@@ -48,17 +52,22 @@ export default function GameLayout({ children, onBack }: { children: React.React
   const budget = state.save?.budget ?? 0;
   const budgetFormatted = new Intl.NumberFormat('pt-BR').format(budget);
 
+  function handleDeleteSave() {
+    localStorage.removeItem(SAVE_KEY);
+    setDeleteConfirmOpen(false);
+    onBack();
+  }
+
   return (
     <div className="flex flex-col h-dvh bg-[#0f172a] font-sans text-slate-100 overflow-hidden">
 
       {/* ── Top bar ── */}
       <header className="flex h-[52px] shrink-0 items-center justify-between bg-gradient-to-r from-slate-900 to-[#1e3a5f] border-b border-slate-700/50 px-4 z-20">
         <button
-          onClick={isPlayerDetail ? () => state.save && setScreen('squad') : onBack}
+          onClick={isPlayerDetail ? () => state.save && setScreen('squad') : () => setMenuOpen(true)}
           className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-bold text-white/80 hover:bg-white/10 transition-colors"
         >
-          <ChevronLeft size={14} />
-          {isPlayerDetail ? 'Elenco' : 'Sair'}
+          {isPlayerDetail ? <><ChevronLeft size={14} />Elenco</> : <><Settings size={14} />Menu</>}
         </button>
 
         <div className="flex items-center gap-2">
@@ -131,6 +140,67 @@ export default function GameLayout({ children, onBack }: { children: React.React
           <X size={14} className="shrink-0 text-slate-400 hover:text-slate-200" />
         </div>
       )}
+
+      {/* ── Settings menu overlay ── */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-3xl bg-slate-900 border-t border-slate-700 p-6 pb-10 animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <p className="text-lg font-black text-slate-100">Menu</p>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-slate-400 hover:text-slate-200"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Auto-save indicator */}
+            <div className="mb-4 flex items-center gap-3 rounded-xl bg-emerald-600/10 border border-emerald-600/20 px-4 py-3">
+              <CloudCheck size={18} className="text-emerald-400 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-emerald-300">Salvo automaticamente</p>
+                <p className="text-xs text-slate-500 mt-0.5">Seu progresso é salvo a cada ação</p>
+              </div>
+            </div>
+
+            {/* Exit without deleting */}
+            <button
+              onClick={() => { setMenuOpen(false); onBack(); }}
+              className="w-full flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3.5 text-sm font-bold text-slate-200 hover:bg-slate-700 transition-colors mb-3"
+            >
+              <ChevronLeft size={16} className="text-slate-400" />
+              Sair para o Hub
+            </button>
+
+            {/* Delete save */}
+            <button
+              onClick={() => { setMenuOpen(false); setDeleteConfirmOpen(true); }}
+              className="w-full flex items-center gap-3 rounded-xl border border-red-700/40 bg-red-600/10 px-4 py-3.5 text-sm font-bold text-red-400 hover:bg-red-600/20 transition-colors"
+            >
+              <Trash2 size={16} />
+              Excluir partida salva
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete save confirmation ── */}
+      <AlertDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Excluir partida?"
+        description="Isso apagará permanentemente seu progresso. Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        variant="destructive"
+        onConfirm={handleDeleteSave}
+      />
     </div>
   );
 }
