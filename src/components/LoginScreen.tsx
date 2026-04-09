@@ -31,7 +31,7 @@ export default function LoginScreen() {
       if (msg.includes('email-already-in-use')) setError('E-mail já cadastrado. Faça login.');
       else if (msg.includes('wrong-password') || msg.includes('invalid-credential')) setError('E-mail ou senha incorretos.');
       else if (msg.includes('user-not-found')) setError('Usuário não encontrado.');
-      else if (msg.includes('weak-password')) setError('Senha fraca — mínimo 6 caracteres.');
+      else if (msg.includes('weak-password')) setError('Senha fraca, mínimo 6 caracteres.');
       else setError(msg);
     } finally {
       setLoading(false);
@@ -46,16 +46,16 @@ export default function LoginScreen() {
       <div style={S.brand}>
         <div style={S.brandInner}>
           <div style={S.logo}>
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="12" fill="white" fillOpacity="0.15"/>
-              <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9"/>
-            </svg>
-            <span style={S.logoText}>Monovale</span>
+            <span style={{ fontSize: 36, lineHeight: 1 }}>🍈</span>
+            <div>
+              <div style={S.logoText}>Guava Games</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 500, letterSpacing: '0.5px' }}>Vale do Paraíba</div>
+            </div>
           </div>
-          <h1 style={S.brandTitle}>Monopoly do<br/>Vale do Paraíba</h1>
-          <p style={S.brandSub}>Compre, construa e domine as cidades do Vale. O Banco do Sr. Marinho está esperando.</p>
+          <h1 style={S.brandTitle}>Sua plataforma de jogos do Vale</h1>
+          <p style={S.brandSub}>Jogue com amigos, crie salas online e acompanhe suas estatísticas. Uma experiência feita para o Vale do Paraíba.</p>
           <div style={S.brandFeatures}>
-            {['Até 8 jogadores', 'Salas online', 'Estatísticas pessoais'].map(f => (
+            {['Monovale: Monopoly do Vale', 'Salas online multiplayer', 'Estatísticas e rankings', 'Mais jogos em breve'].map(f => (
               <div key={f} style={S.feature}>
                 <span style={S.featureDot} />
                 {f}
@@ -201,7 +201,7 @@ const S: Record<string, React.CSSProperties> = {
   brand: {
     display: 'none' as const,
     flex: '0 0 420px',
-    background: 'linear-gradient(160deg, #065F46 0%, #047857 50%, #059669 100%)',
+    background: 'linear-gradient(160deg, #2D0A15 0%, #6B1230 50%, #B5294E 100%)',
     padding: '48px 40px',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -234,7 +234,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   brandFeatures: { display: 'flex', flexDirection: 'column', gap: 10 },
   feature: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' },
-  featureDot: { width: 8, height: 8, borderRadius: '50%', background: '#34D399', flexShrink: 0 },
+  featureDot: { width: 8, height: 8, borderRadius: '50%', background: '#F09BB5', flexShrink: 0 },
 
   /* Form right panel */
   formPanel: {
@@ -344,7 +344,7 @@ const S: Record<string, React.CSSProperties> = {
 
   submitBtn: {
     padding: '13px',
-    background: 'var(--green-grad)',
+    background: 'linear-gradient(135deg, #B5294E, #8B1A33)',
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius)',
@@ -352,7 +352,7 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 15,
     fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 4px 14px rgba(5,150,105,0.35)',
+    boxShadow: '0 4px 14px rgba(181,41,78,0.35)',
     transition: 'opacity 0.15s, transform 0.1s',
     marginBottom: 4,
     letterSpacing: '0.2px',
@@ -374,7 +374,7 @@ const S: Record<string, React.CSSProperties> = {
   switchLink: {
     background: 'none',
     border: 'none',
-    color: 'var(--green)',
+    color: '#B5294E',
     fontWeight: 700,
     cursor: 'pointer',
     fontSize: 13,

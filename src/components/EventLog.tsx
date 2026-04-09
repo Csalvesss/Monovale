@@ -13,6 +13,7 @@ const TYPE_CONFIG: Record<LogEntry['type'], { accent: string; bg: string }> = {
   jail:     { accent: '#dc2626', bg: '#fef2f2' },
   card:     { accent: '#7c3aed', bg: '#faf5ff' },
   bankrupt: { accent: '#991b1b', bg: '#fee2e2' },
+  event:    { accent: '#059669', bg: '#ecfdf5' },
 };
 
 export default function EventLog({ log }: Props) {

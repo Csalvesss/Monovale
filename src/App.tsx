@@ -8,11 +8,14 @@ import ActionPanel from './components/ActionPanel';
 import AuctionModal from './components/AuctionModal';
 import HelpModal from './components/HelpModal';
 import TradeModal from './components/TradeModal';
+import EventModal from './components/EventModal';
 import EndScreen from './components/EndScreen';
 import LoginScreen from './components/LoginScreen';
 import HomePage from './components/HomePage';
+import GameHub from './components/GameHub';
 import JoinRoom from './components/JoinRoom';
 import RoomLobby from './components/RoomLobby';
+import LendaDaBola from './games/lenda-da-bola/index';
 import { useAuth } from './contexts/AuthContext';
 import {
   createGameDoc, saveGameState, saveGameStateNow, finishGame, cancelPendingGameSave,
@@ -23,13 +26,14 @@ import {
   initGame, rollDice, buyProperty, startAuction, placeBid, passBid,
   endTurn, payJailFine, useJailCard, buildHouse, sellHouse,
   mortgageProperty, unmortgageProperty, proposeTrade, updateTrade,
-  acceptTrade, cancelTrade, resolveCard,
+  acceptTrade, cancelTrade, resolveCard, resolveEventCard,
 } from './logic/gameEngine';
 
 const STORAGE_KEY = 'monovale_game_state';
+const ROOM_KEY    = 'monovale_room_code';
 const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
-type Screen = 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game';
+type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game' | 'mercado-da-bola';
 type MobileTab = 'board' | 'players' | 'log';
 
 function useWindowWidth() {
@@ -84,9 +88,9 @@ export default function App() {
   const mobileScale  = Math.min(1, (winW - 16) / BOARD_PX);
   const tabletScale  = Math.min(1, (winW - 276) / BOARD_PX);
 
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreen] = useState<Screen>('hub');
   const [mobileTab, setMobileTab] = useState<MobileTab>('board');
-  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(() => localStorage.getItem(ROOM_KEY));
 
   // ── Game state ──
   const [gameState, setGameState] = useState<GameState | null>(() => {
@@ -98,9 +102,14 @@ export default function App() {
         if (
           parsed.phase === 'playing' &&
           Array.isArray(parsed.players) &&
-          Array.isArray(parsed.spaces) &&
-          Array.isArray(parsed.dice)
+          Array.isArray(parsed.spaces)
         ) {
+          // Backfill new fields for saves from before Evento do Vale
+          if (parsed.pendingEvent === undefined) parsed.pendingEvent = null;
+          if (parsed.roundNumber === undefined) parsed.roundNumber = 1;
+          if (parsed.doubleNextRent === undefined) parsed.doubleNextRent = false;
+          if (parsed.skipNextRent === undefined) parsed.skipNextRent = false;
+          if (parsed.recentEventIds === undefined) parsed.recentEventIds = [];
           return parsed;
         }
         // Stale/incompatible save — remove it
@@ -122,8 +131,20 @@ export default function App() {
 
   // Restore in-progress game on mount
   useEffect(() => {
-    if (gameState?.phase === 'playing') setScreen('game');
+    if (gameState?.phase === 'playing') {
+      setScreen('game');
+      // If this was a room game, reconnect the Firestore listener
+      if (roomCode && gameState.gameId) {
+        startGameListener(gameState.gameId);
+      }
+    }
   }, []); // eslint-disable-line
+
+  // Persist roomCode to localStorage
+  useEffect(() => {
+    if (roomCode) localStorage.setItem(ROOM_KEY, roomCode);
+    else localStorage.removeItem(ROOM_KEY);
+  }, [roomCode]);
 
   // Persist locally + to Firestore
   useEffect(() => {
@@ -228,7 +249,18 @@ export default function App() {
     setFinishedGameId(null);
     setRoomCode(null);
     localStorage.removeItem(STORAGE_KEY);
-    setScreen('home');
+    setScreen('hub');
+  }
+
+  function exitToMenu() {
+    // Game is already auto-saved to localStorage — just navigate away without clearing it
+    gameListenerRef.current?.();
+    gameListenerRef.current = null;
+    roomListenerRef.current?.();
+    roomListenerRef.current = null;
+    setRoomCode(null);
+    setShowConfirm(false);
+    setScreen('hub');
   }
 
   // ── Can the current user act? ──
@@ -241,10 +273,10 @@ export default function App() {
       <div style={S.loadingPage}>
         <div style={S.loadingCard}>
           <svg width="48" height="48" viewBox="0 0 40 40" fill="none" style={{ marginBottom: 16 }}>
-            <rect width="40" height="40" rx="12" fill="var(--green)" />
-            <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9" />
+            <rect width="40" height="40" rx="12" fill="#B5294E" />
+            <text x="20" y="27" textAnchor="middle" fontSize="22" fill="white">🍈</text>
           </svg>
-          <div style={S.loadingTitle}>Monovale</div>
+          <div style={S.loadingTitle}>Guava Games</div>
           <div style={S.loadingSpinner} />
         </div>
       </div>
@@ -277,11 +309,25 @@ export default function App() {
     );
   }
 
+  if (screen === 'mercado-da-bola') return (
+    <LendaDaBola onBack={() => setScreen('hub')} />
+  );
+
+  if (screen === 'hub') return (
+    <GameHub
+      onSelectMonovale={() => setScreen('home')}
+      onSelectMercadoDaBola={() => setScreen('mercado-da-bola')}
+      hasSavedGame={!!gameState && gameState.phase === 'playing'}
+      onResumeGame={() => setScreen('game')}
+    />
+  );
+
   if (screen === 'home') return (
     <HomePage
       onStartGame={() => setScreen('lobby')}
       onCreateRoom={handleCreateRoom}
       onJoinRoom={() => setScreen('join-room')}
+      onBack={() => setScreen('hub')}
     />
   );
 
@@ -325,8 +371,21 @@ export default function App() {
   // ── Modals ──
   const modals = (
     <>
+      {gameState.pendingEvent && (
+        <EventModal
+          event={gameState.pendingEvent}
+          state={gameState}
+          onContinue={() => act(resolveEventCard)}
+        />
+      )}
       {gameState.turnPhase === 'auction' && gameState.auction && (
-        <AuctionModal state={gameState} onBid={(p, a) => act(s => placeBid(s, p, a))} onPass={(p) => act(s => passBid(s, p))} />
+        <AuctionModal
+          state={gameState}
+          myUid={profile?.uid ?? null}
+          isRoomGame={isRoomGame}
+          onBid={(p, a) => act(s => placeBid(s, p, a))}
+          onPass={(p) => act(s => passBid(s, p))}
+        />
       )}
       {gameState.turnPhase === 'trade' && gameState.trade && (
         <TradeModal state={gameState} onUpdate={(t: TradeState) => act(s => updateTrade(s, t))} onAccept={() => act(acceptTrade)} onCancel={() => act(cancelTrade)} />
@@ -341,11 +400,12 @@ export default function App() {
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <div style={S.confirmTitle}>Nova Partida?</div>
-            <p style={S.confirmText}>O progresso atual será perdido.</p>
+            <div style={S.confirmTitle}>Pausar ou Sair?</div>
+            <p style={S.confirmText}>O que deseja fazer?</p>
             <div style={S.confirmBtns}>
-              <button onClick={() => { setShowConfirm(false); clearGame(); }} style={S.confirmBtnYes}>Sim</button>
-              <button onClick={() => setShowConfirm(false)} style={S.confirmBtnNo}>Cancelar</button>
+              <button onClick={exitToMenu} style={S.confirmBtnMenu}>💾 Salvar e Ir ao Menu</button>
+              <button onClick={() => { setShowConfirm(false); clearGame(); }} style={S.confirmBtnYes}>🔄 Nova Partida</button>
+              <button onClick={() => setShowConfirm(false)} style={S.confirmBtnNo}>Continuar Jogando</button>
             </div>
           </div>
         </div>
@@ -460,7 +520,7 @@ const S: Record<string, React.CSSProperties> = {
   loadingPage: { minHeight: '100dvh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)' },
   loadingCard: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '48px 56px', textAlign: 'center' },
   loadingTitle: { fontFamily: 'var(--font-title)', fontSize: 28, fontWeight: 800, color: 'var(--text)', marginBottom: 20, letterSpacing: '-0.3px' },
-  loadingSpinner: { width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--green)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' },
+  loadingSpinner: { width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid #B5294E', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' },
 
   root: { height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', fontFamily: 'var(--font-body)', overflow: 'hidden' },
   topBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52, background: 'linear-gradient(90deg, #065F46, #059669)', boxShadow: '0 1px 0 rgba(0,0,0,0.15)', flexShrink: 0, zIndex: 10 },
@@ -483,10 +543,11 @@ const S: Record<string, React.CSSProperties> = {
   waitingBanner: { padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600, color: 'var(--text-mid)', textAlign: 'center', marginBottom: 8 },
 
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, backdropFilter: 'blur(6px)', padding: 16 },
-  confirmBox: { background: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '32px 28px', maxWidth: 340, width: '100%', textAlign: 'center', animation: 'pop-in 0.25s ease' },
-  confirmTitle: { fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 8 },
-  confirmText: { fontSize: 14, color: 'var(--text-mid)', fontWeight: 500, margin: '0 0 20px' },
-  confirmBtns: { display: 'flex', gap: 10 },
-  confirmBtnYes: { flex: 1, padding: '13px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
-  confirmBtnNo: { flex: 1, padding: '13px', background: 'var(--card-alt)', color: 'var(--text)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBox: { background: '#FFFFFF', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '32px 28px', maxWidth: 340, width: '100%', textAlign: 'center', animation: 'pop-in 0.25s ease' },
+  confirmTitle: { fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: '#0F172A', marginBottom: 8 },
+  confirmText: { fontSize: 14, color: '#475569', fontWeight: 500, margin: '0 0 20px' },
+  confirmBtns: { display: 'flex', flexDirection: 'column', gap: 10 },
+  confirmBtnMenu: { width: '100%', padding: '13px', background: 'var(--green-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBtnYes: { width: '100%', padding: '13px', background: 'var(--red-grad)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' },
+  confirmBtnNo: { width: '100%', padding: '11px', background: '#F8FAFC', color: '#475569', border: '1.5px solid rgba(15,23,42,0.09)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' },
 };

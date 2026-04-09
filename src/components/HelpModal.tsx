@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface Props {
   onClose: () => void;
@@ -75,9 +75,16 @@ const SECTIONS = [
     title: 'Estações e Empresas',
     text: 'Estações: aluguel aumenta com cada estação que você possui (1=R$25, 2=R$50, 3=R$100, 4=R$200). Empresas: o aluguel é 4× ou 10× o valor dos dados, dependendo de quantas você tem.',
   },
+  {
+    color: '#059669',
+    title: '🎴 Evento do Vale',
+    text: 'No início de cada nova rodada, uma carta de Evento do Vale é revelada. São 100 eventos temáticos da região: enchentes, greves, tech booms, assaltos, carnaval e mais. O sistema lê o estado do jogo: eventos de propriedade só aparecem se alguém tiver imóveis; eventos de cidade específica só saem se aquela cidade tiver dono. Efeitos especiais: "Carnaval" dobra o próximo aluguel cobrado; "Greve Geral" cancela todos os aluguéis da rodada.',
+  },
 ];
 
 export default function HelpModal({ onClose }: Props) {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
   return (
     <div style={S.overlay} onClick={onClose}>
       <div style={S.modal} onClick={e => e.stopPropagation()}>
@@ -87,7 +94,7 @@ export default function HelpModal({ onClose }: Props) {
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <span style={S.headerTitle}>Como Jogar — Monovale</span>
+          <span style={S.headerTitle}>Como Jogar: Monovale</span>
           <button style={S.closeBtn} onClick={onClose} aria-label="Fechar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -97,15 +104,33 @@ export default function HelpModal({ onClose }: Props) {
         </div>
 
         <div style={S.body}>
-          {SECTIONS.map((sec, i) => (
-            <div key={i} style={S.section}>
-              <div style={{ ...S.accent, background: sec.color }} />
-              <div style={S.sectionInner}>
-                <div style={S.sectionTitle}>{sec.title}</div>
-                <div style={S.sectionText}>{sec.text}</div>
+          {SECTIONS.map((sec, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div key={i} style={S.section}>
+                <div style={{ ...S.accent, background: sec.color }} />
+                <div style={S.sectionInner}>
+                  <button
+                    style={S.sectionBtn}
+                    onClick={() => setOpenIndex(isOpen ? null : i)}
+                    aria-expanded={isOpen}
+                  >
+                    <span style={S.sectionTitle}>{sec.title}</span>
+                    <svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="var(--text-mid)" strokeWidth="2.5" strokeLinecap="round"
+                      style={{ flexShrink: 0, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {isOpen && (
+                    <div style={S.sectionText}>{sec.text}</div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div style={S.tip}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green-dark)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
@@ -185,29 +210,44 @@ const S: Record<string, React.CSSProperties> = {
     gap: 0,
     background: 'var(--card-alt)',
     borderRadius: 10,
-    overflow: 'hidden',
     border: '1px solid var(--border)',
   },
   accent: {
     width: 4,
     flexShrink: 0,
+    borderTopLeftRadius: 9,
+    borderBottomLeftRadius: 9,
   },
   sectionInner: {
+    flex: '1 1 auto',
+    minWidth: 0,
+  },
+  sectionBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    background: 'none',
+    border: 'none',
     padding: '10px 12px',
-    flex: 1,
+    cursor: 'pointer',
+    gap: 8,
+    textAlign: 'left',
+    fontFamily: 'var(--font-body)',
   },
   sectionTitle: {
     fontFamily: 'var(--font-title)',
     fontSize: 13,
     fontWeight: 800,
     color: 'var(--text)',
-    marginBottom: 3,
+    flex: 1,
   },
   sectionText: {
     fontSize: 12,
     color: 'var(--text-mid)',
     lineHeight: 1.55,
     fontWeight: 500,
+    padding: '0 12px 10px',
   },
   tip: {
     display: 'flex',

@@ -169,13 +169,13 @@ export const BOARD_SPACES: BoardSpace[] = [
   },
   {
     position: 14,
-    name: 'Cunha',
+    name: 'Roseira',
     type: 'property',
     group: 'pink',
     price: 160,
     rent: [12, 60, 180, 500, 700, 900],
     housePrice: 100,
-    icon: '🏺',  // Cerâmica artesanal — polo de artes
+    icon: '🌹',  // Município entre Aparecida e Lorena, no vale do Paraíba
   },
   {
     position: 15,
