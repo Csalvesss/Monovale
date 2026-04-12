@@ -12,6 +12,7 @@ import EventModal from './components/EventModal';
 import EndScreen from './components/EndScreen';
 import LoginScreen from './components/LoginScreen';
 import HomePage from './components/HomePage';
+import VoiceChat from './components/VoiceChat';
 import GameHub from './components/GameHub';
 import JoinRoom from './components/JoinRoom';
 import RoomLobby from './components/RoomLobby';
@@ -430,6 +431,14 @@ export default function App() {
       </div>
       <div style={S.topRight}>
         {!isMobile && <span style={S.bankerTag}>Banco Sr. Marinho</span>}
+        {isRoomGame && profile && (
+          <VoiceChat
+            roomCode={roomCode!}
+            uid={profile.uid}
+            displayName={profile.displayName}
+            isMobile={isMobile}
+          />
+        )}
         <button onClick={() => setShowHelp(true)} style={S.helpBtn} title="Como jogar">
           <HelpCircle size={16} />
         </button>
