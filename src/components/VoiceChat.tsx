@@ -26,10 +26,13 @@ export default function VoiceChat({ roomCode, uid, displayName, isMobile }: Prop
       setMuted(false);
     } catch (e) {
       const err = e as Error;
+      console.error('[VoiceChat] join error:', err.name, err.message, e);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setError('Permissão de microfone negada.');
+      } else if (err.message?.includes('permission') || err.message?.includes('Missing or insufficient')) {
+        setError('Erro de permissão no banco de dados. Atualize as regras do Firestore.');
       } else {
-        setError('Erro ao conectar. Tente novamente.');
+        setError(`Erro: ${err.message || err.name}`);
       }
     } finally {
       setLoading(false);
