@@ -127,8 +127,6 @@ export default function App() {
   const [finishedGameId, setFinishedGameId] = useState<string | null>(null);
   /** Which tab is active in the right-panel (desktop/tablet, room games only) */
   const [rightTab, setRightTab] = useState<'log' | 'chat'>('log');
-  const [creatingRoom, setCreatingRoom] = useState(false);
-  const [createRoomError, setCreateRoomError] = useState<string | null>(null);
 
   // Real-time room game flags
   const isRoomGame = !!roomCode;
@@ -227,33 +225,14 @@ export default function App() {
   }
 
   // ── Create room ──
-  async function handleCreateRoom() {
+  function handleCreateRoom() {
     if (!profile || creatingRoom) return;
-    setCreatingRoom(true);
-    setCreateRoomError(null);
-    try {
-      const timeoutMs = 12_000;
-      const race = Promise.race([
-        createRoom(profile),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs),
-        ),
-      ]);
-      const code = await race;
-      setRoomCode(code);
-      setScreen('room-lobby');
-    } catch (e) {
-      const msg = (e as Error)?.message ?? '';
-      if (msg === 'TIMEOUT') {
-        setCreateRoomError('Criação demorou demais. Verifique sua conexão e tente novamente.');
-      } else if (msg.includes('Missing or insufficient') || msg.includes('permission')) {
-        setCreateRoomError('Sem permissão no Firestore. Faça logout e entre novamente.');
-      } else {
-        setCreateRoomError(`Erro ao criar sala: ${msg || 'verifique sua conexão.'}`);
-      }
-    } finally {
-      setCreatingRoom(false);
-    }
+    // createRoom() is synchronous — it fires the Firestore write in the background
+    // and returns the room code immediately. The room-lobby's listener picks up
+    // the document as soon as Firestore confirms the write.
+    const code = createRoom(profile);
+    setRoomCode(code);
+    setScreen('room-lobby');
   }
 
   // ── Join room ──
@@ -360,9 +339,6 @@ export default function App() {
       onCreateRoom={handleCreateRoom}
       onJoinRoom={() => setScreen('join-room')}
       onBack={() => setScreen('hub')}
-      creatingRoom={creatingRoom}
-      createRoomError={createRoomError}
-      onClearCreateRoomError={() => setCreateRoomError(null)}
     />
   );
 

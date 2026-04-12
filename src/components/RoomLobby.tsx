@@ -21,6 +21,7 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
   const [starting, setStarting] = useState(false);
   const [editingPawn, setEditingPawn] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
   const isHost = room?.hostUid === profile?.uid;
 
@@ -28,6 +29,14 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
     const unsub = listenRoom(code, r => setRoom(r));
     return unsub;
   }, [code]);
+
+  // If the room document doesn't arrive within 15 s, the Firestore write likely
+  // failed (network issue, permission denied, etc.).  Show a friendly error.
+  useEffect(() => {
+    if (room) return; // already loaded
+    const t = setTimeout(() => setLoadTimedOut(true), 15_000);
+    return () => clearTimeout(t);
+  }, [room]);
 
   async function handleChangePawn(pawnId: string) {
     if (!room || !profile) return;
@@ -70,6 +79,24 @@ export default function RoomLobby({ code, onGameStart, onLeave }: Props) {
   }
 
   if (!room) {
+    if (loadTimedOut) {
+      return (
+        <div style={S.page}>
+          <div style={S.loadingWrap}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
+            <div style={{ ...S.loadingText, color: 'var(--red)', marginBottom: 8 }}>
+              Sala não encontrada
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-mid)', fontWeight: 500, textAlign: 'center', maxWidth: 300, margin: '0 0 20px', lineHeight: 1.6 }}>
+              Não foi possível criar a sala. Verifique sua conexão com a internet e tente novamente.
+            </p>
+            <button onClick={onLeave} style={{ padding: '10px 24px', background: 'var(--green-grad)', color: '#fff', border: 'none', borderRadius: 99, fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Voltar ao menu
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div style={S.page}>
         <div style={S.loadingWrap}>

@@ -10,12 +10,9 @@ interface Props {
   onCreateRoom: () => void;
   onJoinRoom: () => void;
   onBack: () => void;
-  creatingRoom?: boolean;
-  createRoomError?: string | null;
-  onClearCreateRoomError?: () => void;
 }
 
-export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom, onBack, creatingRoom, createRoomError, onClearCreateRoomError }: Props) {
+export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom, onBack }: Props) {
   const { profile, logout, updatePawn } = useAuth();
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
@@ -150,25 +147,15 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom, onBack
           {/* ── Play buttons ── */}
           <div style={S.playSection}>
             <div style={S.playGrid}>
-              <button
-                onClick={onCreateRoom}
-                disabled={creatingRoom}
-                style={{ ...S.btnPrimary, opacity: creatingRoom ? 0.7 : 1, cursor: creatingRoom ? 'wait' : 'pointer' }}
-              >
+              <button onClick={onCreateRoom} style={S.btnPrimary}>
                 <Plus size={18} strokeWidth={2.5} />
-                <span>{creatingRoom ? 'Criando...' : 'Criar Sala Online'}</span>
+                <span>Criar Sala Online</span>
               </button>
               <button onClick={onJoinRoom} style={S.btnSecondary}>
                 <Key size={18} strokeWidth={2.5} />
                 <span>Entrar numa Sala</span>
               </button>
             </div>
-            {createRoomError && (
-              <div style={S.createRoomError}>
-                <span>{createRoomError}</span>
-                <button onClick={onClearCreateRoomError} style={S.createRoomErrorClose}>×</button>
-              </div>
-            )}
             <button onClick={onStartGame} style={S.btnGhost}>
               Jogar local (mesmo dispositivo)
               <ChevronRight size={14} />
@@ -396,16 +383,6 @@ const S: Record<string, React.CSSProperties> = {
   /* Play */
   playSection: { display: 'flex', flexDirection: 'column', gap: 8 },
   playGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
-  createRoomError: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--radius)',
-    padding: '10px 14px', fontSize: 13, fontWeight: 600, color: '#DC2626',
-  },
-  createRoomErrorClose: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    color: '#DC2626', fontSize: 18, lineHeight: 1, padding: '0 0 0 10px',
-    fontFamily: 'var(--font-body)',
-  },
   btnPrimary: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: '14px 16px',

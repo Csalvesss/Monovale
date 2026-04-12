@@ -25,7 +25,7 @@ function makeCode(): string {
   return s;
 }
 
-export async function createRoom(profile: UserProfile): Promise<string> {
+export function createRoom(profile: UserProfile): string {
   const code = makeCode();
   const room: Room = {
     code,
@@ -34,7 +34,11 @@ export async function createRoom(profile: UserProfile): Promise<string> {
     status: 'waiting',
     gameId: null,
   };
-  await setDoc(doc(db, 'rooms', code), { ...room, createdAt: Date.now() });
+  // Fire-and-forget: write to Firestore in the background without blocking.
+  // The room-lobby's listenRoom() will pick up the document as soon as it lands.
+  setDoc(doc(db, 'rooms', code), { ...room, createdAt: Date.now() }).catch(err => {
+    console.error('[createRoom] Firestore write failed:', err);
+  });
   return code;
 }
 
