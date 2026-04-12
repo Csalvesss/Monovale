@@ -232,16 +232,25 @@ export default function App() {
     setCreatingRoom(true);
     setCreateRoomError(null);
     try {
-      const code = await createRoom(profile);
+      const timeoutMs = 12_000;
+      const race = Promise.race([
+        createRoom(profile),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs),
+        ),
+      ]);
+      const code = await race;
       setRoomCode(code);
       setScreen('room-lobby');
     } catch (e) {
       const msg = (e as Error)?.message ?? '';
-      setCreateRoomError(
-        msg.includes('Missing or insufficient')
-          ? 'Erro de permissão. Faça logout e entre novamente.'
-          : 'Erro ao criar sala. Verifique sua conexão e tente novamente.',
-      );
+      if (msg === 'TIMEOUT') {
+        setCreateRoomError('Criação demorou demais. Verifique sua conexão e tente novamente.');
+      } else if (msg.includes('Missing or insufficient') || msg.includes('permission')) {
+        setCreateRoomError('Sem permissão no Firestore. Faça logout e entre novamente.');
+      } else {
+        setCreateRoomError(`Erro ao criar sala: ${msg || 'verifique sua conexão.'}`);
+      }
     } finally {
       setCreatingRoom(false);
     }
