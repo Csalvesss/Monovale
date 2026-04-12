@@ -19,6 +19,10 @@ service cloud.firestore {
       match /voiceSignal/{pairKey} {
         allow read, write: if request.auth != null;
       }
+      // Text chat messages
+      match /messages/{msgId} {
+        allow read, write: if request.auth != null;
+      }
     }
 
     // Monovale — active games

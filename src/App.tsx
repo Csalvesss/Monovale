@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { RefreshCw, LayoutGrid, Users, FileText, Key, HelpCircle } from 'lucide-react';
+import { RefreshCw, LayoutGrid, Users, FileText, Key, HelpCircle, MessageSquare } from 'lucide-react';
 import Lobby from './components/Lobby';
 import Board from './components/Board';
 import PlayerPanel from './components/PlayerPanel';
@@ -13,6 +13,7 @@ import EndScreen from './components/EndScreen';
 import LoginScreen from './components/LoginScreen';
 import HomePage from './components/HomePage';
 import VoiceChat from './components/VoiceChat';
+import VoicePanel from './components/VoicePanel';
 import GameHub from './components/GameHub';
 import JoinRoom from './components/JoinRoom';
 import RoomLobby from './components/RoomLobby';
@@ -35,7 +36,7 @@ const ROOM_KEY    = 'monovale_room_code';
 const BOARD_PX = 830; // CORNER*2 + CELL_W*9 = 100*2 + 72*9
 
 type Screen = 'hub' | 'home' | 'lobby' | 'join-room' | 'room-lobby' | 'game' | 'mercado-da-bola';
-type MobileTab = 'board' | 'players' | 'log';
+type MobileTab = 'board' | 'players' | 'log' | 'chat';
 
 function useWindowWidth() {
   const [w, setW] = useState(() => window.innerWidth);
@@ -57,11 +58,12 @@ function ScaledBoard({ state, scale }: { state: GameState; scale: number }) {
   );
 }
 
-function MobileTabBar({ active, onChange }: { active: MobileTab; onChange: (t: MobileTab) => void }) {
+function MobileTabBar({ active, onChange, showChat }: { active: MobileTab; onChange: (t: MobileTab) => void; showChat?: boolean }) {
   const tabs: { id: MobileTab; Icon: React.FC<{ size?: number; color?: string }>; label: string }[] = [
-    { id: 'board',   Icon: LayoutGrid, label: 'Tabuleiro' },
-    { id: 'players', Icon: Users,      label: 'Jogadores'  },
-    { id: 'log',     Icon: FileText,   label: 'Registro'   },
+    { id: 'board',   Icon: LayoutGrid,    label: 'Tabuleiro' },
+    { id: 'players', Icon: Users,         label: 'Jogadores' },
+    { id: 'log',     Icon: FileText,      label: 'Registro'  },
+    ...(showChat ? [{ id: 'chat' as MobileTab, Icon: MessageSquare, label: 'Chat' }] : []),
   ];
   return (
     <div style={TB.bar}>
@@ -123,6 +125,8 @@ export default function App() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [finishedGameId, setFinishedGameId] = useState<string | null>(null);
+  /** Which tab is active in the right-panel (desktop/tablet, room games only) */
+  const [rightTab, setRightTab] = useState<'log' | 'chat'>('log');
 
   // Real-time room game flags
   const isRoomGame = !!roomCode;
@@ -431,14 +435,7 @@ export default function App() {
       </div>
       <div style={S.topRight}>
         {!isMobile && <span style={S.bankerTag}>Banco Sr. Marinho</span>}
-        {isRoomGame && profile && (
-          <VoiceChat
-            roomCode={roomCode!}
-            uid={profile.uid}
-            displayName={profile.displayName}
-            isMobile={isMobile}
-          />
-        )}
+        {/* Voice controls live inside the Voice & Chat panel (right column / Chat tab) */}
         <button onClick={() => setShowHelp(true)} style={S.helpBtn} title="Como jogar">
           <HelpCircle size={16} />
         </button>
@@ -474,8 +471,13 @@ export default function App() {
             <EventLog log={gameState.log} />
           </div>
         )}
+        {mobileTab === 'chat' && isRoomGame && profile && (
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 8 }}>
+            <VoicePanel roomCode={roomCode!} uid={profile.uid} displayName={profile.displayName} />
+          </div>
+        )}
       </div>
-      <MobileTabBar active={mobileTab} onChange={setMobileTab} />
+      <MobileTabBar active={mobileTab} onChange={setMobileTab} showChat={isRoomGame} />
       {modals}
     </div>
   );
@@ -496,8 +498,21 @@ export default function App() {
           <div style={{ flex: '0 0 auto', maxHeight: '50%', overflowY: 'auto' }}>
             <PlayerPanel state={gameState} />
           </div>
-          <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-            <EventLog log={gameState.log} />
+          <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {isRoomGame && profile ? (
+              <>
+                <div style={S.panelTabs}>
+                  <button onClick={() => setRightTab('log')}  style={{ ...S.panelTab, ...(rightTab === 'log'  ? S.panelTabActive : {}) }}>Registro</button>
+                  <button onClick={() => setRightTab('chat')} style={{ ...S.panelTab, ...(rightTab === 'chat' ? S.panelTabActive : {}) }}>Voz &amp; Chat</button>
+                </div>
+                {rightTab === 'log'
+                  ? <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}><EventLog log={gameState.log} /></div>
+                  : <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}><VoicePanel roomCode={roomCode!} uid={profile.uid} displayName={profile.displayName} /></div>
+                }
+              </>
+            ) : (
+              <EventLog log={gameState.log} />
+            )}
           </div>
         </div>
       </div>
@@ -518,7 +533,22 @@ export default function App() {
             {canAct && <ActionPanel {...ap} />}
           </div>
         </div>
-        <div style={S.rightPanel}><EventLog log={gameState.log} /></div>
+        <div style={S.rightPanel}>
+          {isRoomGame && profile ? (
+            <>
+              <div style={S.panelTabs}>
+                <button onClick={() => setRightTab('log')}  style={{ ...S.panelTab, ...(rightTab === 'log'  ? S.panelTabActive : {}) }}>Registro</button>
+                <button onClick={() => setRightTab('chat')} style={{ ...S.panelTab, ...(rightTab === 'chat' ? S.panelTabActive : {}) }}>Voz &amp; Chat</button>
+              </div>
+              {rightTab === 'log'
+                ? <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}><EventLog log={gameState.log} /></div>
+                : <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}><VoicePanel roomCode={roomCode!} uid={profile.uid} displayName={profile.displayName} /></div>
+              }
+            </>
+          ) : (
+            <EventLog log={gameState.log} />
+          )}
+        </div>
       </div>
       {modals}
     </div>
@@ -548,6 +578,9 @@ const S: Record<string, React.CSSProperties> = {
   boardWrapper: { flexShrink: 0 },
   actionWrapper: { width: '100%', maxWidth: 800, paddingBottom: 8 },
   rightPanel: { width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  panelTabs: { display: 'flex', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--card)' },
+  panelTab: { flex: 1, padding: '8px 4px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-mid)', fontFamily: 'var(--font-body)', transition: 'color 0.15s' },
+  panelTabActive: { color: '#059669', boxShadow: 'inset 0 -2px 0 #059669' },
 
   waitingBanner: { padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)', borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600, color: 'var(--text-mid)', textAlign: 'center', marginBottom: 8 },
 
