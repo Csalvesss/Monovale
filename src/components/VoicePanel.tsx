@@ -28,23 +28,40 @@ export default function VoicePanel({ roomCode, uid, displayName }: Props) {
 
   const handleJoin = useCallback(async () => {
     if (loading) return;
+
+    // Check browser support before starting
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Seu navegador não suporta áudio (use HTTPS ou um navegador moderno).');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await voiceChatService.join(roomCode, uid, displayName, (p, ls) => {
-        setPeers(p);
-        setLocalSpeak(ls);
-      });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 20_000),
+      );
+      await Promise.race([
+        voiceChatService.join(roomCode, uid, displayName, (p, ls) => {
+          setPeers(p);
+          setLocalSpeak(ls);
+        }),
+        timeout,
+      ]);
       setJoined(true);
       setMuted(false);
     } catch (e) {
       const err = e as Error;
+      // Clean up any partial state so the next join attempt starts fresh
+      voiceChatService.leave().catch(() => {});
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setError('Permissão de microfone negada.');
+        setError('Permissão de microfone negada. Autorize o acesso ao microfone nas configurações do navegador.');
+      } else if (err.message === 'TIMEOUT') {
+        setError('Tempo limite atingido. Verifique sua conexão e tente novamente.');
       } else if (err.message?.includes('Missing or insufficient')) {
         setError('Erro de permissão no Firestore.');
       } else {
-        setError(`Erro: ${err.message || err.name}`);
+        setError(`Erro ao conectar: ${err.message || err.name}`);
       }
     } finally {
       setLoading(false);

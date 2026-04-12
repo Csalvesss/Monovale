@@ -462,6 +462,7 @@ const S: Record<string, React.CSSProperties> = {
   // Tab content wrapper
   tabContent: {
     flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+    minHeight: 0,
   },
 
   // Error bar
@@ -536,7 +537,7 @@ const S: Record<string, React.CSSProperties> = {
 
   // Peer list
   peerList: {
-    flex: 1, overflowY: 'auto', padding: '6px 0',
+    flex: 1, overflowY: 'auto', minHeight: 0, padding: '6px 0',
   },
   peerRow: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -574,9 +575,10 @@ const S: Record<string, React.CSSProperties> = {
   // Chat tab
   chatRoot: {
     flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    minHeight: 0,
   },
   msgList: {
-    flex: 1, overflowY: 'auto',
+    flex: 1, overflowY: 'auto', minHeight: 0,
     padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 2,
   },
   noMsgs: {

@@ -127,6 +127,8 @@ export default function App() {
   const [finishedGameId, setFinishedGameId] = useState<string | null>(null);
   /** Which tab is active in the right-panel (desktop/tablet, room games only) */
   const [rightTab, setRightTab] = useState<'log' | 'chat'>('log');
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [createRoomError, setCreateRoomError] = useState<string | null>(null);
 
   // Real-time room game flags
   const isRoomGame = !!roomCode;
@@ -142,6 +144,9 @@ export default function App() {
       if (roomCode && gameState.gameId) {
         startGameListener(gameState.gameId);
       }
+    } else if (roomCode) {
+      // Was in room lobby waiting for game to start — restore that screen
+      setScreen('room-lobby');
     }
   }, []); // eslint-disable-line
 
@@ -223,10 +228,23 @@ export default function App() {
 
   // ── Create room ──
   async function handleCreateRoom() {
-    if (!profile) return;
-    const code = await createRoom(profile);
-    setRoomCode(code);
-    setScreen('room-lobby');
+    if (!profile || creatingRoom) return;
+    setCreatingRoom(true);
+    setCreateRoomError(null);
+    try {
+      const code = await createRoom(profile);
+      setRoomCode(code);
+      setScreen('room-lobby');
+    } catch (e) {
+      const msg = (e as Error)?.message ?? '';
+      setCreateRoomError(
+        msg.includes('Missing or insufficient')
+          ? 'Erro de permissão. Faça logout e entre novamente.'
+          : 'Erro ao criar sala. Verifique sua conexão e tente novamente.',
+      );
+    } finally {
+      setCreatingRoom(false);
+    }
   }
 
   // ── Join room ──
@@ -333,6 +351,9 @@ export default function App() {
       onCreateRoom={handleCreateRoom}
       onJoinRoom={() => setScreen('join-room')}
       onBack={() => setScreen('hub')}
+      creatingRoom={creatingRoom}
+      createRoomError={createRoomError}
+      onClearCreateRoomError={() => setCreateRoomError(null)}
     />
   );
 
