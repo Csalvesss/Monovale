@@ -1,5 +1,5 @@
 import {
-  doc, setDoc, updateDoc, getDoc, onSnapshot, serverTimestamp,
+  doc, setDoc, updateDoc, getDoc, onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { GameState, UserProfile } from '../types';
@@ -34,7 +34,7 @@ export async function createRoom(profile: UserProfile): Promise<string> {
     status: 'waiting',
     gameId: null,
   };
-  await setDoc(doc(db, 'rooms', code), { ...room, createdAt: serverTimestamp() });
+  await setDoc(doc(db, 'rooms', code), { ...room, createdAt: Date.now() });
   return code;
 }
 
