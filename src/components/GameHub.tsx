@@ -8,6 +8,7 @@ import type { GameResult } from '../types';
 interface Props {
   onSelectMonovale: () => void;
   onSelectMercadoDaBola: () => void;
+  onSelectValeEmDisputa: () => void;
   hasSavedGame?: boolean;
   onResumeGame?: () => void;
 }
@@ -42,17 +43,17 @@ const GAMES: GameCard[] = [
     available: true,
   },
   {
-    id: 'game3',
-    name: 'Em Breve',
-    tagline: 'Novo jogo chegando',
-    description: 'Mais um título sendo preparado. Aguarde novidades!',
-    tags: ['Em breve'],
-    gradient: 'linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%)',
-    available: false,
+    id: 'vale-em-disputa',
+    name: 'Vale em Disputa',
+    tagline: 'War do Vale do Paraíba',
+    description: 'Conquiste as 30 cidades do Vale. Dispute regiões, dispute territórios e cumpra sua missão secreta para vencer. Multijogador online!',
+    tags: ['Estratégia', 'Multijogador', 'Conquista'],
+    gradient: 'linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%)',
+    available: true,
   },
 ];
 
-export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola, hasSavedGame, onResumeGame }: Props) {
+export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola, onSelectValeEmDisputa, hasSavedGame, onResumeGame }: Props) {
   const { profile, logout, updatePawn } = useAuth();
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [editingPawn, setEditingPawn] = useState(false);
@@ -75,6 +76,7 @@ export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola, hasSa
     if (!game.available) return;
     if (game.id === 'monovale') onSelectMonovale();
     if (game.id === 'mercado-da-bola') onSelectMercadoDaBola();
+    if (game.id === 'vale-em-disputa') onSelectValeEmDisputa();
   }
 
   return (
@@ -174,6 +176,11 @@ export default function GameHub({ onSelectMonovale, onSelectMercadoDaBola, hasSa
                       <div style={S.bannerInner}>
                         <span style={{ fontSize: 48 }}>⚽</span>
                         <span style={S.bannerGameName}>Lenda da Bola</span>
+                      </div>
+                    ) : game.id === 'vale-em-disputa' ? (
+                      <div style={S.bannerInner}>
+                        <span style={{ fontSize: 48 }}>🗺️</span>
+                        <span style={S.bannerGameName}>Vale em Disputa</span>
                       </div>
                     ) : (
                       <div style={S.bannerInner}>
