@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Vale em Disputa — Entry Point
-// Handles: lobby creation/joining, room lobby, and game play
+// Handles: lobby (online/local), room lobby, and game play
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -12,13 +12,14 @@ import {
 } from './services/gameService';
 import LobbyScreen from './components/LobbyScreen';
 import RoomLobbyScreen from './components/RoomLobbyScreen';
+import LocalSetupScreen from './components/LocalSetupScreen';
 import GameScreen from './components/GameScreen';
 
 interface Props {
   onBack: () => void;
 }
 
-type Screen = 'lobby' | 'room-lobby' | 'game';
+type Screen = 'lobby' | 'room-lobby' | 'local-setup' | 'game';
 
 // Generate a simple player ID for anonymous players
 function getOrCreatePlayerId(): string {
@@ -48,6 +49,7 @@ export default function ValeEmDisputa({ onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [isLocalGame, setIsLocalGame] = useState(false);
 
   const playerIdRef = useRef(getOrCreatePlayerId());
   const roomListenerRef = useRef<(() => void) | null>(null);
@@ -60,7 +62,6 @@ export default function ValeEmDisputa({ onBack }: Props) {
   useEffect(() => {
     const savedCode = localStorage.getItem('ved_room_code');
     if (savedCode) {
-      // Try to reconnect
       startRoomListener(savedCode);
     }
     return () => {
@@ -73,7 +74,6 @@ export default function ValeEmDisputa({ onBack }: Props) {
     roomListenerRef.current?.();
     roomListenerRef.current = listenRoom(code, room => {
       if (!room) {
-        // Room deleted or not found
         setRoomState(null);
         clearRoomSession();
         setScreen('lobby');
@@ -81,7 +81,6 @@ export default function ValeEmDisputa({ onBack }: Props) {
       }
       setRoomState(room);
 
-      // If game has started, subscribe to game
       if (room.status === 'playing' && room.gameId) {
         startGameListener(room.gameId);
         setScreen('game');
@@ -101,7 +100,7 @@ export default function ValeEmDisputa({ onBack }: Props) {
     });
   }
 
-  // ── Create room ─────────────────────────────────────────────────────────────
+  // ── Create room (online) ────────────────────────────────────────────────────
   async function handleCreateRoom(playerName: string) {
     setLoading(true);
     setError(null);
@@ -110,14 +109,14 @@ export default function ValeEmDisputa({ onBack }: Props) {
       saveRoomSession(code, myPlayerId);
       startRoomListener(code);
     } catch (e) {
-      setError('Erro ao criar sala. Tente novamente.');
+      setError('Erro ao criar sala. Verifique se as regras do Firestore estão publicadas.');
       console.error(e);
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Join room ──────────────────────────────────────────────────────────────
+  // ── Join room (online) ──────────────────────────────────────────────────────
   async function handleJoinRoom(code: string, playerName: string) {
     setLoading(true);
     setError(null);
@@ -140,10 +139,15 @@ export default function ValeEmDisputa({ onBack }: Props) {
   // ── Select faction ──────────────────────────────────────────────────────────
   async function handleSelectFaction(faction: FactionId) {
     if (!roomState) return;
-    await selectFaction(roomState.code, myPlayerId, faction);
+    try {
+      await selectFaction(roomState.code, myPlayerId, faction);
+    } catch (e) {
+      setError('Erro ao selecionar facção.');
+      console.error(e);
+    }
   }
 
-  // ── Start game ──────────────────────────────────────────────────────────────
+  // ── Start game (online) ─────────────────────────────────────────────────────
   async function handleStartGame() {
     if (!roomState) return;
     const players = Object.values(roomState.players);
@@ -151,6 +155,7 @@ export default function ValeEmDisputa({ onBack }: Props) {
     if (players.some(p => !p.faction)) return;
 
     setLoading(true);
+    setError(null);
     try {
       const gameId = 'ved_' + Date.now().toString(36);
       const gs = initGame({
@@ -165,28 +170,45 @@ export default function ValeEmDisputa({ onBack }: Props) {
 
       await startGame(roomState.code, gs);
       // Room listener will detect the status change and switch to game
-    } catch (e) {
-      setError('Erro ao iniciar o jogo.');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('permission') || msg.includes('insufficient')) {
+        setError('Permissão negada. Publique as regras do Firestore no Firebase Console e tente novamente.');
+      } else {
+        setError('Erro ao iniciar o jogo: ' + msg);
+      }
       console.error(e);
+      throw e; // re-throw so RoomLobbyScreen can catch it too
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Handle game state changes (local player action) ──────────────────────
+  // ── Start local game ────────────────────────────────────────────────────────
+  function handleStartLocalGame(players: { id: string; name: string; faction: FactionId }[]) {
+    const gameId = 'local_' + Date.now().toString(36);
+    const gs = initGame({ gameId, code: 'LOCAL', players });
+    setIsLocalGame(true);
+    setGameState(gs);
+    setScreen('game');
+  }
+
+  // ── Handle game state changes ───────────────────────────────────────────────
   const handleStateChange = useCallback((newState: GameState) => {
     setGameState(newState);
 
-    // Debounced save to Firestore
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      saveGameState(newState.id, newState).catch(console.error);
-    }, 300);
-  }, []);
+    // Only persist to Firestore for online games
+    if (!isLocalGame && newState.id) {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        saveGameState(newState.id, newState).catch(console.error);
+      }, 300);
+    }
+  }, [isLocalGame]);
 
-  // ── Leave room ──────────────────────────────────────────────────────────────
+  // ── Leave room / go back ────────────────────────────────────────────────────
   async function handleLeave() {
-    if (roomState) {
+    if (!isLocalGame && roomState) {
       await leaveRoom(roomState.code, myPlayerId);
     }
     roomListenerRef.current?.();
@@ -194,6 +216,7 @@ export default function ValeEmDisputa({ onBack }: Props) {
     clearRoomSession();
     setRoomState(null);
     setGameState(null);
+    setIsLocalGame(false);
     setScreen('lobby');
   }
 
@@ -203,9 +226,19 @@ export default function ValeEmDisputa({ onBack }: Props) {
       <LobbyScreen
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
+        onStartLocal={() => setScreen('local-setup')}
         onBack={onBack}
         loading={loading}
         error={error}
+      />
+    );
+  }
+
+  if (screen === 'local-setup') {
+    return (
+      <LocalSetupScreen
+        onStart={handleStartLocalGame}
+        onBack={() => setScreen('lobby')}
       />
     );
   }
@@ -218,6 +251,7 @@ export default function ValeEmDisputa({ onBack }: Props) {
         onSelectFaction={handleSelectFaction}
         onStartGame={handleStartGame}
         onLeave={handleLeave}
+        error={error}
       />
     );
   }
@@ -229,6 +263,7 @@ export default function ValeEmDisputa({ onBack }: Props) {
         myPlayerId={myPlayerId}
         onStateChange={handleStateChange}
         onBack={handleLeave}
+        isLocalGame={isLocalGame}
       />
     );
   }
@@ -244,8 +279,17 @@ export default function ValeEmDisputa({ onBack }: Props) {
       <div style={{ textAlign: 'center', color: '#94a3b8' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>🗺️</div>
         <div>Carregando Vale em Disputa...</div>
+        {error && (
+          <div style={{
+            marginTop: 12, padding: '10px 16px',
+            background: '#7f1d1d', border: '1px solid #ef4444',
+            borderRadius: 8, fontSize: 12, color: '#fca5a5',
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
         <button
-          onClick={() => { clearRoomSession(); setScreen('lobby'); }}
+          onClick={() => { clearRoomSession(); setScreen('lobby'); setError(null); }}
           style={{
             marginTop: 16,
             background: 'rgba(255,255,255,0.08)', border: 'none',

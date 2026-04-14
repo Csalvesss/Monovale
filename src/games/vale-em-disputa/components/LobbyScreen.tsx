@@ -7,12 +7,13 @@ import React, { useState } from 'react';
 interface Props {
   onCreateRoom: (playerName: string) => Promise<void>;
   onJoinRoom: (code: string, playerName: string) => Promise<void>;
+  onStartLocal: () => void;
   onBack: () => void;
   loading: boolean;
   error: string | null;
 }
 
-export default function LobbyScreen({ onCreateRoom, onJoinRoom, onBack, loading, error }: Props) {
+export default function LobbyScreen({ onCreateRoom, onJoinRoom, onStartLocal, onBack, loading, error }: Props) {
   const [mode, setMode] = useState<'pick' | 'create' | 'join'>('pick');
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
@@ -47,7 +48,7 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, onBack, loading,
           Vale em Disputa
         </h1>
         <p style={{ color: '#64748b', fontSize: 14, marginTop: 8, fontStyle: 'italic' }}>
-          War do Vale do Paraíba · 2–5 jogadores · Multijogador online
+          War do Vale do Paraíba · 2–5 jogadores
         </p>
       </div>
 
@@ -67,10 +68,21 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, onBack, loading,
               Como deseja jogar?
             </h2>
 
+            {/* Local mode */}
+            <button onClick={onStartLocal} style={S.bigBtn('#7c3aed')}>
+              <span style={{ fontSize: 24 }}>🖥️</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Jogo Local</div>
+                <div style={{ fontSize: 11, opacity: 0.8 }}>Mesmo dispositivo · Sem internet</div>
+              </div>
+            </button>
+
+            <div style={{ textAlign: 'center', color: '#475569', fontSize: 11, margin: '2px 0' }}>— ou multijogador online —</div>
+
             <button onClick={() => setMode('create')} style={S.bigBtn('#059669')}>
               <span style={{ fontSize: 24 }}>🏰</span>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Criar Sala</div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Criar Sala Online</div>
                 <div style={{ fontSize: 11, opacity: 0.8 }}>Gere um código e convide amigos</div>
               </div>
             </button>
