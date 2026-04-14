@@ -1,0 +1,607 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LENDA DA BOLA — Design System
+   EA Sports FC 26 Edition: glassmorphism · neon green · antique gold
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ─── Design Tokens ────────────────────────────────────────────────────────── */
+.ldb-game {
+  /* Backgrounds — FC 26 Dark Theme */
+  --ldb-void:     #020406;
+  --ldb-deep:     #050A0F;
+  --ldb-surface:  rgba(15,20,25,0.6);    /* Transparent para o glassmorphism */
+  --ldb-elevated: rgba(22,36,56,0.8);
+  --ldb-overlay:  rgba(2,4,6,0.88);
+
+  /* Pitch — Neon FC Green */
+  --ldb-pitch-dark:   #041A0E;
+  --ldb-pitch-mid:    #00994D;
+  --ldb-pitch-bright: #00FF87;           /* O segredo visual da EA */
+  --ldb-pitch-line:   rgba(255,255,255,0.12);
+
+  /* Gold — Cartas especiais */
+  --ldb-gold-deep:   #7A5C00;
+  --ldb-gold-mid:    #D4AF37;
+  --ldb-gold-bright: #FBF5B7;
+  --ldb-gold-glow:   rgba(212,175,55,0.3);
+
+  /* Text */
+  --ldb-text:         #F0F4F8;
+  --ldb-text-mid:     #8FA3B8;
+  --ldb-text-muted:   #4A6070;
+  --ldb-text-gold:    #D4AF37;
+  --ldb-text-danger:  #FF5555;
+  --ldb-text-success: #00E57A;
+
+  /* Borders */
+  --ldb-border:      rgba(255,255,255,0.06);
+  --ldb-border-mid:  rgba(255,255,255,0.12);
+  --ldb-border-em:   rgba(255,255,255,0.24);
+  --ldb-border-gold: rgba(212,175,55,0.4);
+
+  /* Shadows — mais agressivas para dar profundidade */
+  --ldb-shadow-card:     0 10px 40px rgba(0,0,0,0.6);
+  --ldb-shadow-elevated: 0 20px 60px rgba(0,0,0,0.75);
+  --ldb-shadow-gold:     0 0 32px rgba(212,175,55,0.28);
+  --ldb-shadow-green:    0 0 24px rgba(0,255,135,0.35);
+  --ldb-shadow-glow:     0 2px 16px rgba(0,0,0,0.5);
+
+  /* Typography */
+  --ldb-font-display: 'Bebas Neue', 'Outfit', sans-serif;
+  --ldb-font-body:    'Inter', system-ui, sans-serif;
+
+  /* Spacing */
+  --ldb-xs:  4px;
+  --ldb-sm:  8px;
+  --ldb-md:  16px;
+  --ldb-lg:  24px;
+  --ldb-xl:  40px;
+  --ldb-2xl: 64px;
+
+  /* Radii */
+  --ldb-r-sm:   6px;
+  --ldb-r-md:   12px;
+  --ldb-r-lg:   20px;
+  --ldb-r-pill: 999px;
+
+  /* Easing */
+  --ldb-ease-out: cubic-bezier(0.16,1,0.3,1);
+  --ldb-ease-std: cubic-bezier(0.4,0,0.2,1);
+
+  /* Result colors */
+  --ldb-win:  #00E57A;
+  --ldb-draw: #D4AF37;
+  --ldb-loss: #FF5555;
+  --ldb-xp:   #A855F7;
+
+  font-family: var(--ldb-font-body);
+  color: var(--ldb-text);
+  background: var(--ldb-void);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+.ldb-game ::-webkit-scrollbar { width: 4px; height: 4px; }
+.ldb-game ::-webkit-scrollbar-track { background: transparent; }
+.ldb-game ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.10);
+  border-radius: 99px;
+}
+
+/* ─── Cards — Glassmorphism ──────────────────────────────────────────────────── */
+.ldb-card {
+  background: var(--ldb-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255,255,255,0.15); /* Reflexo superior da luz */
+  border-radius: var(--ldb-r-lg);
+  box-shadow: var(--ldb-shadow-card);
+  transition: transform 300ms var(--ldb-ease-out),
+              border-color 300ms var(--ldb-ease-out),
+              box-shadow   300ms var(--ldb-ease-out);
+}
+.ldb-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--ldb-pitch-bright); /* Borda acende em neon no hover */
+  box-shadow: 0 12px 40px rgba(0,255,135,0.15);
+  cursor: pointer;
+}
+
+.ldb-card-gold {
+  background: var(--ldb-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--ldb-border-gold);
+  border-top: 1px solid rgba(251,245,183,0.3);
+  border-radius: var(--ldb-r-lg);
+  box-shadow: var(--ldb-shadow-gold);
+}
+
+/* ─── Panels — Flutuantes estilo Ultimate Team ───────────────────────────────── */
+.ldb-panel {
+  background: var(--ldb-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--ldb-r-md);
+  box-shadow: var(--ldb-shadow-card);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────────── */
+.ldb-btn-primary {
+  background: linear-gradient(135deg, var(--ldb-pitch-bright), var(--ldb-pitch-mid));
+  border: 1px solid rgba(0,255,135,0.4);
+  color: #020406; /* Texto escuro sobre neon para máximo contraste */
+  font-family: var(--ldb-font-body);
+  font-weight: 800;
+  padding: 14px 28px;
+  border-radius: var(--ldb-r-md);
+  cursor: pointer;
+  transition: all 250ms var(--ldb-ease-out);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 20px rgba(0,255,135,0.25);
+}
+.ldb-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.ldb-btn-primary:hover::after { opacity: 1; }
+.ldb-btn-primary:hover { box-shadow: 0 6px 28px rgba(0,255,135,0.4); }
+.ldb-btn-primary:active { transform: scale(0.98); }
+
+.ldb-btn-gold {
+  background: linear-gradient(135deg, var(--ldb-gold-bright), var(--ldb-gold-mid));
+  border: 1px solid rgba(212,175,55,0.5);
+  color: #020406;
+  font-family: var(--ldb-font-body);
+  font-weight: 800;
+  padding: 14px 28px;
+  border-radius: var(--ldb-r-md);
+  cursor: pointer;
+  transition: all 250ms var(--ldb-ease-out);
+  box-shadow: var(--ldb-shadow-gold);
+  font-size: 15px;
+}
+.ldb-btn-gold:hover { filter: brightness(1.08); }
+.ldb-btn-gold:active { transform: scale(0.98); }
+
+.ldb-btn-ghost {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--ldb-border);
+  color: var(--ldb-text-mid);
+  font-family: var(--ldb-font-body);
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--ldb-r-md);
+  cursor: pointer;
+  transition: all 200ms var(--ldb-ease-out);
+  font-size: 13px;
+}
+.ldb-btn-ghost:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--ldb-border-mid);
+  color: var(--ldb-text);
+}
+
+/* ─── Stat number ────────────────────────────────────────────────────────────── */
+.ldb-stat-number {
+  font-family: var(--ldb-font-display);
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  letter-spacing: 0.02em;
+  color: var(--ldb-text);
+  line-height: 1;
+}
+
+/* ─── Rating — Overall estilo FC (gradiente metálico) ───────────────────────── */
+.ldb-rating {
+  font-family: var(--ldb-font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #9BA4B5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+
+/* ─── Section label ──────────────────────────────────────────────────────────── */
+.ldb-section-label {
+  font-family: var(--ldb-font-body);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ldb-text-muted);
+}
+
+/* ─── Badge ──────────────────────────────────────────────────────────────────── */
+.ldb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--ldb-r-pill);
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.ldb-badge-green {
+  background: rgba(0,255,135,0.10);
+  color: var(--ldb-pitch-bright);
+  border-color: rgba(0,255,135,0.3);
+}
+.ldb-badge-gold {
+  background: rgba(212,175,55,0.12);
+  color: var(--ldb-text-gold);
+  border-color: var(--ldb-border-gold);
+}
+.ldb-badge-muted {
+  background: rgba(255,255,255,0.05);
+  color: var(--ldb-text-mid);
+  border-color: var(--ldb-border);
+}
+
+/* ─── Stars ──────────────────────────────────────────────────────────────────── */
+.ldb-stars {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.ldb-star       { color: var(--ldb-gold-mid);         font-size: 13px; }
+.ldb-star-empty { color: rgba(212,175,55,0.18);        font-size: 13px; }
+
+/* ─── Progress bar ───────────────────────────────────────────────────────────── */
+.ldb-progress {
+  height: 4px;
+  border-radius: var(--ldb-r-pill);
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+.ldb-progress-fill {
+  height: 100%;
+  border-radius: var(--ldb-r-pill);
+  transition: width 600ms var(--ldb-ease-out);
+}
+
+/* ─── Bottom nav — Glassmorphism ─────────────────────────────────────────────── */
+.ldb-nav {
+  display: flex;
+  background: rgba(2,4,6,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ldb-nav::-webkit-scrollbar { display: none; }
+
+.ldb-nav-item {
+  flex: 1;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 6px;
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  cursor: pointer;
+  transition: all 200ms var(--ldb-ease-out);
+  position: relative;
+  color: var(--ldb-text-muted);
+  -webkit-tap-highlight-color: transparent;
+}
+.ldb-nav-item.active {
+  color: var(--ldb-pitch-bright);
+  border-top-color: var(--ldb-pitch-bright);
+  background: rgba(0,255,135,0.07);
+}
+.ldb-nav-item span {
+  font-family: var(--ldb-font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ldb-nav-badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 14px);
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  background: #FF5555;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+/* ─── Top bar — Glassmorphism ────────────────────────────────────────────────── */
+.ldb-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--ldb-md);
+  height: 54px;
+  background: rgba(2,4,6,0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+/* ─── Match grid ─────────────────────────────────────────────────────────────── */
+.ldb-goal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 16px;
+  background: var(--ldb-pitch-dark);
+  border-radius: var(--ldb-r-lg);
+  border: 1px solid var(--ldb-pitch-line);
+}
+.ldb-goal-cell {
+  aspect-ratio: 1;
+  border-radius: var(--ldb-r-md);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--ldb-pitch-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ldb-font-display);
+  font-size: 20px;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: all 200ms var(--ldb-ease-out);
+  position: relative;
+}
+.ldb-goal-cell:hover {
+  background: rgba(0,255,135,0.10);
+  border-color: rgba(0,255,135,0.35);
+  color: var(--ldb-text);
+}
+.ldb-goal-cell.selected {
+  background: rgba(0,255,135,0.18);
+  border-color: var(--ldb-pitch-bright);
+  color: var(--ldb-text);
+  box-shadow: 0 0 16px rgba(0,255,135,0.4);
+}
+.ldb-goal-cell.token {
+  background: rgba(212,175,55,0.12);
+  border-color: rgba(212,175,55,0.5);
+  color: var(--ldb-gold-mid);
+}
+.ldb-goal-cell.goal-hit {
+  background: rgba(0,229,122,0.18);
+  border-color: var(--ldb-win);
+  color: var(--ldb-win);
+  animation: ldb-goal-pulse 0.6s ease;
+}
+.ldb-goal-cell.blocked {
+  background: rgba(255,85,85,0.12);
+  border-color: var(--ldb-loss);
+  color: var(--ldb-loss);
+}
+
+/* ─── Player card compact ────────────────────────────────────────────────────── */
+.ldb-player-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--ldb-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  border-radius: var(--ldb-r-md);
+  transition: all 200ms var(--ldb-ease-out);
+  cursor: pointer;
+}
+.ldb-player-row:hover {
+  background: rgba(22,36,56,0.75);
+  border-color: rgba(0,255,135,0.2);
+}
+.ldb-player-row--legendary {
+  border-color: rgba(212,175,55,0.35);
+  background: linear-gradient(135deg, rgba(212,175,55,0.07), rgba(15,20,25,0.6));
+}
+.ldb-player-row--legendary:hover {
+  border-color: rgba(212,175,55,0.55);
+}
+
+/* ─── Pitch field background ─────────────────────────────────────────────────── */
+.ldb-pitch-bg {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 48%,
+      rgba(255,255,255,0.025) 48%,
+      rgba(255,255,255,0.025) 52%
+    ),
+    linear-gradient(180deg,
+      #041A0E 0%,
+      #062814 33%,
+      #041A0E 33%,
+      #041A0E 66%,
+      #062814 66%,
+      #062814 100%
+    );
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--ldb-r-lg);
+}
+
+/* ─── Mood indicator ─────────────────────────────────────────────────────────── */
+.ldb-mood-bar {
+  height: 3px;
+  border-radius: 99px;
+  transition: width 500ms var(--ldb-ease-out);
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes ldb-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ldb-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ldb-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes ldb-goal-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,255,135,0.6); }
+  70%  { box-shadow: 0 0 0 12px rgba(0,255,135,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,255,135,0); }
+}
+@keyframes ldb-gold-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(212,175,55,0.3); }
+  50%       { box-shadow: 0 0 28px rgba(212,175,55,0.6); }
+}
+@keyframes ldb-particle-float {
+  0%   { opacity: 0; transform: translateY(0) scale(1) rotate(0deg); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-120px) scale(0.2) rotate(180deg); }
+}
+@keyframes ldb-counter-reveal {
+  from { opacity: 0; transform: scale(0.5) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes ldb-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes ldb-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ldb-pulsate {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+@keyframes ldb-tick-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.ldb-anim-fade-in   { animation: ldb-fade-in  0.4s var(--ldb-ease-out) both; }
+.ldb-anim-slide-up  { animation: ldb-slide-up 0.4s var(--ldb-ease-out) both; }
+.ldb-anim-scale-in  { animation: ldb-scale-in 0.3s var(--ldb-ease-out) both; }
+.ldb-anim-gold-glow { animation: ldb-gold-pulse 2s ease-in-out infinite; }
+.ldb-anim-pulsate   { animation: ldb-pulsate 1.5s ease-in-out infinite; }
+
+/* ─── Staggered delays ──────────────────────────────────────────────────────── */
+.ldb-delay-1 { animation-delay: 80ms; }
+.ldb-delay-2 { animation-delay: 160ms; }
+.ldb-delay-3 { animation-delay: 240ms; }
+.ldb-delay-4 { animation-delay: 320ms; }
+
+/* ─── Result colors utility ──────────────────────────────────────────────────── */
+.ldb-result-win  { color: var(--ldb-win);  }
+.ldb-result-draw { color: var(--ldb-draw); }
+.ldb-result-loss { color: var(--ldb-loss); }
+
+/* ─── Money display ──────────────────────────────────────────────────────────── */
+.ldb-money {
+  font-family: var(--ldb-font-display);
+  color: var(--ldb-text-gold);
+  letter-spacing: 0.02em;
+}
+.ldb-money-sm  { font-size: 14px; }
+.ldb-money-md  { font-size: 20px; }
+.ldb-money-lg  { font-size: 28px; }
+
+/* ─── Section divider ────────────────────────────────────────────────────────── */
+.ldb-divider {
+  height: 1px;
+  background: var(--ldb-border);
+  margin: var(--ldb-md) 0;
+}
+
+/* ─── News ticker ────────────────────────────────────────────────────────────── */
+.ldb-ticker-wrap {
+  overflow: hidden;
+  background: rgba(2,4,6,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 6px 0;
+}
+.ldb-ticker-inner {
+  display: flex;
+  gap: 40px;
+  white-space: nowrap;
+  animation: ldb-tick-scroll 30s linear infinite;
+  width: max-content;
+}
+.ldb-ticker-item {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ldb-text-mid);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Transfer offer card ────────────────────────────────────────────────────── */
+.ldb-offer-card {
+  background: var(--ldb-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--ldb-r-lg);
+  padding: 16px;
+  transition: all 200ms var(--ldb-ease-out);
+}
+.ldb-offer-card:hover { border-color: rgba(0,255,135,0.2); }
+
+/* ─── Tooltip ────────────────────────────────────────────────────────────────── */
+.ldb-tooltip {
+  position: relative;
+}
+.ldb-tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: #0D1A28;
+  border: 1px solid var(--ldb-border-mid);
+  color: var(--ldb-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--ldb-r-sm);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.ldb-tooltip:hover::after { opacity: 1; }

@@ -9,9 +9,13 @@ interface Props {
   onStartGame: () => void;
   onCreateRoom: () => void;
   onJoinRoom: () => void;
+  onBack: () => void;
+  creatingRoom?: boolean;
+  createRoomError?: string | null;
+  onClearCreateRoomError?: () => void;
 }
 
-export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Props) {
+export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom, onBack, creatingRoom, createRoomError, onClearCreateRoomError }: Props) {
   const { profile, logout, updatePawn } = useAuth();
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
@@ -46,8 +50,12 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Prop
       {/* ── Top bar ── */}
       <header style={S.header}>
         <div style={S.headerLeft}>
+          <button onClick={onBack} style={S.backBtn} title="Voltar à biblioteca">
+            <ChevronRight size={16} style={{ transform: 'rotate(180deg)' }} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>Biblioteca</span>
+          </button>
           <div style={S.headerLogo}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
               <rect width="28" height="28" rx="8" fill="white" fillOpacity="0.2"/>
               <path d="M5 20L10 11L14 16L18 8L23 20H5Z" fill="white" fillOpacity="0.95"/>
             </svg>
@@ -55,13 +63,33 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Prop
           </div>
         </div>
         <div style={S.headerRight}>
-          <span style={S.headerBanker}>Banco do Sr. Marinho</span>
           <button onClick={logout} style={S.logoutBtn}>
             <LogOut size={15} />
             <span>Sair</span>
           </button>
         </div>
       </header>
+
+      {/* ── Game hero banner ── */}
+      <div style={S.heroBanner}>
+        <div style={S.heroContent}>
+          <div style={S.heroLeft}>
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none" style={{ flexShrink: 0 }}>
+              <rect width="40" height="40" rx="12" fill="white" fillOpacity="0.15"/>
+              <path d="M8 28L14 16L20 22L26 12L32 28H8Z" fill="white" fillOpacity="0.9"/>
+            </svg>
+            <div>
+              <h1 style={S.heroTitle}>Monovale</h1>
+              <p style={S.heroSub}>Monopoly do Vale do Paraíba. Compre, construa e domine as cidades do Vale. O Banco do Sr. Marinho está esperando.</p>
+              <div style={S.heroTags}>
+                {['Estratégia', 'Multijogador', 'Até 8 jogadores', 'Econômico'].map(t => (
+                  <span key={t} style={S.heroTag}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div style={S.scrollArea}>
         <div style={S.content}>
@@ -122,15 +150,25 @@ export default function HomePage({ onStartGame, onCreateRoom, onJoinRoom }: Prop
           {/* ── Play buttons ── */}
           <div style={S.playSection}>
             <div style={S.playGrid}>
-              <button onClick={onCreateRoom} style={S.btnPrimary}>
+              <button
+                onClick={onCreateRoom}
+                disabled={creatingRoom}
+                style={{ ...S.btnPrimary, opacity: creatingRoom ? 0.7 : 1, cursor: creatingRoom ? 'wait' : 'pointer' }}
+              >
                 <Plus size={18} strokeWidth={2.5} />
-                <span>Criar Sala Online</span>
+                <span>{creatingRoom ? 'Criando...' : 'Criar Sala Online'}</span>
               </button>
               <button onClick={onJoinRoom} style={S.btnSecondary}>
                 <Key size={18} strokeWidth={2.5} />
                 <span>Entrar numa Sala</span>
               </button>
             </div>
+            {createRoomError && (
+              <div style={S.createRoomError}>
+                <span>{createRoomError}</span>
+                <button onClick={onClearCreateRoomError} style={S.createRoomErrorClose}>×</button>
+              </div>
+            )}
             <button onClick={onStartGame} style={S.btnGhost}>
               Jogar local (mesmo dispositivo)
               <ChevronRight size={14} />
@@ -208,26 +246,54 @@ const S: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '0 24px',
-    height: 60,
-    background: 'linear-gradient(135deg, #065F46, #047857)',
+    padding: '0 16px',
+    height: 52,
+    background: 'linear-gradient(90deg, #052e16, #065F46)',
     flexShrink: 0,
     boxShadow: '0 1px 0 rgba(255,255,255,0.06)',
+    position: 'sticky', top: 0, zIndex: 50,
   },
-  headerLeft: { display: 'flex', alignItems: 'center' },
-  headerLogo: { display: 'flex', alignItems: 'center', gap: 10 },
-  headerName: { fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.2px' },
-  headerRight: { display: 'flex', alignItems: 'center', gap: 16 },
-  headerBanker: { fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', display: 'none' as const },
-  logoutBtn: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    padding: '7px 14px',
-    background: 'rgba(255,255,255,0.12)',
+  headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  backBtn: {
+    display: 'flex', alignItems: 'center', gap: 4,
+    padding: '5px 10px',
+    background: 'rgba(255,255,255,0.1)',
     border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 99,
-    fontSize: 13, fontWeight: 600, color: '#fff',
+    color: 'rgba(255,255,255,0.8)',
     cursor: 'pointer',
     fontFamily: 'var(--font-body)',
+  },
+  headerLogo: { display: 'flex', alignItems: 'center', gap: 8 },
+  headerName: { fontFamily: 'var(--font-title)', fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.2px' },
+  headerRight: { display: 'flex', alignItems: 'center', gap: 12 },
+  logoutBtn: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '6px 12px',
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: 99,
+    fontSize: 12, fontWeight: 600, color: '#fff',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-body)',
+  },
+
+  heroBanner: {
+    background: 'linear-gradient(135deg, #065F46 0%, #047857 50%, #059669 100%)',
+    flexShrink: 0,
+    padding: '24px 20px',
+  },
+  heroContent: { maxWidth: 640, margin: '0 auto' },
+  heroLeft: { display: 'flex', alignItems: 'flex-start', gap: 16 },
+  heroTitle: { fontFamily: 'var(--font-title)', fontSize: 28, fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.3px', lineHeight: 1.1 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.55, margin: '0 0 12px', maxWidth: 480 },
+  heroTags: { display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
+  heroTag: {
+    fontSize: 11, fontWeight: 700,
+    padding: '3px 10px', borderRadius: 99,
+    background: 'rgba(255,255,255,0.15)',
+    color: 'rgba(255,255,255,0.9)',
+    border: '1px solid rgba(255,255,255,0.2)',
   },
 
   scrollArea: {
@@ -330,6 +396,16 @@ const S: Record<string, React.CSSProperties> = {
   /* Play */
   playSection: { display: 'flex', flexDirection: 'column', gap: 8 },
   playGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
+  createRoomError: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--radius)',
+    padding: '10px 14px', fontSize: 13, fontWeight: 600, color: '#DC2626',
+  },
+  createRoomErrorClose: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: '#DC2626', fontSize: 18, lineHeight: 1, padding: '0 0 0 10px',
+    fontFamily: 'var(--font-body)',
+  },
   btnPrimary: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: '14px 16px',

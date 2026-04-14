@@ -104,12 +104,41 @@ export interface TradeState {
   status: 'selecting_target' | 'configuring' | 'awaiting_response';
 }
 
+// ─── Event Cards (Evento do Vale) ────────────────────────────────────────────
+
+export type EventCardAction =
+  | { type: 'all_pay'; amount: number }
+  | { type: 'all_collect'; amount: number }
+  | { type: 'richest_pays_bank'; amount: number }
+  | { type: 'poorest_collects'; amount: number }
+  | { type: 'richest_pays_poorest'; amount: number }
+  | { type: 'random_player_pays'; amount: number }
+  | { type: 'random_player_collects'; amount: number }
+  | { type: 'all_property_owners_pay'; amount: number }
+  | { type: 'all_property_owners_collect'; amount: number }
+  | { type: 'specific_owner_pays'; position: number; spaceName: string; amount: number }
+  | { type: 'specific_owner_collects'; position: number; spaceName: string; amount: number }
+  | { type: 'double_next_rent' }
+  | { type: 'skip_next_rent' }
+  | { type: 'no_effect' };
+
+export type EventCondition = 'always' | 'someone_owns_property';
+
+export interface EventCard {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  condition: EventCondition;
+  action: EventCardAction;
+}
+
 // ─── Log ─────────────────────────────────────────────────────────────────────
 
 export interface LogEntry {
   id: string;
   text: string;
-  type: 'info' | 'bank' | 'trade' | 'auction' | 'jail' | 'card' | 'bankrupt';
+  type: 'info' | 'bank' | 'trade' | 'auction' | 'jail' | 'card' | 'bankrupt' | 'event';
   timestamp: number;
 }
 
@@ -143,6 +172,12 @@ export interface GameState {
   log: LogEntry[];
   winner: string | null;
   gameId: string | null;   // Firestore doc id
+  // ── Evento do Vale ──
+  pendingEvent: EventCard | null;
+  roundNumber: number;
+  doubleNextRent: boolean;
+  skipNextRent: boolean;
+  recentEventIds: string[];
 }
 
 // ─── Lobby Config ────────────────────────────────────────────────────────────
