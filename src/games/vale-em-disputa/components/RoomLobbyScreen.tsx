@@ -12,10 +12,12 @@ interface Props {
   onSelectFaction: (faction: FactionId) => Promise<void>;
   onStartGame: () => Promise<void>;
   onLeave: () => void;
+  error?: string | null;
 }
 
-export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onStartGame, onLeave }: Props) {
+export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onStartGame, onLeave, error }: Props) {
   const [starting, setStarting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const me = room.players[myPlayerId];
   const isHost = me?.isHost;
   const players = Object.values(room.players);
@@ -24,8 +26,16 @@ export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onS
 
   async function handleStart() {
     setStarting(true);
+    setLocalError(null);
     try {
       await onStartGame();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('permission') || msg.includes('insufficient')) {
+        setLocalError('Permissão negada pelo Firestore. Verifique se as regras de segurança estão publicadas no Firebase Console.');
+      } else {
+        setLocalError('Erro ao iniciar o jogo. Tente novamente.');
+      }
     } finally {
       setStarting(false);
     }
@@ -125,8 +135,28 @@ export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onS
           </div>
         </div>
 
-        {/* Faction selection */}
-        {me && !me.faction && (
+
+        {/* Already selected faction */}
+        {me?.faction && (
+          <div style={{
+            background: `${FACTIONS[me.faction].color}22`,
+            border: `1px solid ${FACTIONS[me.faction].color}44`,
+            borderRadius: 12, padding: '12px 16px',
+            marginBottom: 16,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <span style={{ fontSize: 28 }}>{FACTIONS[me.faction].emoji}</span>
+            <div>
+              <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 13 }}>
+                {FACTIONS[me.faction].name}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: 11 }}>Facção selecionada · Clique para trocar</div>
+            </div>
+          </div>
+        )}
+
+        {/* Faction selector (show when no faction selected, or always to allow changing) */}
+        {me && (
           <div style={{
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(255,255,255,0.07)',
@@ -134,23 +164,26 @@ export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onS
             marginBottom: 20,
           }}>
             <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-              Escolha sua Facção
+              {me.faction ? 'Trocar Facção' : 'Escolha sua Facção'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {FACTION_LIST.map(faction => {
                 const taken = takenFactions.has(faction.id) && me.faction !== faction.id;
+                const isSelected = me.faction === faction.id;
                 return (
                   <button
                     key={faction.id}
-                    onClick={() => !taken && onSelectFaction(faction.id)}
-                    disabled={taken}
+                    onClick={() => !taken && !isSelected && onSelectFaction(faction.id)}
+                    disabled={taken || isSelected}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
                       padding: '12px 14px',
-                      background: taken ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${taken ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
+                      background: isSelected
+                        ? `${faction.color}33`
+                        : taken ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${isSelected ? faction.color : taken ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
                       borderRadius: 10,
-                      cursor: taken ? 'not-allowed' : 'pointer',
+                      cursor: taken || isSelected ? 'default' : 'pointer',
                       opacity: taken ? 0.4 : 1,
                       textAlign: 'left',
                       transition: 'all 0.15s',
@@ -167,7 +200,9 @@ export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onS
                     </div>
                     <div>
                       <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 13, marginBottom: 2 }}>
-                        {faction.name} {taken && '(ocupado)'}
+                        {faction.name}
+                        {isSelected && <span style={{ marginLeft: 6, fontSize: 10, color: '#10b981' }}>✓ SELECIONADO</span>}
+                        {taken && !isSelected && <span style={{ marginLeft: 6, fontSize: 10, color: '#ef4444' }}>(ocupado)</span>}
                       </div>
                       <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.4 }}>
                         <span style={{ color: '#86efac' }}>Passivo:</span> {faction.passive}
@@ -183,32 +218,16 @@ export default function RoomLobbyScreen({ room, myPlayerId, onSelectFaction, onS
           </div>
         )}
 
-        {/* Already selected faction */}
-        {me?.faction && (
+        {/* Error message */}
+        {(localError || error) && (
           <div style={{
-            background: `${FACTIONS[me.faction].color}22`,
-            border: `1px solid ${FACTIONS[me.faction].color}44`,
-            borderRadius: 12, padding: '12px 16px',
-            marginBottom: 16,
-            display: 'flex', alignItems: 'center', gap: 12,
+            background: '#7f1d1d',
+            border: '1px solid #ef4444',
+            borderRadius: 10, padding: '10px 14px',
+            fontSize: 12, color: '#fca5a5', lineHeight: 1.5,
+            marginBottom: 4,
           }}>
-            <span style={{ fontSize: 28 }}>{FACTIONS[me.faction].emoji}</span>
-            <div>
-              <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 13 }}>
-                {FACTIONS[me.faction].name}
-              </div>
-              <div style={{ color: '#94a3b8', fontSize: 11 }}>Facção selecionada</div>
-            </div>
-            <button
-              onClick={() => onSelectFaction(me.faction!)}
-              style={{
-                marginLeft: 'auto', background: 'rgba(255,255,255,0.08)',
-                border: 'none', borderRadius: 6, padding: '4px 10px',
-                fontSize: 11, color: '#94a3b8', cursor: 'pointer',
-              }}
-            >
-              Trocar
-            </button>
+            ⚠️ {localError || error}
           </div>
         )}
 

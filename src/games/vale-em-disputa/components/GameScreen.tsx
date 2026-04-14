@@ -24,11 +24,12 @@ interface Props {
   myPlayerId: string;
   onStateChange: (newState: GameState) => void;
   onBack: () => void;
+  isLocalGame?: boolean;
 }
 
 type Tab = 'map' | 'players' | 'log';
 
-export default function GameScreen({ gameState, myPlayerId, onStateChange, onBack }: Props) {
+export default function GameScreen({ gameState, myPlayerId, onStateChange, onBack, isLocalGame = false }: Props) {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [attackFrom, setAttackFrom] = useState<string | null>(null);
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
@@ -38,8 +39,10 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
   const [mobileTab, setMobileTab] = useState<Tab>('map');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  const isMyTurn = gameState.currentTurn === myPlayerId;
-  const currentPlayer = gameState.players[myPlayerId];
+  // In local mode, the "active player" is always whoever's turn it is
+  const effectivePlayerId = isLocalGame ? gameState.currentTurn : myPlayerId;
+  const isMyTurn = isLocalGame ? true : gameState.currentTurn === myPlayerId;
+  const currentPlayer = gameState.players[effectivePlayerId];
   const phase = gameState.currentPhase;
 
   // Update mobile detection
@@ -51,22 +54,17 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
 
   // Recalculate reinforcements when turn changes or phase starts
   useEffect(() => {
-    if (isMyTurn && phase === 'reinforce') {
-      const base = calculateReinforcements(gameState, myPlayerId);
+    if (phase === 'reinforce') {
+      const base = calculateReinforcements(gameState, effectivePlayerId);
       setReinforcementsLeft(base);
     }
   }, [gameState.currentTurn, phase]); // eslint-disable-line
 
   // Check mandatory territory card trade
-  const mustTrade = isMyTurn && mustTradeCards(gameState, myPlayerId);
+  const mustTrade = mustTradeCards(gameState, effectivePlayerId);
 
   // ── City click handler ────────────────────────────────────────────────────
   const handleCityClick = useCallback((city: string) => {
-    if (!isMyTurn) {
-      setSelectedCity(city);
-      return;
-    }
-
     const territory = gameState.territories[city];
 
     // Attack mode: second click = target
@@ -76,12 +74,11 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
         setSelectedCity(null);
         return;
       }
-      if (territory.owner !== myPlayerId && ADJACENCIES[attackFrom]?.includes(city)) {
+      if (territory.owner !== effectivePlayerId && ADJACENCIES[attackFrom]?.includes(city)) {
         handleConfirmAttack(attackFrom, city);
         return;
       }
-      // Clicked own city or non-adjacent — switch source
-      if (territory.owner === myPlayerId) {
+      if (territory.owner === effectivePlayerId) {
         setAttackFrom(city);
         setSelectedCity(city);
       }
@@ -95,11 +92,11 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
         setSelectedCity(null);
         return;
       }
-      if (territory.owner === myPlayerId && ADJACENCIES[moveFrom]?.includes(city)) {
+      if (territory.owner === effectivePlayerId && ADJACENCIES[moveFrom]?.includes(city)) {
         setSelectedCity(city);
         return;
       }
-      if (territory.owner === myPlayerId) {
+      if (territory.owner === effectivePlayerId) {
         setMoveFrom(city);
         setSelectedCity(city);
       }
@@ -107,33 +104,33 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
     }
 
     setSelectedCity(city);
-  }, [isMyTurn, attackFrom, moveFrom, gameState.territories, myPlayerId]); // eslint-disable-line
+  }, [attackFrom, moveFrom, gameState.territories, effectivePlayerId]); // eslint-disable-line
 
   // ── Reinforce ─────────────────────────────────────────────────────────────
   function handleReinforce(city: string, troops: number) {
-    if (!isMyTurn || phase !== 'reinforce') return;
+    if (phase !== 'reinforce') return;
     if (reinforcementsLeft <= 0) return;
 
     const actualTroops = Math.min(troops, reinforcementsLeft);
-    const bonus = getReinforcePassiveBonus(myPlayerId, city, gameState);
+    const bonus = getReinforcePassiveBonus(effectivePlayerId, city, gameState);
     const totalTroops = actualTroops + bonus;
 
-    const newState = placeReinforcement(gameState, myPlayerId, city, totalTroops);
+    const newState = placeReinforcement(gameState, effectivePlayerId, city, totalTroops);
     onStateChange(newState);
     setReinforcementsLeft(prev => prev - actualTroops);
   }
 
   // ── Attack ─────────────────────────────────────────────────────────────────
   function handleStartAttack(from: string) {
-    if (!isMyTurn || phase !== 'attack') return;
+    if (phase !== 'attack') return;
     setAttackFrom(from);
     setSelectedCity(from);
   }
 
   function handleConfirmAttack(from: string, to: string) {
-    if (!isMyTurn || phase !== 'attack') return;
+    if (phase !== 'attack') return;
 
-    const { state: newState, result } = performAttack(gameState, myPlayerId, { fromCity: from, toCity: to });
+    const { state: newState, result } = performAttack(gameState, effectivePlayerId, { fromCity: from, toCity: to });
     if (!result) return;
 
     setDiceResult({ result, from, to });
@@ -149,14 +146,14 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
 
   // ── Move ──────────────────────────────────────────────────────────────────
   function handleStartMove(from: string) {
-    if (!isMyTurn || phase !== 'move') return;
+    if (phase !== 'move') return;
     setMoveFrom(from);
     setSelectedCity(from);
   }
 
   function handleConfirmMove(from: string, to: string, troops: number) {
-    if (!isMyTurn || phase !== 'move') return;
-    const newState = moveTroops(gameState, myPlayerId, from, to, troops);
+    if (phase !== 'move') return;
+    const newState = moveTroops(gameState, effectivePlayerId, from, to, troops);
     onStateChange(newState);
     setMoveFrom(null);
     setSelectedCity(null);
@@ -178,16 +175,12 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
     setMoveFrom(null);
     setSelectedCity(null);
 
-    // If moving to reinforce next turn (new player's turn)
-    if (newState.currentTurn !== myPlayerId) {
-      setReinforcementsLeft(0);
-    }
+    setReinforcementsLeft(0);
   }
 
   // ── Gold spend ─────────────────────────────────────────────────────────────
   function handleSpendGold(amount: number) {
-    if (!isMyTurn) return;
-    const { state: newState, troopsGained } = spendGoldForTroops(gameState, myPlayerId, amount);
+    const { state: newState, troopsGained } = spendGoldForTroops(gameState, effectivePlayerId, amount);
     if (troopsGained > 0) {
       onStateChange(newState);
       if (phase === 'reinforce') {
@@ -198,32 +191,29 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
 
   // ── Faction power ──────────────────────────────────────────────────────────
   function handleUseFactionPower() {
-    if (!isMyTurn || !currentPlayer?.pendingPowerAvailable) return;
-    // Trigger event card draw when 3 wins reached
-    const newState = triggerEventDraw(gameState, myPlayerId);
+    if (!currentPlayer?.pendingPowerAvailable) return;
+    const newState = triggerEventDraw(gameState, effectivePlayerId);
     onStateChange(newState);
   }
 
   // ── Event card choice ──────────────────────────────────────────────────────
   function handleEventChoice(chosenId: string, discardId: string) {
-    const newState1 = resolveEventChoice(gameState, myPlayerId, chosenId, discardId);
-    const newState2 = applySimpleEventCard(newState1, myPlayerId, chosenId);
+    const newState1 = resolveEventChoice(gameState, effectivePlayerId, chosenId, discardId);
+    const newState2 = applySimpleEventCard(newState1, effectivePlayerId, chosenId);
     onStateChange(newState2);
   }
 
   // ── Territory cards ────────────────────────────────────────────────────────
   function handleTrade(cities: string[]) {
-    const newState = tradeTerritoryCards(gameState, myPlayerId, cities);
-    // Give bonus troops
+    const newState = tradeTerritoryCards(gameState, effectivePlayerId, cities);
     const bonus = 4 + gameState.tradeCount * 2;
-    if (selectedCity && newState.territories[selectedCity]?.owner === myPlayerId) {
-      const withTroops = placeReinforcement(newState, myPlayerId, selectedCity, bonus);
+    if (selectedCity && newState.territories[selectedCity]?.owner === effectivePlayerId) {
+      const withTroops = placeReinforcement(newState, effectivePlayerId, selectedCity, bonus);
       onStateChange(withTroops);
     } else {
-      // No city selected — add to first own city
-      const firstCity = Object.entries(newState.territories).find(([, t]) => t.owner === myPlayerId)?.[0];
+      const firstCity = Object.entries(newState.territories).find(([, t]) => t.owner === effectivePlayerId)?.[0];
       if (firstCity) {
-        onStateChange(placeReinforcement(newState, myPlayerId, firstCity, bonus));
+        onStateChange(placeReinforcement(newState, effectivePlayerId, firstCity, bonus));
       } else {
         onStateChange(newState);
       }
@@ -237,7 +227,6 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
   // ── Win screen ─────────────────────────────────────────────────────────────
   if (gameState.winner) {
     const winner = gameState.players[gameState.winner];
-    const isWinner = gameState.winner === myPlayerId;
     return (
       <div style={{
         minHeight: '100dvh',
@@ -246,15 +235,13 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
         padding: 20, fontFamily: 'var(--font-body)',
       }}>
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>
-            {isWinner ? '🏆' : '💀'}
-          </div>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
           <h1 style={{
             fontFamily: 'var(--font-title)',
-            fontSize: 28, fontWeight: 900, color: isWinner ? '#fcd34d' : '#f1f5f9',
+            fontSize: 28, fontWeight: 900, color: '#fcd34d',
             margin: '0 0 12px',
           }}>
-            {isWinner ? 'Você venceu!' : `${winner?.name ?? '?'} venceu!`}
+            {winner?.name ?? '?'} venceu!
           </h1>
           <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
             {gameState.winReason}
@@ -313,7 +300,15 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          {isMyTurn && (
+          {isLocalGame ? (
+            <div style={{
+              background: '#7c3aed', color: '#fff',
+              borderRadius: 6, padding: '2px 10px',
+              fontSize: 11, fontWeight: 800,
+            }}>
+              VEZ: {gameState.players[gameState.currentTurn]?.name?.toUpperCase()}
+            </div>
+          ) : isMyTurn ? (
             <div style={{
               background: '#059669', color: '#fff',
               borderRadius: 6, padding: '2px 10px',
@@ -322,7 +317,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
             }}>
               SUA VEZ
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -364,7 +359,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
             borderRight: '1px solid rgba(255,255,255,0.06)',
             overflowY: 'auto', padding: 10,
           }}>
-            <PlayerPanel gameState={gameState} currentPlayerId={myPlayerId} />
+            <PlayerPanel gameState={gameState} currentPlayerId={effectivePlayerId} />
           </div>
         )}
 
@@ -374,7 +369,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
             <div style={{ flex: 1, padding: 8, overflow: 'hidden' }}>
               <MapSVG
                 gameState={gameState}
-                currentPlayerId={myPlayerId}
+                currentPlayerId={effectivePlayerId}
                 selectedCity={selectedCity}
                 attackFrom={attackFrom}
                 moveFrom={moveFrom}
@@ -391,7 +386,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
               }}>
                 <ActionPanel
                   gameState={gameState}
-                  playerId={myPlayerId}
+                  playerId={effectivePlayerId}
                   isMyTurn={isMyTurn}
                   selectedCity={selectedCity}
                   attackFrom={attackFrom}
@@ -428,7 +423,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
         {/* Mobile: players tab */}
         {isMobile && mobileTab === 'players' && (
           <div style={{ flex: 1, overflow: 'auto', padding: 10, background: '#0f172a' }}>
-            <PlayerPanel gameState={gameState} currentPlayerId={myPlayerId} />
+            <PlayerPanel gameState={gameState} currentPlayerId={effectivePlayerId} />
             <div style={{ marginTop: 10 }}>
               <ActionPanel
                 gameState={gameState}
@@ -499,7 +494,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
       {diceResult && (
         <DiceRoller
           result={diceResult.result}
-          attackerName={gameState.players[myPlayerId]?.name ?? 'Atacante'}
+          attackerName={gameState.players[effectivePlayerId]?.name ?? 'Atacante'}
           defenderName={gameState.territories[diceResult.to]?.owner
             ? (gameState.players[gameState.territories[diceResult.to].owner!]?.name ?? 'Defensor')
             : 'Neutro'}
@@ -510,7 +505,7 @@ export default function GameScreen({ gameState, myPlayerId, onStateChange, onBac
       )}
 
       {/* Event card choice */}
-      {gameState.pendingEventChoice && gameState.currentTurn === myPlayerId && (
+      {gameState.pendingEventChoice && gameState.currentTurn === effectivePlayerId && (
         <EventCardModal
           cardIds={gameState.pendingEventChoice.cardIds}
           onChoose={handleEventChoice}
